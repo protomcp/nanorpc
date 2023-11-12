@@ -1,4 +1,4 @@
-# RPC for NanoPB
+# NanoRPC is RPC for NanoPB
 
 ## See also
 
