@@ -8,11 +8,24 @@
 go install github.com/golangci/golangci-lint/cmd/...@latest
 golangci-lint run
 ```
+or
+
+```sh
+make get
+make lint
+```
 
 # Build
 
 ```sh
+go get -v ./...
 go build -v ./...
+```
+or
+
+```sh
+make get
+make build
 ```
 
 ## See also
