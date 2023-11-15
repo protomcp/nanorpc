@@ -2,6 +2,7 @@ package generator
 
 import (
 	"errors"
+	"text/template"
 
 	"github.com/amery/protogen/pkg/protogen"
 )
@@ -9,6 +10,7 @@ import (
 // Generator is a proto generator for NanoRPC
 type Generator struct {
 	p *protogen.Plugin
+	t *template.Template
 }
 
 func (*Generator) init() error {
