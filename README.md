@@ -9,6 +9,12 @@ go install github.com/golangci/golangci-lint/cmd/...@latest
 golangci-lint run
 ```
 
+# Build
+
+```sh
+go build -v ./...
+```
+
 ## See also
 
 * https://github.com/nanopb/nanopb
