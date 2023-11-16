@@ -49,4 +49,5 @@ get: deps
 	$(GO_GET) ./...
 
 lint: deps
+	$(GO) mod tidy
 	$(GOLINT) $(GOLINT_ARGS) $(GOLINT_RUN) $(GOLINT_RUN_ARGS)
