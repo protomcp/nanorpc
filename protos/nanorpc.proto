@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+import "nanopb.proto";
+
+option (nanopb_fileopt).long_names = false;
+
+message NanoRPCRequest {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_PING = 1;
+    TYPE_REQUEST = 2;
+    TYPE_SUBSCRIBE = 3;
+  }
+
+  int32 request_id = 1;
+  Type request_type = 2;
+
+  oneof path_oneof {
+    int32 path_hash = 3;
+    string path = 4 [(nanopb).type = FT_POINTER];
+  }
+
+  repeated bytes data = 10 [(nanopb).type = FT_POINTER];
+}
+
+message NanoRPCResponse {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_PONG = 1;
+    TYPE_RESPONSE = 2;
+    TYPE_UPDATE = 3;
+  }
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_OK = 1;
+    STATUS_NOT_FOUND = 2;
+    STATUS_NOT_AUTHORIZED = 3;
+  }
+
+  int32 request_id = 1;
+  Type response_type = 2;
+  Status response_status = 3;
+  string response_message = 4;
+
+  repeated bytes data = 10 [(nanopb).type = FT_POINTER];
+}
