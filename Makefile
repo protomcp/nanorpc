@@ -59,6 +59,12 @@ tidy: fmt
 
 generate: ; $(info $(M) running go:generate…)
 	$Q git grep -l '^//go:generate' | sort -uV | xargs -r -n1 $(GO) generate $(GOGENERATE_FLAGS)
+	$Q protoc -Iprotos/ \
+		--go_out=pkg/nanorpc \
+		--go_opt=paths=source_relative \
+		--go_opt=Mnanopb.proto=github.com/amery/nanorpc/pkg/nanopb \
+		--go_opt=Mnanorpc.proto=github.com/amery/nanorpc/pkg/nanorpc \
+		protos/nanorpc.proto
 
 $(REVIVE):
 	$Q $(GO) install -v $(REVIVE_INSTALL_URL)
