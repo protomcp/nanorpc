@@ -1,3 +1,4 @@
+// Package generator provides nanorpc generators
 package generator
 
 import (

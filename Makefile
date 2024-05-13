@@ -1,52 +1,64 @@
-.PHONY: all get generate lint build install
+.PHONY: all clean generate fmt tidy
+.PHONY: FORCE
 
-# go
-#
 GO ?= go
-GO_BUILD_ARGS ?= -v
-GO_INSTALL_ARGS ?=
-GO_GENERATE_ARGS ?= -v
-GO_GET_ARGS ?= -v
+GOFMT ?= gofmt
+GOFMT_FLAGS = -w -l -s
+GOGENERATE_FLAGS = -v
 
-GO_BUILD := $(GO) build $(GO_BUILD_ARGS)
-GO_INSTALL := $(GO) install $(GO_BUILD_ARGS) $(GO_INSTALL_ARGS)
-GO_GENERATE := $(GO) generate $(GO_GENERATE_ARGS)
-GO_GET := $(GO) get $(GO_GET_ARGS)
+GOPATH ?= $(shell $(GO) env GOPATH)
+GOBIN ?= $(GOPATH)/bin
 
-# golint
-#
-GOLINT ?= golangci-lint
-GOLINT_URL ?= github.com/golangci/golangci-lint/cmd/...
-GOLINT_VERSION ?= latest
-GOLINT_ARGS ?=
-GOLINT_RUN ?= run
-GOLINT_RUN_ARGS ?= --fix
+TOOLSDIR := $(CURDIR)/pkg/internal/build
+TMPDIR ?= $(CURDIR)/.tmp
+OUTDIR ?= $(TMPDIR)
 
+GOLANGCI_LINT_VERSION ?= v1.55
+REVIVE_VERSION ?= v1.3.6
 
-GO_INSTALL_DEPS =
-ifeq ($(shell which $(GOLINT)),)
-GO_INSTALL_DEPS += $(GOLINT_URL)@$(GOLINT_VERSION)
-endif
+GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
+GOLANGCI_LINT_URL ?= github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-all: get lint build
+REVIVE ?= $(GOBIN)/revive
+REVIVE_CONF ?= $(TOOLSDIR)/revive.toml
+REVIVE_RUN_ARGS ?= -config $(REVIVE_CONF) -formatter friendly
+REVIVE_INSTALL_URL ?= github.com/mgechev/revive@$(REVIVE_VERSION)
 
-deps:
-	@for u in $(GO_INSTALL_DEPS); do \
-		$(GO_INSTALL) $$u; \
-	done
+GO_INSTALL_URLS = \
+	$(GOLANGCI_LINT_URL) \
+	$(REVIVE_INSTALL_URL) \
 
-generate: deps
-	@find * -type f | xargs -r grep -l '^//go:generate' \
-		| xargs -rtl $(GO_GENERATE)
+V = 0
+Q = $(if $(filter 1,$V),,@)
+M = $(shell if [ "$$(tput colors 2> /dev/null || echo 0)" -ge 8 ]; then printf "\033[34;1m▶\033[0m"; else printf "▶"; fi)
 
-build: generate
-	$(GO_BUILD) ./...
+GO_BUILD = $(GO) build -v
+GO_BUILD_CMD = $(GO_BUILD) -o "$(OUTDIR)"
 
-install: deps
-	$(GO_INSTALL) ./cmd/...
+all: get generate tidy build
 
-get: deps
-	$(GO_GET) ./...
+clean: ; $(info $(M) cleaning…)
+	rm -rf $(TMPDIR)
 
-lint: deps
-	$(GOLINT) $(GOLINT_ARGS) $(GOLINT_RUN) $(GOLINT_RUN_ARGS)
+$(TMPDIR)/index: $(TOOLSDIR)/gen_index.sh Makefile FORCE ; $(info $(M) generating index…)
+	$Q mkdir -p $(@D)
+	$Q $< > $@~
+	$Q if cmp $@ $@~ 2> /dev/null >&2; then rm $@~; else mv $@~ $@; fi
+
+$(TMPDIR)/gen.mk: $(TOOLSDIR)/gen_mk.sh $(TMPDIR)/index Makefile ; $(info $(M) generating subproject rules…)
+	$Q mkdir -p $(@D)
+	$Q $< $(TMPDIR)/index > $@~
+	$Q if cmp $@ $@~ 2> /dev/null >&2; then rm $@~; else mv $@~ $@; fi
+
+include $(TMPDIR)/gen.mk
+
+fmt: ; $(info $(M) reformatting sources…)
+	$Q find . -name '*.go' | xargs -r $(GOFMT) $(GOFMT_FLAGS)
+
+tidy: fmt
+
+generate: ; $(info $(M) running go:generate…)
+	$Q git grep -l '^//go:generate' | sort -uV | xargs -r -n1 $(GO) generate $(GOGENERATE_FLAGS)
+
+$(REVIVE):
+	$Q $(GO) install -v $(REVIVE_INSTALL_URL)
