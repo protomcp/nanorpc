@@ -6,9 +6,51 @@ import (
 	"os"
 
 	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
 
 	"darvaza.org/core"
 )
+
+func unmarshal(data []byte, out proto.Message) (int, error) {
+	prefixLen, payloadLen, err := DecodeSplit(data)
+	if err != nil {
+		return 0, err
+	}
+
+	begin := prefixLen
+	end := prefixLen + payloadLen
+
+	err = proto.Unmarshal(data[begin:end], out)
+	return end, err
+}
+
+// DecodeResponse attempts to decode a wrapped NanoRPC response
+// from a buffer.
+func DecodeResponse(data []byte) (*NanoRPCResponse, int, error) {
+	out := new(NanoRPCResponse)
+	size, err := unmarshal(data, out)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, size, nil
+}
+
+// DecodeRequest attempts to decode a wrapped NanoRPC request
+// from a buffer
+func DecodeRequest(data []byte) (*NanoRPCRequest, error) {
+	prefixLen, _, err := DecodeSplit(data)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := data[prefixLen:]
+	out := new(NanoRPCRequest)
+	if err = proto.Unmarshal(msg, out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
 
 // Split identifies a NanoRPC wrapped message from a buffer.
 func Split(data []byte, atEOF bool) (advance int, msg []byte, err error) {
