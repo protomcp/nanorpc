@@ -1,6 +1,6 @@
 module github.com/amery/nanorpc
 
-go 1.19
+go 1.21
 
 replace (
 	github.com/amery/nanorpc/pkg/generator => ./pkg/generator
