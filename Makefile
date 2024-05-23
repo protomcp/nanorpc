@@ -13,6 +13,8 @@ TOOLSDIR := $(CURDIR)/pkg/internal/build
 TMPDIR ?= $(CURDIR)/.tmp
 OUTDIR ?= $(TMPDIR)
 
+PROTOC ?= $(shell which protoc || echo true)
+
 GOLANGCI_LINT_VERSION ?= v1.55
 REVIVE_VERSION ?= v1.3.6
 
@@ -59,7 +61,7 @@ tidy: fmt
 
 generate: ; $(info $(M) running go:generate…)
 	$Q git grep -l '^//go:generate' | sort -uV | xargs -r -n1 $(GO) generate $(GOGENERATE_FLAGS)
-	$Q protoc -Iprotos/ \
+	$Q $(PROTOC) -Iprotos/ \
 		--go_out=pkg/nanorpc \
 		--go_opt=paths=source_relative \
 		--go_opt=Mnanopb.proto=github.com/amery/nanorpc/pkg/nanopb \
