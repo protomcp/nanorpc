@@ -67,10 +67,39 @@ func (hc *HashCache) computeHash(path string) uint32 {
 	panic(core.NewPanicError(1, err)) // reference hc.Hash
 }
 
+// DehashRequest attempts to convert path_hash in a [NanoRPCRequest]
+// into a string path.
+func (hc *HashCache) DehashRequest(r *NanoRPCRequest) (*NanoRPCRequest, bool) {
+	if r != nil {
+		switch p := r.PathOneof.(type) {
+		case *NanoRPCRequest_PathHash:
+			path, ok := hc.Path(p.PathHash)
+			if ok {
+				// known hash, replace with string
+				r.PathOneof = &NanoRPCRequest_Path{
+					Path: path,
+				}
+				return r, true
+			}
+		case *NanoRPCRequest_Path:
+			// already string path
+			return r, true
+		}
+	}
+
+	return r, false
+}
+
 // RegisterPath pre-computes the path_hash for a given path
 // into a the global cache.
 func RegisterPath(path string) {
 	hashCache.Hash(path)
+}
+
+// DehashRequest attempts to convert path_hash in a [NanoRPCRequest]
+// into a string path.
+func DehashRequest(r *NanoRPCRequest) (*NanoRPCRequest, bool) {
+	return hashCache.DehashRequest(r)
 }
 
 var hashCache = new(HashCache)
