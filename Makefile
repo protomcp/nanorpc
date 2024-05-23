@@ -15,20 +15,16 @@ OUTDIR ?= $(TMPDIR)
 
 PROTOC ?= $(shell which protoc || echo true)
 
-GOLANGCI_LINT_VERSION ?= v1.55
+GOLANGCI_LINT_VERSION ?= v1.58
 REVIVE_VERSION ?= v1.3.6
 
-GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
 GOLANGCI_LINT_URL ?= github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+GOLANGCI_LINT ?= $(GO) run $(GOLANGCI_LINT_URL)
 
-REVIVE ?= $(GOBIN)/revive
 REVIVE_CONF ?= $(TOOLSDIR)/revive.toml
 REVIVE_RUN_ARGS ?= -config $(REVIVE_CONF) -formatter friendly
-REVIVE_INSTALL_URL ?= github.com/mgechev/revive@$(REVIVE_VERSION)
-
-GO_INSTALL_URLS = \
-	$(GOLANGCI_LINT_URL) \
-	$(REVIVE_INSTALL_URL) \
+REVIVE_URL ?= github.com/mgechev/revive@$(REVIVE_VERSION)
+REVIVE ?= $(GO) run $(REVIVE_URL)
 
 V = 0
 Q = $(if $(filter 1,$V),,@)
@@ -67,6 +63,3 @@ generate: ; $(info $(M) running go:generate…)
 		--go_opt=Mnanopb.proto=github.com/amery/nanorpc/pkg/nanopb \
 		--go_opt=Mnanorpc.proto=github.com/amery/nanorpc/pkg/nanorpc \
 		protos/nanorpc.proto
-
-$(REVIVE):
-	$Q $(GO) install -v $(REVIVE_INSTALL_URL)
