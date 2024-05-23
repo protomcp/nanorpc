@@ -16,7 +16,7 @@ message NanoRPCRequest {
   Type request_type = 2;
 
   oneof path_oneof {
-    int32 path_hash = 3;
+    uint32 path_hash = 3; // FNV-1a of path
     string path = 4 [(nanopb).type = FT_POINTER];
   }
 
