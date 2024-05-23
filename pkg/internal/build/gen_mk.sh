@@ -84,7 +84,7 @@ gen_files_lists() {
 	cat <<EOT
 GO_FILES = \$(shell find * \\
 	-type d -name node_modules -prune -o \\
-	-path internal/build -prune -o \\
+	-path pkg/internal/build -prune -o \\
 	-type f -name '*.go' -print )
 
 EOT
@@ -132,7 +132,7 @@ gen_make_targets() {
 		EOT
 		)"
 
-		depsx="fmt \$(REVIVE)"
+		depsx="fmt"
 		;;
 	up)
 		call="\$(GO) get -u -v ./...
