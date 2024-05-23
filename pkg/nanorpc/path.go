@@ -66,3 +66,11 @@ func (hc *HashCache) computeHash(path string) uint32 {
 
 	panic(core.NewPanicError(1, err)) // reference hc.Hash
 }
+
+// RegisterPath pre-computes the path_hash for a given path
+// into a the global cache.
+func RegisterPath(path string) {
+	hashCache.Hash(path)
+}
+
+var hashCache = new(HashCache)
