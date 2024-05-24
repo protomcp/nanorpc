@@ -3,6 +3,12 @@
 		"amery",
 		"nanopb",
 		"nanorpc",
-		"protogen"
+		"oneof",
+		"protobuf",
+		"protoc",
+		"protogen",
+		"protoimpl",
+		"protoreflect",
+		"protowire"
 	]
 }
