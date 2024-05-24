@@ -11,6 +11,22 @@ import (
 	"darvaza.org/core"
 )
 
+func marshal(m proto.Message) ([]byte, error) {
+	data, err := proto.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	tag := protowire.EncodeTag(0, protowire.BytesType)
+	payloadLen := len(data)
+	prefixLen := protowire.SizeVarint(tag) + protowire.SizeVarint(uint64(payloadLen))
+
+	out := make([]byte, 0, prefixLen+payloadLen)
+	out = protowire.AppendVarint(out, tag)
+	out = protowire.AppendBytes(out, data)
+	return out, nil
+}
+
 func unmarshal(data []byte, out proto.Message) (int, error) {
 	prefixLen, payloadLen, err := DecodeSplit(data)
 	if err != nil {
@@ -50,6 +66,44 @@ func DecodeRequest(data []byte) (*NanoRPCRequest, error) {
 	}
 
 	return out, nil
+}
+
+// EncodeRequest encodes a wrapped NanoRPC request.
+// If request data is provided, it will be encoded into the
+// [NanoRPCRequest], otherwise the request will be used as-is.
+func EncodeRequest(req *NanoRPCRequest, data proto.Message) ([]byte, error) {
+	if data != nil {
+		b, err := proto.Marshal(data)
+		switch {
+		case err != nil:
+			return nil, err
+		case len(b) == 0:
+			req.Data = nil
+		default:
+			req.Data = [][]byte{b}
+		}
+	}
+
+	return marshal(req)
+}
+
+// EncodeResponse encodes a wrapped NanoRPC response.
+// If response data is provided, it will be encoded into the
+// [NanoRPCResponse], otherwise the response will be used as-is.
+func EncodeResponse(res *NanoRPCResponse, data proto.Message) ([]byte, error) {
+	if data != nil {
+		b, err := proto.Marshal(data)
+		switch {
+		case err != nil:
+			return nil, err
+		case len(b) == 0:
+			res.Data = nil
+		default:
+			res.Data = [][]byte{b}
+		}
+	}
+
+	return marshal(res)
 }
 
 // Split identifies a NanoRPC wrapped message from a buffer.
