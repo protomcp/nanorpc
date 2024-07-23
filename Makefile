@@ -6,17 +6,14 @@ GOFMT ?= gofmt
 GOFMT_FLAGS = -w -l -s
 GOGENERATE_FLAGS = -v
 
-GOPATH ?= $(shell $(GO) env GOPATH)
-GOBIN ?= $(GOPATH)/bin
-
 TOOLSDIR := $(CURDIR)/pkg/internal/build
 TMPDIR ?= $(CURDIR)/.tmp
 OUTDIR ?= $(TMPDIR)
 
 PROTOC ?= $(shell which protoc || echo true)
 
-GOLANGCI_LINT_VERSION ?= v1.58
-REVIVE_VERSION ?= v1.3.6
+GOLANGCI_LINT_VERSION ?= v1.59.1
+REVIVE_VERSION ?= v1.3.7
 
 GOLANGCI_LINT_URL ?= github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOLANGCI_LINT ?= $(GO) run $(GOLANGCI_LINT_URL)

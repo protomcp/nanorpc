@@ -47,12 +47,6 @@ packed_oneline() {
 	packed | tr '\n' ';' | sed -e 's|;$||' -e 's|then;|then |g' -e 's|;[ \t]*|; |g'
 }
 
-gen_install_tools() {
-	cat <<EOT
-for url in \$(GO_INSTALL_URLS); do \$(GO) install -v \$\$url; done
-EOT
-}
-
 gen_revive_exclude() {
 	local self="$1"
 	local dirs= d=
@@ -127,8 +121,8 @@ gen_make_targets() {
 		#
 		call="$(cat <<-EOT | packed
 		\$(GO) vet ./...
-		\$(REVIVE) \$(REVIVE_RUN_ARGS) ./...
 		\$(GOLANGCI_LINT) run
+		\$(REVIVE) \$(REVIVE_RUN_ARGS) ./...
 		EOT
 		)"
 
@@ -179,15 +173,11 @@ gen_make_targets() {
 
 			case "$cmd" in
 			up)
-				# unconditional because of the tools
-				callu="$cmdx
-\$(GO) mod tidy
-$(gen_install_tools)"
+				callx="$cmdx
+\$(GO) mod tidy"
 				;;
 			get)
-				# unconditional because of the tools
-				callu="$cmdx
-$(gen_install_tools)"
+				callx="$cmdx"
 				;;
 			*)
 				callx="$call"
@@ -230,10 +220,6 @@ $(gen_install_tools)"
 
 $cmd-$name:${deps:+ $(prefixed $cmd $deps)}${depsx:+ | $depsx} ; \$(info \$(M) $cmd: $name)
 EOT
-	if [ -n "$callu" ]; then
-		# unconditionally
-		echo "$callu" | sed -e "/^$/d;" -e "s|^|\t\$(Q) $cd|"
-	fi
 	if [ -n "$callx" ]; then
 		# only if there are files
 		echo "ifneq (\$($files),)"
