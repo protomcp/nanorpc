@@ -3,10 +3,12 @@ package nanorpc
 import (
 	"context"
 	"net"
+	"time"
 
 	"darvaza.org/core"
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
+	"darvaza.org/x/config"
 	"darvaza.org/x/net/reconnect"
 )
 
@@ -17,6 +19,14 @@ type ClientConfig struct {
 	Remote  string
 
 	QueueSize uint
+
+	KeepAlive    time.Duration `default:"5s"`
+	DialTimeout  time.Duration `default:"2s"`
+	ReadTimeout  time.Duration `default:"2s"`
+	WriteTimeout time.Duration `default:"2s"`
+
+	ReconnectDelay time.Duration `default:"5s"`
+	WaitReconnect  reconnect.Waiter
 
 	// OnConnect is called when the connection is established and workers spawned.
 	OnConnect func(context.Context, reconnect.WorkGroup) error
@@ -30,12 +40,20 @@ type ClientConfig struct {
 
 // SetDefaults fills gaps in [ClientConfig]
 func (cfg *ClientConfig) SetDefaults() error {
+	if err := config.Set(cfg); err != nil {
+		return err
+	}
+
 	if cfg.Context == nil {
 		cfg.Context = context.Background()
 	}
 
 	if cfg.Logger == nil {
 		cfg.Logger = discard.New()
+	}
+
+	if cfg.WaitReconnect == nil {
+		cfg.WaitReconnect = reconnect.NewConstantWaiter(cfg.ReconnectDelay)
 	}
 
 	return nil
@@ -62,6 +80,13 @@ func (cfg *ClientConfig) Export() (*reconnect.Config, error) {
 		Context: cfg.Context,
 		Logger:  cfg.Logger,
 		Remote:  cfg.Remote,
+
+		KeepAlive:    cfg.KeepAlive,
+		DialTimeout:  cfg.DialTimeout,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
+
+		WaitReconnect: cfg.WaitReconnect,
 	}
 
 	return out, nil
