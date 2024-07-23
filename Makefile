@@ -6,9 +6,6 @@ GOFMT ?= gofmt
 GOFMT_FLAGS = -w -l -s
 GOGENERATE_FLAGS = -v
 
-GOPATH ?= $(shell $(GO) env GOPATH)
-GOBIN ?= $(GOPATH)/bin
-
 TOOLSDIR := $(CURDIR)/pkg/internal/build
 TMPDIR ?= $(CURDIR)/.tmp
 OUTDIR ?= $(TMPDIR)
