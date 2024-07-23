@@ -5,12 +5,15 @@ import (
 	"net"
 
 	"darvaza.org/core"
+	"darvaza.org/slog"
+	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/net/reconnect"
 )
 
 // ClientConfig describes how the [Client] will operate
 type ClientConfig struct {
 	Context context.Context
+	Logger  slog.Logger
 	Remote  string
 
 	QueueSize uint
@@ -29,6 +32,10 @@ type ClientConfig struct {
 func (cfg *ClientConfig) SetDefaults() error {
 	if cfg.Context == nil {
 		cfg.Context = context.Background()
+	}
+
+	if cfg.Logger == nil {
+		cfg.Logger = discard.New()
 	}
 
 	return nil
@@ -53,7 +60,9 @@ func (cfg *ClientConfig) Export() (*reconnect.Config, error) {
 
 	out := &reconnect.Config{
 		Context: cfg.Context,
+		Logger:  cfg.Logger,
 		Remote:  cfg.Remote,
 	}
+
 	return out, nil
 }

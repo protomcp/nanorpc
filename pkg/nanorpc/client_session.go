@@ -50,7 +50,9 @@ func (cs *ClientSession) onUnsetWriteDeadline() error {
 	return cs.rc.SetReadDeadline(0)
 }
 
-func (*ClientSession) onError(error) {}
+func (cs *ClientSession) onError(err error) {
+	cs.LogError(err, "error")
+}
 
 //
 // factory
