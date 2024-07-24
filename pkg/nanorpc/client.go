@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"darvaza.org/core"
 	"darvaza.org/x/net/reconnect"
 )
 
@@ -15,7 +16,8 @@ type Client struct {
 	rc *reconnect.Client
 	cs *ClientSession
 
-	queueSize uint
+	queueSize  uint
+	reqCounter *RequestCounter
 
 	callOnConnect    func(context.Context, reconnect.WorkGroup) error
 	callOnDisconnect func(context.Context) error
@@ -64,9 +66,15 @@ func (cfg *ClientConfig) New() (*Client, error) {
 }
 
 func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
+	reqCounter, err := NewRequestCounter()
+	if err != nil {
+		return core.Wrap(err, "RequestCounter")
+	}
+
 	c.WorkGroup = rc
 	c.rc = rc
 	c.queueSize = cfg.QueueSize
+	c.reqCounter = reqCounter
 
 	c.callOnConnect = cfg.OnConnect
 	c.callOnDisconnect = cfg.OnDisconnect
@@ -84,3 +92,6 @@ func NewClient(ctx context.Context, address string) (*Client, error) {
 
 	return cfg.New()
 }
+
+// RequestCallback handles a response to a request
+type RequestCallback func(context.Context, int32, *NanoRPCResponse) error

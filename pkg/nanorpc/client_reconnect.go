@@ -52,11 +52,19 @@ func (c *Client) onReconnectSession(ctx context.Context) error {
 }
 
 func (c *Client) onReconnectDisconnect(ctx context.Context, conn net.Conn) error {
-	if fn := c.getOnDisconnect(); fn != nil {
-		return fn(ctx)
+	fn := c.getOnDisconnect()
+
+	if fn == nil {
+		c.LogDebug(conn.RemoteAddr(), "disconnected")
 	}
 
-	c.LogDebug(conn.RemoteAddr(), "disconnected")
+	if cs, _ := c.getSession(); cs != nil {
+		_ = cs.Close()
+	}
+
+	if fn != nil {
+		return fn(ctx)
+	}
 
 	return nil
 }
