@@ -1,6 +1,7 @@
 package nanorpc
 
 import (
+	"context"
 	"sync"
 
 	"darvaza.org/x/net/reconnect"
@@ -43,4 +44,14 @@ func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
 	c.rc = rc
 	c.queueSize = cfg.QueueSize
 	return nil
+}
+
+// NewClient a new [Client] with default options
+func NewClient(ctx context.Context, address string) (*Client, error) {
+	cfg := ClientConfig{
+		Context: ctx,
+		Remote:  address,
+	}
+
+	return cfg.New()
 }
