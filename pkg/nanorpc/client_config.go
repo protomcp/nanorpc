@@ -20,6 +20,9 @@ type ClientConfig struct {
 
 	QueueSize uint
 
+	AlwaysHashPaths bool
+	HashCache       *HashCache
+
 	KeepAlive    time.Duration `default:"5s"`
 	DialTimeout  time.Duration `default:"2s"`
 	ReadTimeout  time.Duration `default:"2s"`
@@ -50,6 +53,11 @@ func (cfg *ClientConfig) SetDefaults() error {
 
 	if cfg.Logger == nil {
 		cfg.Logger = discard.New()
+	}
+
+	if cfg.HashCache == nil {
+		// use global cache
+		cfg.HashCache = hashCache
 	}
 
 	if cfg.WaitReconnect == nil {
@@ -90,4 +98,36 @@ func (cfg *ClientConfig) Export() (*reconnect.Config, error) {
 	}
 
 	return out, nil
+}
+
+func (cfg *ClientConfig) getHashCache() *HashCache {
+	if hc := cfg.HashCache; hc != nil {
+		// use given HashCache
+		return hc
+	}
+
+	// use global cache
+	return hashCache
+}
+
+func (cfg *ClientConfig) newGetPathOneOf(hc *HashCache) func(string) isNanoRPCRequest_PathOneof {
+	if cfg.AlwaysHashPaths {
+		// use path_hash
+		if hc == nil {
+			hc = cfg.getHashCache()
+		}
+
+		return func(path string) isNanoRPCRequest_PathOneof {
+			return &NanoRPCRequest_PathHash{
+				PathHash: hc.Hash(path),
+			}
+		}
+	}
+
+	// use string
+	return func(path string) isNanoRPCRequest_PathOneof {
+		return &NanoRPCRequest_Path{
+			Path: path,
+		}
+	}
 }

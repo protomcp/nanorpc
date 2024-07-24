@@ -19,6 +19,9 @@ type Client struct {
 	queueSize  uint
 	reqCounter *RequestCounter
 
+	hc           *HashCache
+	getPathOneOf func(string) isNanoRPCRequest_PathOneof
+
 	callOnConnect    func(context.Context, reconnect.WorkGroup) error
 	callOnDisconnect func(context.Context) error
 	callOnError      func(context.Context, error) error
@@ -73,8 +76,12 @@ func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
 
 	c.WorkGroup = rc
 	c.rc = rc
+
 	c.queueSize = cfg.QueueSize
 	c.reqCounter = reqCounter
+
+	c.hc = cfg.getHashCache()
+	c.getPathOneOf = cfg.newGetPathOneOf(c.hc)
 
 	c.callOnConnect = cfg.OnConnect
 	c.callOnDisconnect = cfg.OnDisconnect
