@@ -28,7 +28,7 @@ func (c *Client) onReconnectConnect(ctx context.Context, conn net.Conn) error {
 	return c.setSession(cs)
 }
 
-func (c *Client) onReconnectSession(_ context.Context) error {
+func (c *Client) onReconnectSession(ctx context.Context) error {
 	cs, err := c.getSession()
 	if err != nil {
 		return err
@@ -40,11 +40,30 @@ func (c *Client) onReconnectSession(_ context.Context) error {
 		return err
 	}
 
+	if fn := c.getOnConnect(); fn != nil {
+		if err := fn(ctx, cs); err != nil {
+			return err
+		}
+	}
+
 	return cs.Wait()
 }
 
-func (*Client) onReconnectDisconnect(context.Context, net.Conn) error           { return nil }
-func (*Client) onReconnectError(_ context.Context, _ net.Conn, err error) error { return err }
+func (c *Client) onReconnectDisconnect(ctx context.Context, _ net.Conn) error {
+	if fn := c.getOnDisconnect(); fn != nil {
+		return fn(ctx)
+	}
+
+	return nil
+}
+
+func (c *Client) onReconnectError(ctx context.Context, _ net.Conn, err error) error {
+	if fn := c.getOnError(); fn != nil {
+		return fn(ctx, err)
+	}
+
+	return err
+}
 
 //
 // session hooks

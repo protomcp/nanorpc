@@ -16,6 +16,30 @@ type Client struct {
 	cs *ClientSession
 
 	queueSize uint
+
+	callOnConnect    func(context.Context, reconnect.WorkGroup) error
+	callOnDisconnect func(context.Context) error
+	callOnError      func(context.Context, error) error
+}
+
+func (c *Client) getOnConnect() func(context.Context, reconnect.WorkGroup) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.callOnConnect
+}
+
+func (c *Client) getOnDisconnect() func(context.Context) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.callOnDisconnect
+}
+func (c *Client) getOnError() func(context.Context, error) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.callOnError
 }
 
 // New creates a new [Client] using given [ClientConfig].
@@ -43,6 +67,11 @@ func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
 	c.WorkGroup = rc
 	c.rc = rc
 	c.queueSize = cfg.QueueSize
+
+	c.callOnConnect = cfg.OnConnect
+	c.callOnDisconnect = cfg.OnDisconnect
+	c.callOnError = cfg.OnError
+
 	return nil
 }
 

@@ -14,6 +14,15 @@ type ClientConfig struct {
 	Remote  string
 
 	QueueSize uint
+
+	// OnConnect is called when the connection is established and workers spawned.
+	OnConnect func(context.Context, reconnect.WorkGroup) error
+	// OnDisconnect is called after closing the connection, purging callbacks and
+	// can be used to prevent further connection retries.
+	OnDisconnect func(context.Context) error
+	// OnError is called after all errors and gives us the opportunity to
+	// decide how the error should be treated by the reconnection logic.
+	OnError func(context.Context, error) error
 }
 
 // SetDefaults fills gaps in [ClientConfig]
