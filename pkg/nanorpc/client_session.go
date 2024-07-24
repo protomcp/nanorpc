@@ -3,9 +3,12 @@ package nanorpc
 import (
 	"context"
 	"net"
+	"os"
 	"sync"
 
+	"darvaza.org/core"
 	"darvaza.org/x/net/reconnect"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -130,6 +133,19 @@ func (cs *ClientSession) unsafePopOne(x clientRequestQueue) {
 // A zero RequestID will be replaced by a unique sequence number.
 // A negative RequestID will become zero.
 func (cs *ClientSession) Send(req *NanoRPCRequest, payload proto.Message, cb RequestCallback) error {
+	switch req.RequestType {
+	case NanoRPCRequest_TYPE_PING:
+		// no further checks
+	case NanoRPCRequest_TYPE_REQUEST, NanoRPCRequest_TYPE_SUBSCRIBE:
+		// callback required
+		if cb == nil {
+			return core.QuietWrap(os.ErrInvalid, "missing callback")
+		}
+	default:
+		// invalid type
+		return core.QuietWrap(os.ErrInvalid, "%v: invalid request type", int(req.RequestType))
+	}
+
 	switch {
 	case req.RequestId < 0:
 		req.RequestId = 0
