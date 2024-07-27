@@ -3,6 +3,7 @@ package nanorpc
 import (
 	"context"
 	"sync"
+	"time"
 
 	"darvaza.org/core"
 	"darvaza.org/x/net/reconnect"
@@ -16,8 +17,9 @@ type Client struct {
 	rc *reconnect.Client
 	cs *ClientSession
 
-	queueSize  uint
-	reqCounter *RequestCounter
+	queueSize       uint
+	reqCounter      *RequestCounter
+	idleReadTimeout time.Duration
 
 	hc           *HashCache
 	getPathOneOf func(string) isNanoRPCRequest_PathOneof
@@ -79,6 +81,7 @@ func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
 
 	c.queueSize = cfg.QueueSize
 	c.reqCounter = reqCounter
+	c.idleReadTimeout = cfg.IdleTimeout
 
 	c.hc = cfg.getHashCache()
 	c.getPathOneOf = cfg.newGetPathOneOf(c.hc)

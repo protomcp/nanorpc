@@ -26,6 +26,7 @@ type ClientConfig struct {
 	KeepAlive    time.Duration `default:"5s"`
 	DialTimeout  time.Duration `default:"2s"`
 	ReadTimeout  time.Duration `default:"2s"`
+	IdleTimeout  time.Duration `default:"10s"`
 	WriteTimeout time.Duration `default:"2s"`
 
 	ReconnectDelay time.Duration `default:"5s"`

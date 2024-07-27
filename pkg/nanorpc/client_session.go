@@ -70,6 +70,14 @@ func (cs *ClientSession) doRunPass(ctx context.Context) error {
 // workflow
 //
 
+// IsActive indicates the session has registered callbacks
+func (cs *ClientSession) IsActive() bool {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	return len(cs.cb) > 0
+}
+
 func (cs *ClientSession) handleResponse(resp *NanoRPCResponse) error {
 	if resp != nil && resp.RequestId > 0 {
 		reqID := resp.RequestId
@@ -118,6 +126,7 @@ func (cs *ClientSession) Close() error {
 	cs.cb = cs.cb[:0]
 	return nil
 }
+
 func (cs *ClientSession) unsafePopOne(x clientRequestQueue) {
 	cb := x.Callback
 	reqID := x.RequestID
@@ -199,7 +208,12 @@ func (cs *ClientSession) unsafeIndexRequestCallback(reqID int32) (int, bool) {
 //
 
 func (cs *ClientSession) onSetReadDeadline() error {
-	return cs.rc.ResetReadDeadline()
+	if cs.IsActive() {
+		return cs.rc.ResetReadDeadline()
+	}
+
+	d := cs.c.idleReadTimeout
+	return cs.rc.SetReadDeadline(d)
 }
 
 func (cs *ClientSession) onSetWriteDeadline() error {
