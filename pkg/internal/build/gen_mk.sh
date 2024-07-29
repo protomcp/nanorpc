@@ -220,6 +220,10 @@ gen_make_targets() {
 
 $cmd-$name:${deps:+ $(prefixed $cmd $deps)}${depsx:+ | $depsx} ; \$(info \$(M) $cmd: $name)
 EOT
+	if [ -n "$callu" ]; then
+		# unconditionally
+		echo "$callu" | sed -e "/^$/d;" -e "s|^|\t\$(Q) $cd|"
+	fi
 	if [ -n "$callx" ]; then
 		# only if there are files
 		echo "ifneq (\$($files),)"
