@@ -225,7 +225,7 @@ func (cs *ClientSession) onUnsetReadDeadline() error {
 }
 
 func (cs *ClientSession) onUnsetWriteDeadline() error {
-	return cs.rc.SetReadDeadline(0)
+	return cs.rc.SetWriteDeadline(0)
 }
 
 func (cs *ClientSession) onError(err error) {
