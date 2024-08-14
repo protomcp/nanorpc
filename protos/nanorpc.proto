@@ -20,7 +20,7 @@ message NanoRPCRequest {
     string path = 4 [(nanopb).type = FT_POINTER];
   }
 
-  repeated bytes data = 10 [(nanopb).type = FT_POINTER];
+  bytes data = 10 [(nanopb).type = FT_POINTER];
 }
 
 message NanoRPCResponse {
@@ -43,5 +43,5 @@ message NanoRPCResponse {
   Status response_status = 3;
   string response_message = 4;
 
-  repeated bytes data = 10 [(nanopb).type = FT_POINTER];
+  bytes data = 10 [(nanopb).type = FT_POINTER];
 }

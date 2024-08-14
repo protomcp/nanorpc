@@ -59,7 +59,7 @@ func EncodeRequestTo(w io.Writer, req *NanoRPCRequest, data proto.Message) (int,
 		case len(b) == 0:
 			req.Data = nil
 		default:
-			req.Data = [][]byte{b}
+			req.Data = b
 		}
 	}
 
@@ -87,7 +87,7 @@ func EncodeResponseTo(w io.Writer, res *NanoRPCResponse, data proto.Message) (in
 		case len(b) == 0:
 			res.Data = nil
 		default:
-			res.Data = [][]byte{b}
+			res.Data = b
 		}
 	}
 
