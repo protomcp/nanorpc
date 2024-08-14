@@ -61,6 +61,16 @@ func DecodeRequest(data []byte) (*NanoRPCRequest, int, error) {
 	return out, to, nil
 }
 
+// DecodeRequestData attempts to decode the payload of a NanoRPC request.
+func DecodeRequestData[T proto.Message](req *NanoRPCRequest, out T) (T, bool, error) {
+	if req != nil && len(req.Data) > 0 {
+		err := proto.Unmarshal(req.Data, out)
+		return out, true, err
+	}
+
+	return out, false, nil
+}
+
 // EncodeRequestTo encodes a wrapped NanoRPC request.
 // If request data is provided, it will be encoded into the
 // [NanoRPCRequest], otherwise the request will be used as-is.
