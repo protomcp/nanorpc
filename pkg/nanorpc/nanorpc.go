@@ -30,6 +30,20 @@ func DecodeResponse(data []byte) (*NanoRPCResponse, int, error) {
 	return out, to, nil
 }
 
+// DecodeResponseData attempts to decode the payload of a NanoRPC response.
+func DecodeResponseData[T proto.Message](res *NanoRPCResponse, out T) (T, bool, error) {
+	err := ResponseAsError(res)
+	switch {
+	case err != nil:
+		return out, false, err
+	case len(res.Data) == 0:
+		return out, false, nil
+	default:
+		err = proto.Unmarshal(res.Data, out)
+		return out, true, err
+	}
+}
+
 // DecodeRequest attempts to decode a wrapped NanoRPC request
 // from a buffer
 func DecodeRequest(data []byte) (*NanoRPCRequest, int, error) {
