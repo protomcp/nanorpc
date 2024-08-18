@@ -2,6 +2,7 @@ package nanorpc
 
 import (
 	"context"
+	"io"
 	"net"
 	"os"
 	"sync"
@@ -243,8 +244,9 @@ func newClientSession(ctx context.Context, c *Client, queueSize uint, conn net.C
 		Context:   ctx,
 
 		Split: Split,
-		Marshal: func(r clientRequest) ([]byte, error) {
-			return EncodeRequest(r.r, r.d)
+		MarshalTo: func(r clientRequest, w io.Writer) error {
+			_, err := EncodeRequestTo(w, r.r, r.d)
+			return err
 		},
 		Unmarshal: func(data []byte) (*NanoRPCResponse, error) {
 			resp, _, err := DecodeResponse(data)
