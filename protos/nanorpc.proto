@@ -17,10 +17,10 @@ message NanoRPCRequest {
 
   oneof path_oneof {
     uint32 path_hash = 3; // FNV-1a of path
-    string path = 4 [(nanopb).type = FT_POINTER];
+    string path = 4 [(nanopb).max_size = 50];
   }
 
-  bytes data = 10 [(nanopb).type = FT_POINTER];
+  bytes data = 10 [(nanopb).type = FT_CALLBACK];
 }
 
 message NanoRPCResponse {
@@ -43,5 +43,5 @@ message NanoRPCResponse {
   Status response_status = 3;
   string response_message = 4;
 
-  bytes data = 10 [(nanopb).type = FT_POINTER];
+  bytes data = 10 [(nanopb).type = FT_CALLBACK];
 }
