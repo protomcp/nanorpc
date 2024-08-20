@@ -16,14 +16,14 @@ import (
 // DecodeResponse attempts to decode a wrapped NanoRPC response
 // from a buffer.
 func DecodeResponse(data []byte) (*NanoRPCResponse, int, error) {
-	from, to, err := DecodeSplit(data)
+	_, to, err := DecodeSplit(data)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	msg := data[from:to]
+	r := bytes.NewBuffer(data[:to])
 	out := new(NanoRPCResponse)
-	if err = proto.Unmarshal(msg, out); err != nil {
+	if err = protodelim.UnmarshalFrom(r, out); err != nil {
 		return nil, to, err
 	}
 
@@ -47,14 +47,14 @@ func DecodeResponseData[T proto.Message](res *NanoRPCResponse, out T) (T, bool, 
 // DecodeRequest attempts to decode a wrapped NanoRPC request
 // from a buffer
 func DecodeRequest(data []byte) (*NanoRPCRequest, int, error) {
-	from, to, err := DecodeSplit(data)
+	_, to, err := DecodeSplit(data)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	msg := data[from:to]
+	r := bytes.NewBuffer(data[:to])
 	out := new(NanoRPCRequest)
-	if err = proto.Unmarshal(msg, out); err != nil {
+	if err = protodelim.UnmarshalFrom(r, out); err != nil {
 		return nil, to, err
 	}
 
