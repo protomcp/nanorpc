@@ -6,6 +6,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// Requester is a view of the [Client] that only allows [Client.Request] calls
+type Requester interface {
+	Request(string, proto.Message, RequestCallback) (int32, error)
+}
+
 // Ping sends a ping message to keep the connection alive.
 // Ping returns false if the [Client] isn't connected.
 func (c *Client) Ping() bool {
@@ -119,4 +124,37 @@ func (c *Client) enqueue(m *NanoRPCRequest, msg proto.Message, cb RequestCallbac
 
 	err = cs.Send(m, msg, cb)
 	return m.RequestId, err
+}
+
+// GetResponse makes a [Client.Request] and waits for the response.
+func GetResponse[Q, A proto.Message](ctx context.Context, c Requester, path string, req Q, out A) error {
+	ch, cb := newGetResponseCallback(out)
+	_, err := c.Request(path, req, cb)
+	if err == nil {
+		select {
+		case e, ok := <-ch:
+			if ok {
+				err = e
+			}
+		case <-ctx.Done():
+			err = ctx.Err()
+		}
+	}
+
+	return err
+}
+
+func newGetResponseCallback(out proto.Message) (<-chan error, RequestCallback) {
+	ch := make(chan error, 1)
+	cb := func(_ context.Context, _ int32, res *NanoRPCResponse) error {
+		defer close(ch)
+
+		_, present, err := DecodeResponseData(res, out)
+		if err == nil && !present {
+			err = ErrNoResponse
+		}
+
+		return err
+	}
+	return ch, cb
 }
