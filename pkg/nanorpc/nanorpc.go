@@ -152,7 +152,7 @@ func DecodeSplit(data []byte) (prefixLen, totalLen int, err error) {
 	}
 
 	if size > math.MaxInt32 {
-		err = core.Wrap(os.ErrInvalid, "size out of range: %v", size)
+		err = core.Wrapf(os.ErrInvalid, "size out of range: %v", size)
 		return prefixLen, 0, err
 	}
 
