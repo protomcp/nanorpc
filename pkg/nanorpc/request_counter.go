@@ -58,9 +58,9 @@ func NewRequestCounter() (*RequestCounter, error) {
 // NewRandomRequestID returns a random int31 value.
 // To allow using the zero value, 0 is never returned.
 func NewRandomRequestID() (int32, error) {
-	max := big.NewInt(math.MaxInt32)
+	maxV := big.NewInt(math.MaxInt32)
 	for {
-		nBig, err := rand.Int(rand.Reader, max)
+		nBig, err := rand.Int(rand.Reader, maxV)
 		if err != nil {
 			return 0, err
 		}
