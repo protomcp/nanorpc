@@ -5,6 +5,9 @@ GO ?= go
 GOFMT ?= gofmt
 GOFMT_FLAGS = -w -l -s
 GOGENERATE_FLAGS = -v
+GOUP_FLAGS ?= -v
+GOUP_PACKAGES ?= ./...
+GOTEST_FLAGS ?=
 
 TOOLSDIR := $(CURDIR)/pkg/internal/build
 TMPDIR ?= $(CURDIR)/.tmp
@@ -12,8 +15,10 @@ OUTDIR ?= $(TMPDIR)
 
 PROTOC ?= $(shell which protoc || echo true)
 
-GOLANGCI_LINT_VERSION ?= v1.59.1
-REVIVE_VERSION ?= v1.3.7
+# Dynamic version selection based on Go version
+# Format: $(TOOLSDIR)/get_version.sh <go_version> <tool_version1> <tool_version2> ..
+GOLANGCI_LINT_VERSION ?= $(shell $(TOOLSDIR)/get_version.sh 1.21 v1.59 v1.61)
+REVIVE_VERSION ?= $(shell $(TOOLSDIR)/get_version.sh 1.21 v1.4)
 
 GOLANGCI_LINT_URL ?= github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOLANGCI_LINT ?= $(GO) run $(GOLANGCI_LINT_URL)
