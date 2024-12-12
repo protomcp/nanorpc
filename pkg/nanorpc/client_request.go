@@ -161,10 +161,12 @@ func newGetResponseCallback(out proto.Message) (<-chan error, RequestCallback) {
 
 		_, present, err := DecodeResponseData(res, out)
 		if err == nil && !present {
-			err = ErrNoResponse
+			ch <- ErrNoResponse
+		} else {
+			ch <- err
 		}
 
-		return err
+		return nil
 	}
 	return ch, cb
 }
