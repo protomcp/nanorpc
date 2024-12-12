@@ -41,7 +41,8 @@ func IsNotAuthorized(err error) bool {
 	return core.IsError(err, fs.ErrPermission)
 }
 
-// IsNoResponse checks if the error is [ErrNoResponse].
+// IsNoResponse checks if the error represents no response being received.
+// This error is also used to notify the connection was closed.
 func IsNoResponse(err error) bool {
 	return core.IsError(err, ErrNoResponse)
 }
