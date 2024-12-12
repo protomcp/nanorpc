@@ -30,3 +30,18 @@ func ResponseAsError(res *NanoRPCResponse) error {
 	}
 	return ErrNoResponse
 }
+
+// IsNotFound checks if the error represents a STATUS_NOT_FOUND response.
+func IsNotFound(err error) bool {
+	return core.IsError(err, fs.ErrNotExist)
+}
+
+// IsNotAuthorized checks if the error represents a STATUS_NOT_AUTHORIZED response.
+func IsNotAuthorized(err error) bool {
+	return core.IsError(err, fs.ErrPermission)
+}
+
+// IsNoResponse checks if the error is [ErrNoResponse].
+func IsNoResponse(err error) bool {
+	return core.IsError(err, ErrNoResponse)
+}
