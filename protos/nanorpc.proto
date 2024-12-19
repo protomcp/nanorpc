@@ -36,6 +36,7 @@ message NanoRPCResponse {
     STATUS_OK = 1;
     STATUS_NOT_FOUND = 2;
     STATUS_NOT_AUTHORIZED = 3;
+    STATUS_INTERNAL_ERROR = 4;
   }
 
   int32 request_id = 1;
