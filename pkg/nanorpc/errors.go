@@ -39,6 +39,7 @@ func (e ResponseError) Unwrap() error {
 }
 
 func (e ResponseError) String() string {
+	var buf strings.Builder
 	status, ok := strings.CutPrefix(e.Status.String(), "STATUS_")
 	switch {
 	case !ok, e.Err == core.ErrUnknown:
@@ -47,11 +48,13 @@ func (e ResponseError) String() string {
 		status = fmt.Sprintf("%s: invalid status", status)
 	}
 
-	if e.Msg == "" {
-		return fmt.Sprintf("nanorpc: %s", status)
+	writeString(&buf, "nanorpc: ", status)
+
+	if e.Msg != "" {
+		writeString(&buf, ": ", e.Msg)
 	}
 
-	return fmt.Sprintf("nanorpc: %s: %s", status, e.Msg)
+	return buf.String()
 }
 
 // ResponseAsError extracts an error from the
