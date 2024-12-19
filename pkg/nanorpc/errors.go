@@ -40,8 +40,11 @@ func (e ResponseError) Unwrap() error {
 
 func (e ResponseError) String() string {
 	status, ok := strings.CutPrefix(e.Status.String(), "STATUS_")
-	if !ok || e.Err == core.ErrUnknown {
+	switch {
+	case !ok, e.Err == core.ErrUnknown:
 		status = fmt.Sprintf("unknown status %d", e.Status)
+	case e.Status == NanoRPCResponse_STATUS_UNSPECIFIED:
+		status = fmt.Sprintf("%s: invalid status", status)
 	}
 
 	if e.Msg == "" {
@@ -69,6 +72,8 @@ func ResponseAsError(res *NanoRPCResponse) error {
 		err = fs.ErrPermission
 	case NanoRPCResponse_STATUS_INTERNAL_ERROR:
 		err = ErrInternalServerError
+	case NanoRPCResponse_STATUS_UNSPECIFIED:
+		err = core.ErrInvalid
 	default:
 		err = core.ErrUnknown
 	}
