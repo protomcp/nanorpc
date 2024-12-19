@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"strings"
 
 	"darvaza.org/core"
 )
@@ -11,24 +12,72 @@ import (
 var (
 	// ErrNoResponse indicates the server didn't answer before disconnection
 	ErrNoResponse = core.NewTimeoutError(errors.New("no response"))
+
+	// ErrInternalServerError indicates the server reported an internal error
+	ErrInternalServerError = errors.New("internal server error")
 )
+
+var (
+	_ error            = (*ResponseError)(nil)
+	_ fmt.Stringer     = (*ResponseError)(nil)
+	_ core.Unwrappable = (*ResponseError)(nil)
+)
+
+// ResponseError represents a NanoRPC error response.
+type ResponseError struct {
+	Status NanoRPCResponse_Status
+	Err    error
+	Msg    string
+}
+
+func (e ResponseError) Error() string {
+	return e.String()
+}
+
+func (e ResponseError) Unwrap() error {
+	return e.Err
+}
+
+func (e ResponseError) String() string {
+	status, ok := strings.CutPrefix(e.Status.String(), "STATUS_")
+	if !ok || e.Err == core.ErrUnknown {
+		status = fmt.Sprintf("unknown status %d", e.Status)
+	}
+
+	if e.Msg == "" {
+		return fmt.Sprintf("nanorpc: %s", status)
+	}
+
+	return fmt.Sprintf("nanorpc: %s: %s", status, e.Msg)
+}
 
 // ResponseAsError extracts an error from the
 // status of a response.
 func ResponseAsError(res *NanoRPCResponse) error {
-	if res != nil {
-		switch res.ResponseStatus {
-		case NanoRPCResponse_STATUS_OK:
-			return nil
-		case NanoRPCResponse_STATUS_NOT_FOUND:
-			return fs.ErrNotExist
-		case NanoRPCResponse_STATUS_NOT_AUTHORIZED:
-			return fs.ErrPermission
-		default:
-			return fmt.Errorf("invalid state %v", int(res.ResponseStatus))
-		}
+	var err error
+
+	if res == nil {
+		return ErrNoResponse
 	}
-	return ErrNoResponse
+
+	switch res.ResponseStatus {
+	case NanoRPCResponse_STATUS_OK:
+		return nil
+	case NanoRPCResponse_STATUS_NOT_FOUND:
+		err = fs.ErrNotExist
+	case NanoRPCResponse_STATUS_NOT_AUTHORIZED:
+		err = fs.ErrPermission
+	case NanoRPCResponse_STATUS_INTERNAL_ERROR:
+		err = ErrInternalServerError
+	default:
+		err = core.ErrUnknown
+	}
+
+	return &ResponseError{
+		Status: res.ResponseStatus,
+		Msg:    res.ResponseMessage,
+		Err:    err,
+	}
 }
 
 // IsNotFound checks if the error represents a STATUS_NOT_FOUND response.
