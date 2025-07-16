@@ -8,6 +8,7 @@
 go install github.com/golangci/golangci-lint/cmd/...@latest
 golangci-lint run
 ```
+
 or
 
 ```sh
@@ -15,13 +16,14 @@ make get
 make lint
 ```
 
-# Build
+## Build
 
 ```sh
 go get -v ./...
 go generate -v ./...
 go build -v ./...
 ```
+
 or
 
 ```sh
@@ -31,6 +33,5 @@ make build
 
 ## See also
 
-* https://github.com/nanopb/nanopb
-* https://github.com/amery/protogen
-
+* <https://github.com/nanopb/nanopb>
+* <https://github.com/amery/protogen>

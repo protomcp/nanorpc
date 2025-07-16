@@ -1,2 +1,2 @@
-// Package build groups build system helpers
+// Package build contains build system utilities and configuration.
 package build
