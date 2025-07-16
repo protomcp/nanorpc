@@ -1,6 +1,6 @@
 module github.com/amery/nanorpc/pkg/generator
 
-go 1.21.9
+go 1.23.0
 
 require github.com/amery/protogen v0.3.11
 
