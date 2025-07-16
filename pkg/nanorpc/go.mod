@@ -10,7 +10,7 @@ require (
 	darvaza.org/x/fs v0.3.6 // indirect
 	darvaza.org/x/net v0.4.0
 	github.com/amery/defaults v0.1.0 // indirect
-	github.com/amery/nanorpc/pkg/nanopb v0.0.0
+	github.com/amery/nanorpc/pkg/nanopb v0.1.0
 )
 
 require google.golang.org/protobuf v1.35.2
