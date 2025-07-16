@@ -1,10 +1,11 @@
 run:
-  deadline: 5m
+  timeout: 5m
   allow-parallel-runners: true
 
 linters-settings:
   govet:
-    enable=fieldalignment: true
+    enable:
+      - fieldalignment
   revive:
     rules:
       # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration

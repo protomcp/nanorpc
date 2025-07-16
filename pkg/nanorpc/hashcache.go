@@ -11,9 +11,9 @@ import (
 // HashCache stores and computes path_hash values
 // for [NanoRPCRequest]s.
 type HashCache struct {
-	mu   sync.RWMutex
 	path map[uint32]string
 	hash map[string]uint32
+	mu   sync.RWMutex
 }
 
 // Hash returns the path_hash for a given path,

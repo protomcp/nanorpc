@@ -14,32 +14,22 @@ import (
 
 // ClientConfig describes how the [Client] will operate
 type ClientConfig struct {
-	Context context.Context
-	Logger  slog.Logger
-	Remote  string
-
-	QueueSize uint
-
-	AlwaysHashPaths bool
+	Context         context.Context
+	Logger          slog.Logger
+	WaitReconnect   reconnect.Waiter
 	HashCache       *HashCache
-
-	KeepAlive    time.Duration `default:"5s"`
-	DialTimeout  time.Duration `default:"2s"`
-	ReadTimeout  time.Duration `default:"2s"`
-	IdleTimeout  time.Duration `default:"10s"`
-	WriteTimeout time.Duration `default:"2s"`
-
-	ReconnectDelay time.Duration `default:"5s"`
-	WaitReconnect  reconnect.Waiter
-
-	// OnConnect is called when the connection is established and workers spawned.
-	OnConnect func(context.Context, reconnect.WorkGroup) error
-	// OnDisconnect is called after closing the connection, purging callbacks and
-	// can be used to prevent further connection retries.
-	OnDisconnect func(context.Context) error
-	// OnError is called after all errors and gives us the opportunity to
-	// decide how the error should be treated by the reconnection logic.
-	OnError func(context.Context, error) error
+	OnConnect       func(context.Context, reconnect.WorkGroup) error
+	OnDisconnect    func(context.Context) error
+	OnError         func(context.Context, error) error
+	Remote          string
+	DialTimeout     time.Duration `default:"2s"`
+	ReadTimeout     time.Duration `default:"2s"`
+	IdleTimeout     time.Duration `default:"10s"`
+	WriteTimeout    time.Duration `default:"2s"`
+	ReconnectDelay  time.Duration `default:"5s"`
+	KeepAlive       time.Duration `default:"5s"`
+	QueueSize       uint
+	AlwaysHashPaths bool
 }
 
 // SetDefaults fills gaps in [ClientConfig]

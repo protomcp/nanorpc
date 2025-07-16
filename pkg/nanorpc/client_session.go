@@ -21,23 +21,22 @@ type clientRequest struct {
 }
 
 type clientRequestQueue struct {
-	RequestID   int32
-	RequestType NanoRPCRequest_Type
 	Callback    RequestCallback
+	RequestType NanoRPCRequest_Type
+	RequestID   int32
 }
 
 // ClientSession represents a connection to a NanoRPC server.
 type ClientSession struct {
 	reconnect.WorkGroup
 
-	mu sync.Mutex
 	c  *Client
 	rc *reconnect.Client
 	ra net.Addr
-
 	ss *reconnect.StreamSession[*NanoRPCResponse, clientRequest]
 
 	cb []clientRequestQueue
+	mu sync.Mutex
 }
 
 // Spawn starts the required workers to handle the session

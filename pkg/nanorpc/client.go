@@ -13,20 +13,19 @@ import (
 type Client struct {
 	reconnect.WorkGroup
 
-	mu sync.Mutex
-	rc *reconnect.Client
-	cs *ClientSession
-
-	queueSize       uint
-	reqCounter      *RequestCounter
-	idleReadTimeout time.Duration
-
+	rc           *reconnect.Client
+	cs           *ClientSession
+	reqCounter   *RequestCounter
 	hc           *HashCache
 	getPathOneOf func(string) isNanoRPCRequest_PathOneof
 
 	callOnConnect    func(context.Context, reconnect.WorkGroup) error
 	callOnDisconnect func(context.Context) error
 	callOnError      func(context.Context, error) error
+
+	idleReadTimeout time.Duration
+	mu              sync.Mutex
+	queueSize       uint
 }
 
 func (c *Client) getOnConnect() func(context.Context, reconnect.WorkGroup) error {
