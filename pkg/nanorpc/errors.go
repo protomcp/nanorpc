@@ -25,9 +25,9 @@ var (
 
 // ResponseError represents a NanoRPC error response.
 type ResponseError struct {
-	Status NanoRPCResponse_Status
 	Err    error
 	Msg    string
+	Status NanoRPCResponse_Status
 }
 
 func (e ResponseError) Error() string {

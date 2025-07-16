@@ -1,3 +1,3 @@
 module github.com/amery/nanorpc/pkg/nanopb
 
-go 1.21.9
+go 1.23.0
