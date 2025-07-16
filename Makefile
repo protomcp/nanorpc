@@ -9,7 +9,7 @@ GOUP_FLAGS ?= -v
 GOUP_PACKAGES ?= ./...
 GOTEST_FLAGS ?=
 
-TOOLSDIR := $(CURDIR)/pkg/internal/build
+TOOLSDIR := $(CURDIR)/internal/build
 TMPDIR ?= $(CURDIR)/.tmp
 OUTDIR ?= $(TMPDIR)
 
