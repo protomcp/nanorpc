@@ -15,6 +15,7 @@
     "extendee",
     "fieldalignment",
     "golangci",
+    "goroutines",
     "gotmpl",
     "GOTEST",
     "hashcache",
