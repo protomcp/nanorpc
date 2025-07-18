@@ -101,7 +101,7 @@ func (c *Client) RequestWithHash(path string, msg proto.Message, cb RequestCallb
 func (c *Client) Subscribe(path string, msg proto.Message, cb RequestCallback) (int32, error) {
 	// assemble header
 	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_REQUEST,
+		RequestType: NanoRPCRequest_TYPE_SUBSCRIBE,
 		PathOneof:   c.getPathOneOf(path),
 	}
 
@@ -112,7 +112,7 @@ func (c *Client) Subscribe(path string, msg proto.Message, cb RequestCallback) (
 func (c *Client) SubscribeByHash(path uint32, msg proto.Message, cb RequestCallback) (int32, error) {
 	// assemble header
 	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_REQUEST,
+		RequestType: NanoRPCRequest_TYPE_SUBSCRIBE,
 		PathOneof: &NanoRPCRequest_PathHash{
 			PathHash: path,
 		},

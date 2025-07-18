@@ -8,51 +8,53 @@ import (
 	"darvaza.org/core"
 )
 
-func TestEncodeDecodeRequest(t *testing.T) {
-	for i, req := range []*NanoRPCRequest{
-		{
-			RequestId:   123,
-			RequestType: NanoRPCRequest_TYPE_PING,
-		},
-	} {
-		doTestEncodeDecodeRequest(t, i, req)
-	}
+type basicRequestTestCase struct {
+	request *NanoRPCRequest
+	name    string
 }
 
-func doTestEncodeDecodeRequest(t *testing.T, i int, req1 *NanoRPCRequest) {
-	b1, err := EncodeRequest(req1, nil)
-	if err != nil {
-		t.Errorf("[%v]: ERROR: EncodeRequest -> %v", i, err)
-		return
-	}
+func (tc basicRequestTestCase) test(t *testing.T) {
+	helper := NewEncodeDecodeTestHelper(t)
+	helper.TestRequestRoundTrip(tc.request, nil)
+
+	// Also test the original JSON comparison for backward compatibility
+	b1, err := EncodeRequest(tc.request, nil)
+	AssertNoError(t, err, "EncodeRequest failed")
 
 	b2 := core.SliceCopy(b1)
 	req2, n, err := DecodeRequest(b2)
-	switch {
-	case err != nil:
-		t.Errorf("[%v]: ERROR: DecodeRequest(%q) -> %v", i, b1, err)
-		return
-	case len(b1) != n:
-		t.Errorf("[%v]: ERROR: DecodeRequest(%q) -> %v", i, b1, n)
-		return
-	}
+	AssertNoError(t, err, "DecodeRequest failed")
+	AssertEqual(t, len(b1), n, "DecodeRequest length mismatch")
 
-	j1, err := json.Marshal(req1)
-	if err != nil {
-		t.Errorf("[%v]: ERROR: json.Marshal -> %v", i, err)
-		return
-	}
+	j1, err := json.Marshal(tc.request)
+	AssertNoError(t, err, "json.Marshal original failed")
 
 	j2, err := json.Marshal(req2)
-	if err != nil {
-		t.Errorf("[%v]: ERROR: json.Marshal -> %v", i, err)
-		return
-	}
+	AssertNoError(t, err, "json.Marshal decoded failed")
 
-	if !bytes.Equal(j1, j2) {
-		t.Errorf("[%v]: ERROR: %q != %q", i, j1, j2)
-		return
-	}
+	AssertTrue(t, bytes.Equal(j1, j2), "Request mismatch: original %q != decoded %q", j1, j2)
 
-	t.Logf("[%v]: %q", i, b1)
+	t.Logf("Encoded: %q", b1)
+}
+
+func newBasicRequestTestCase(name string, request *NanoRPCRequest) basicRequestTestCase {
+	return basicRequestTestCase{
+		name:    name,
+		request: request,
+	}
+}
+
+func basicRequestTestCases() []basicRequestTestCase {
+	return S(
+		newBasicRequestTestCase("ping_request", &NanoRPCRequest{
+			RequestId:   123,
+			RequestType: NanoRPCRequest_TYPE_PING,
+		}),
+	)
+}
+
+func TestEncodeDecodeRequest(t *testing.T) {
+	for _, tc := range basicRequestTestCases() {
+		t.Run(tc.name, tc.test)
+	}
 }
