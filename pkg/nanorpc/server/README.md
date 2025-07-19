@@ -213,17 +213,7 @@ func (h *CustomHandler) handleRequest(session server.Session,
         // Add your response data
     }
 
-    responseData, err := nanorpc.EncodeResponse(response, yourData)
-    if err != nil {
-        return err
-    }
-
-    // Send response using interface assertion
-    if sessionWriter, ok := session.(io.Writer); ok {
-        _, err = sessionWriter.Write(responseData)
-        return err
-    }
-    return nil
+    return session.SendResponse(req, response)
 }
 ```
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	"darvaza.org/core"
 
@@ -17,6 +18,7 @@ type DefaultSession struct {
 	conn       net.Conn
 	handler    MessageHandler
 	remoteAddr string
+	mu         sync.Mutex
 }
 
 // NewDefaultSession creates a new session
@@ -104,9 +106,25 @@ func (s *DefaultSession) Close() error {
 	return s.conn.Close()
 }
 
-// Write sends data to the client
-func (s *DefaultSession) Write(data []byte) (int, error) {
-	return s.conn.Write(data)
+// SendResponse sends a NanoRPC response to the client
+func (s *DefaultSession) SendResponse(req *nanorpc.NanoRPCRequest, response *nanorpc.NanoRPCResponse) error {
+	// Fill envelope fields from request if provided
+	if req != nil && response.RequestId == 0 {
+		response.RequestId = req.RequestId
+	}
+
+	// Encode the response
+	data, err := nanorpc.EncodeResponse(response, nil)
+	if err != nil {
+		return err
+	}
+
+	// Send to client
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, err = s.conn.Write(data)
+	return err
 }
 
 // generateSessionID creates a unique session identifier

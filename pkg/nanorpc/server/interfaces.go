@@ -39,6 +39,9 @@ type Session interface {
 	RemoteAddr() string
 	// Handle processes messages for this session
 	Handle(ctx context.Context) error
+	// SendResponse sends a NanoRPC response to the client
+	// If req is provided, it will be used to fill envelope fields like RequestID
+	SendResponse(req *nanorpc.NanoRPCRequest, response *nanorpc.NanoRPCResponse) error
 	// Close closes the session
 	Close() error
 }
