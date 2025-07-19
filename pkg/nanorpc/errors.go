@@ -15,6 +15,9 @@ var (
 
 	// ErrInternalServerError indicates the server reported an internal error
 	ErrInternalServerError = errors.New("internal server error")
+
+	// ErrSessionClosed indicates the session has been closed
+	ErrSessionClosed = errors.New("session closed")
 )
 
 var (

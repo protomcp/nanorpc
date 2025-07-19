@@ -49,14 +49,15 @@ implementation with:
 Integration with [nanopb][nanopb-url] for embedded C applications
 (implementation planned).
 
-### Server Implementation
+### Go Server Library
 
-A complete Go server implementation with decoupled architecture design:
+The [`pkg/nanorpc/server`](pkg/nanorpc/server/) module provides a complete Go
+server implementation with decoupled architecture design:
 
 - Clean separation of concerns (Listener, SessionManager, MessageHandler)
 - Ping-pong protocol support with extensible message handling
 - Graceful shutdown and session management
-- Comprehensive test coverage
+- Comprehensive test coverage (86.4%)
 
 ## Development
 
