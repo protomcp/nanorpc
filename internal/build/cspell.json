@@ -18,6 +18,7 @@
     "goroutines",
     "gotmpl",
     "GOTEST",
+    "GOXTOOLS",
     "hashcache",
     "Idxs",
     "languagetool",
