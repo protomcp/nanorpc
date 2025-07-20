@@ -142,6 +142,24 @@ The nanorpc protocol supports:
 The project enforces quality through:
 
 - **Go standards**: Standard Go conventions and formatting
+- **Field alignment**: Structs optimized for memory efficiency
+
+  ```bash
+  # Fix field alignment issues (exclude generated files like *.pb.go)
+  GOXTOOLS="golang.org/x/tools/go/analysis/passes"
+  FA="$GOXTOOLS/fieldalignment/cmd/fieldalignment"
+  # Only run on hand-written files, not generated ones
+  go -C pkg/nanorpc run "$FA@latest" -fix \
+    server.go server_*.go client.go client_*.go \
+    errors.go hashcache.go path.go utils.go request_counter.go
+
+  # For test files with complex types, create a temporary file:
+  # 1. Copy struct definitions to a temp.go file with simplified types
+  # 2. Run fieldalignment on the temp file
+  # 3. Apply the suggested field ordering to the test files
+  # 4. Remove the temp file
+  ```
+
 - **Linting rules**: Comprehensive linting via golangci-lint and revive
 - **Test coverage**: Aim for high test coverage across modules
 - **Documentation**: All public APIs must be documented
@@ -217,6 +235,37 @@ make test-nanorpc
 3. **Check coverage** with `make coverage` if adding new code
 4. **Update documentation** if changing public APIs
 5. **Run `make generate`** if protocol definitions changed
+
+## Git Usage Guidelines
+
+**CRITICAL**: Always follow these git practices to avoid accidental commits:
+
+1. **NEVER use bulk operations** - Always explicitly specify files:
+
+   ```bash
+   # CORRECT - explicitly specify files
+   git add file1.go file2.go
+   git commit -s file1.go file2.go -m "commit message"
+
+   # WRONG - bulk staging/committing
+   git add .
+   git add -A
+   git add -u
+   git commit -s -m "commit message"
+   git commit -a -m "commit message"
+   ```
+
+2. **Use `-s` when doing commits** - Don't take credit for the work
+
+3. **Check what you're committing**:
+
+   ```bash
+   git status --porcelain  # Check current state
+   git diff --cached       # Review staged changes before committing
+   ```
+
+4. **Atomic commits** - Each commit should contain only related changes for a
+   single purpose
 
 ## Troubleshooting
 
