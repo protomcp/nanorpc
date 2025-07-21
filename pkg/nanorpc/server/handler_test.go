@@ -10,7 +10,7 @@ import (
 func TestDefaultMessageHandler_HandlePing(t *testing.T) {
 	handler := NewDefaultMessageHandler()
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
-	session := NewDefaultSession(conn, handler)
+	session := NewDefaultSession(conn, handler, nil)
 
 	req := &nanorpc.NanoRPCRequest{
 		RequestId:   123,
@@ -49,7 +49,7 @@ func TestDefaultMessageHandler_HandlePing(t *testing.T) {
 func TestDefaultMessageHandler_HandleUnsupportedType(t *testing.T) {
 	handler := NewDefaultMessageHandler()
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
-	session := NewDefaultSession(conn, handler)
+	session := NewDefaultSession(conn, handler, nil)
 
 	req := &nanorpc.NanoRPCRequest{
 		RequestId:   456,

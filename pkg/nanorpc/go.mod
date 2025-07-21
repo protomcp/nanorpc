@@ -9,6 +9,7 @@ require (
 	darvaza.org/x/config v0.3.10
 	darvaza.org/x/fs v0.3.6 // indirect
 	darvaza.org/x/net v0.4.0
+	darvaza.org/x/sync v0.3.0
 	github.com/amery/defaults v0.1.0 // indirect
 	github.com/amery/nanorpc/pkg/nanopb v0.1.0
 )

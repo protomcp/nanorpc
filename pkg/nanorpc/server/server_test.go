@@ -34,7 +34,7 @@ func setupTestServer(t *testing.T) (net.Listener, *Server, <-chan error) {
 		t.Fatalf("Failed to create listener: %v", err)
 	}
 
-	server := NewDefaultServer(listener)
+	server := NewDefaultServer(listener, nil)
 	serverErr := make(chan error, 1)
 
 	go func() {
@@ -151,7 +151,7 @@ func TestDecoupledServer_Shutdown(t *testing.T) {
 		t.Fatalf("Failed to create listener: %v", err)
 	}
 
-	server := NewDefaultServer(listener)
+	server := NewDefaultServer(listener, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
