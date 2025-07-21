@@ -3,32 +3,49 @@ package server
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"darvaza.org/core"
+	"darvaza.org/slog"
+	"darvaza.org/slog/handlers/discard"
 
 	"github.com/amery/nanorpc/pkg/nanorpc"
 )
 
 // DefaultSession implements Session interface
 type DefaultSession struct {
-	id         string
 	conn       net.Conn
 	handler    MessageHandler
+	logger     slog.Logger
+	id         string
 	remoteAddr string
 	mu         sync.Mutex
 }
 
 // NewDefaultSession creates a new session
-func NewDefaultSession(conn net.Conn, handler MessageHandler) *DefaultSession {
+func NewDefaultSession(conn net.Conn, handler MessageHandler, logger slog.Logger) *DefaultSession {
 	return &DefaultSession{
 		id:         generateSessionID(conn),
 		conn:       conn,
 		handler:    handler,
 		remoteAddr: conn.RemoteAddr().String(),
+		logger:     logger,
 	}
+}
+
+// getLogger returns the configured logger or lazily initializes a discard logger
+func (s *DefaultSession) getLogger() slog.Logger {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.logger == nil {
+		s.logger = discard.New()
+	}
+	return s.logger
 }
 
 // ID returns the session identifier
@@ -90,11 +107,19 @@ func (s *DefaultSession) processNextMessage(ctx context.Context, scanner *bufio.
 func (s *DefaultSession) decodeAndHandle(ctx context.Context, data []byte) error {
 	req, _, err := nanorpc.DecodeRequest(data)
 	if err != nil {
+		s.getLogger().Error().
+			WithField(FieldError, err).
+			WithField("data_length", len(data)).
+			WithField("data_preview", hexDump(data, 32)).
+			Print("Failed to decode request")
 		return core.Wrap(err, "decode")
 	}
 
 	if err := s.handler.HandleMessage(ctx, s, req); err != nil {
-		// TODO: Add proper logging for handler errors
+		s.getLogger().Error().
+			WithField(FieldRequestID, req.GetRequestId()).
+			WithField(FieldError, err).
+			Print("Handler error")
 		return nil // Continue on handler errors
 	}
 
@@ -130,4 +155,29 @@ func (s *DefaultSession) SendResponse(req *nanorpc.NanoRPCRequest, response *nan
 // generateSessionID creates a unique session identifier
 func generateSessionID(conn net.Conn) string {
 	return fmt.Sprintf("session-%s", conn.RemoteAddr().String())
+}
+
+// hexDump returns a hex dump of data up to maxBytes, space-delimited
+func hexDump(data []byte, maxBytes int) string {
+	preview := data
+	if len(preview) > maxBytes {
+		preview = preview[:maxBytes]
+	}
+
+	hexStr := strings.ToUpper(hex.EncodeToString(preview))
+
+	// Add spaces between bytes
+	var spaced strings.Builder
+	for i := 0; i < len(hexStr); i += 2 {
+		if i > 0 {
+			_ = spaced.WriteByte(' ')
+		}
+		_, _ = spaced.WriteString(hexStr[i : i+2])
+	}
+
+	if len(data) > maxBytes {
+		_, _ = spaced.WriteString(" ...")
+	}
+
+	return spaced.String()
 }

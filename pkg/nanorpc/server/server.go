@@ -4,6 +4,9 @@ import (
 	"context"
 	"net"
 	"sync"
+
+	"darvaza.org/slog"
+	"darvaza.org/slog/handlers/discard"
 )
 
 // Server represents a decoupled NanoRPC server
@@ -11,34 +14,52 @@ type Server struct {
 	listener       Listener
 	sessionManager SessionManager
 	messageHandler MessageHandler
+	logger         slog.Logger
 	shutdown       chan struct{}
 	wg             sync.WaitGroup
 	mu             sync.RWMutex
 }
 
 // NewServer creates a new decoupled server
-func NewServer(listener Listener, sessionManager SessionManager, messageHandler MessageHandler) *Server {
+func NewServer(listener Listener, sessionManager SessionManager,
+	messageHandler MessageHandler, logger slog.Logger) *Server {
 	return &Server{
 		listener:       listener,
 		sessionManager: sessionManager,
 		messageHandler: messageHandler,
 		shutdown:       make(chan struct{}),
+		logger:         logger,
 	}
 }
 
 // NewDefaultServer creates a server with default components
-func NewDefaultServer(netListener net.Listener) *Server {
+func NewDefaultServer(netListener net.Listener, logger slog.Logger) *Server {
 	listener := NewListenerAdapter(netListener)
 	handler := NewDefaultMessageHandler()
-	sessionManager := NewDefaultSessionManager(handler)
+	sessionManager := NewDefaultSessionManager(handler, logger)
 
-	return NewServer(listener, sessionManager, handler)
+	return NewServer(listener, sessionManager, handler, logger)
+}
+
+// getLogger returns the configured logger or lazily initializes a discard logger
+func (s *Server) getLogger() slog.Logger {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.logger == nil {
+		s.logger = discard.New()
+	}
+	return s.logger
 }
 
 // Serve starts serving requests
 func (s *Server) Serve(ctx context.Context) error {
 	connCh := make(chan net.Conn)
 	errCh := make(chan error)
+
+	s.getLogger().Info().
+		WithField(FieldLocalAddr, s.listener.Addr().String()).
+		Print("Server started")
 
 	go s.acceptLoop(connCh, errCh)
 	return s.serveLoop(ctx, connCh, errCh)
@@ -74,6 +95,10 @@ func (s *Server) serveLoop(ctx context.Context, connCh <-chan net.Conn, errCh <-
 
 // handleNewConnection processes a new client connection
 func (s *Server) handleNewConnection(ctx context.Context, conn net.Conn) {
+	s.getLogger().Debug().
+		WithField(FieldRemoteAddr, conn.RemoteAddr().String()).
+		Print("Connection accepted")
+
 	session := s.sessionManager.AddSession(conn)
 
 	s.wg.Add(1)
@@ -82,23 +107,31 @@ func (s *Server) handleNewConnection(ctx context.Context, conn net.Conn) {
 		defer s.sessionManager.RemoveSession(session.ID())
 
 		if err := session.Handle(ctx); err != nil {
-			// TODO: log session error when logger is available
-			_ = err
+			s.getLogger().Error().
+				WithField(FieldSessionID, session.ID()).
+				WithField(FieldError, err).
+				Print("Session error")
 		}
 	}()
 }
 
 // gracefulShutdown performs graceful server shutdown
 func (s *Server) gracefulShutdown(ctx context.Context) error {
+	s.getLogger().Info().Print("Server shutting down")
+
 	if err := s.listener.Close(); err != nil {
-		// TODO: log error when logger is available
-		_ = err
+		s.getLogger().Warn().
+			WithField(FieldError, err).
+			Print("Failed to close listener")
 	}
 	if err := s.sessionManager.Shutdown(ctx); err != nil {
-		// TODO: log error when logger is available
-		_ = err
+		s.getLogger().Warn().
+			WithField(FieldError, err).
+			Print("Session manager shutdown error")
 	}
 	s.wg.Wait()
+
+	s.getLogger().Info().Print("Server shutdown complete")
 	return nil
 }
 

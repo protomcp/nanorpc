@@ -4,30 +4,63 @@ import (
 	"context"
 	"net"
 	"sync"
+
+	"darvaza.org/slog"
+	"darvaza.org/slog/handlers/discard"
 )
 
 // DefaultSessionManager implements SessionManager interface
 type DefaultSessionManager struct {
-	sessions map[string]Session
 	handler  MessageHandler
+	logger   slog.Logger
+	sessions map[string]Session
 	mu       sync.RWMutex
 }
 
 // NewDefaultSessionManager creates a new session manager
-func NewDefaultSessionManager(handler MessageHandler) *DefaultSessionManager {
+func NewDefaultSessionManager(handler MessageHandler, logger slog.Logger) *DefaultSessionManager {
 	return &DefaultSessionManager{
 		sessions: make(map[string]Session),
 		handler:  handler,
+		logger:   logger,
 	}
+}
+
+// getLogger returns the configured logger or lazily initializes a discard logger
+func (sm *DefaultSessionManager) getLogger() slog.Logger {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	if sm.logger == nil {
+		sm.logger = discard.New()
+	}
+	return sm.logger
 }
 
 // AddSession creates a new session for the connection
 func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
-	session := NewDefaultSession(conn, sm.handler)
+	// Create the session first
+	session := NewDefaultSession(conn, sm.handler, nil)
+	sessionID := session.ID()
+
+	// Create session logger with all relevant fields
+	sessionLogger := sm.getLogger().
+		WithField(FieldSessionID, sessionID).
+		WithField(FieldRemoteAddr, conn.RemoteAddr().String()).
+		WithField(FieldComponent, ComponentSession)
+
+	// Update session with the logger
+	session.logger = sessionLogger
 
 	sm.mu.Lock()
-	sm.sessions[session.ID()] = session
+	sm.sessions[sessionID] = session
 	sm.mu.Unlock()
+
+	// Log session creation
+	sm.getLogger().Info().
+		WithField(FieldSessionID, sessionID).
+		WithField(FieldRemoteAddr, conn.RemoteAddr().String()).
+		Print("Session created")
 
 	return session
 }
@@ -37,6 +70,11 @@ func (sm *DefaultSessionManager) RemoveSession(sessionID string) {
 	sm.mu.Lock()
 	delete(sm.sessions, sessionID)
 	sm.mu.Unlock()
+
+	// Log session removal
+	sm.getLogger().Info().
+		WithField(FieldSessionID, sessionID).
+		Print("Session removed")
 }
 
 // GetSession retrieves a session by ID
@@ -60,8 +98,10 @@ func (sm *DefaultSessionManager) Shutdown(_ context.Context) error {
 	// Close all sessions
 	for _, session := range sessions {
 		if err := session.Close(); err != nil {
-			// TODO: log error when logger is available
-			_ = err
+			sm.getLogger().Warn().
+				WithField(FieldSessionID, session.ID()).
+				WithField(FieldError, err).
+				Print("Failed to close session")
 		}
 	}
 

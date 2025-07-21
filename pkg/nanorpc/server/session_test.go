@@ -12,7 +12,7 @@ import (
 func TestDefaultSession_ID(t *testing.T) {
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
 	handler := NewDefaultMessageHandler()
-	session := NewDefaultSession(conn, handler)
+	session := NewDefaultSession(conn, handler, nil)
 
 	id := session.ID()
 	if id == "" {
@@ -29,7 +29,7 @@ func TestDefaultSession_RemoteAddr(t *testing.T) {
 	expectedAddr := "127.0.0.1:12345"
 	conn := &mockConn{remoteAddr: expectedAddr}
 	handler := NewDefaultMessageHandler()
-	session := NewDefaultSession(conn, handler)
+	session := NewDefaultSession(conn, handler, nil)
 
 	addr := session.RemoteAddr()
 	if addr != expectedAddr {
@@ -40,7 +40,7 @@ func TestDefaultSession_RemoteAddr(t *testing.T) {
 func TestDefaultSession_Close(t *testing.T) {
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
 	handler := NewDefaultMessageHandler()
-	session := NewDefaultSession(conn, handler)
+	session := NewDefaultSession(conn, handler, nil)
 
 	err := session.Close()
 	if err != nil {
@@ -129,7 +129,7 @@ func TestDefaultSession_HandlePing(t *testing.T) {
 	}
 
 	handler := NewDefaultMessageHandler()
-	session := NewDefaultSession(conn, handler)
+	session := NewDefaultSession(conn, handler, nil)
 
 	// Handle the session
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
