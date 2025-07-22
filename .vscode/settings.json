@@ -1,17 +1,4 @@
 {
-
-	"cSpell.language": "en-GB",
-	"cSpell.words": [
-		"amery",
-		"darvaza",
-		"nanopb",
-		"nanorpc",
-		"oneof",
-		"protobuf",
-		"protoc",
-		"protogen",
-		"protoimpl",
-		"protoreflect",
-		"protowire"
-	]
+  "cSpell.language": "en-GB",
+  "cSpell.configFile": "${workspaceFolder}/internal/build/cspell.json"
 }
