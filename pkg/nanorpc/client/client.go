@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"darvaza.org/core"
+	"darvaza.org/slog"
 	"darvaza.org/x/net/reconnect"
 
 	"github.com/amery/nanorpc/pkg/nanorpc"
@@ -21,6 +22,7 @@ type Client struct {
 	reqCounter   *RequestCounter
 	hc           *nanorpc.HashCache
 	getPathOneOf func(string) nanorpc.PathOneOf
+	logger       slog.Logger
 
 	callOnConnect    func(context.Context, reconnect.WorkGroup) error
 	callOnDisconnect func(context.Context) error
@@ -92,6 +94,9 @@ func (c *Client) init(cfg *Config, rc *reconnect.Client) error {
 	c.callOnConnect = cfg.OnConnect
 	c.callOnDisconnect = cfg.OnDisconnect
 	c.callOnError = cfg.OnError
+
+	// Set logger from config, will use default if nil
+	c.logger = cfg.Logger
 
 	return nil
 }

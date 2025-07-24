@@ -4,9 +4,10 @@ import (
 	"context"
 
 	"darvaza.org/core"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/amery/nanorpc/pkg/nanorpc"
-	"google.golang.org/protobuf/proto"
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // SubscribeCallback is a function given to [Subscribe] to be called on every update
@@ -96,7 +97,10 @@ func (c *Client) RequestWithHash(path string, msg proto.Message, cb RequestCallb
 	hash, err := c.hc.Hash(path)
 	if err != nil {
 		// Fall back to string path on hash collision
-		c.LogError(nil, err, "Falling back to string path to maintain compatibility")
+		if logger, ok := c.getErrorLogger(err); ok {
+			logger.WithField(common.FieldPath, path).
+				Print("Falling back to string path to maintain compatibility")
+		}
 		return c.Request(path, msg, cb)
 	}
 	return c.RequestByHash(hash, msg, cb)
@@ -133,7 +137,10 @@ func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCal
 	hash, err := c.hc.Hash(path)
 	if err != nil {
 		// Fall back to string path on hash collision
-		c.LogError(nil, err, "Falling back to string path to maintain compatibility")
+		if logger, ok := c.getErrorLogger(err); ok {
+			logger.WithField(common.FieldPath, path).
+				Print("Falling back to string path to maintain compatibility")
+		}
 		return c.Subscribe(path, msg, cb)
 	}
 	return c.SubscribeByHash(hash, msg, cb)
