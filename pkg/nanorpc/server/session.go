@@ -30,12 +30,24 @@ type DefaultSession struct {
 
 // NewDefaultSession creates a new session
 func NewDefaultSession(conn net.Conn, handler MessageHandler, logger slog.Logger) *DefaultSession {
+	sessionID := generateSessionID(conn)
+	remoteAddr := conn.RemoteAddr().String()
+
+	// Create annotated logger with session fields if logger is provided
+	var sessionLogger slog.Logger
+	if logger != nil {
+		sessionLogger = logger.
+			WithField(common.FieldComponent, common.ComponentSession).
+			WithField(common.FieldSessionID, sessionID).
+			WithField(common.FieldRemoteAddr, remoteAddr)
+	}
+
 	return &DefaultSession{
-		id:         generateSessionID(conn),
+		id:         sessionID,
 		conn:       conn,
 		handler:    handler,
-		remoteAddr: conn.RemoteAddr().String(),
-		logger:     logger,
+		remoteAddr: remoteAddr,
+		logger:     sessionLogger,
 	}
 }
 
