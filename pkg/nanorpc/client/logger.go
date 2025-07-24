@@ -1,4 +1,4 @@
-package nanorpc
+package client
 
 import (
 	"net"
@@ -14,9 +14,9 @@ const (
 	// ClientSubsystem is the value used for the [Subsystem] field
 	// when logging happens from the [Client].
 	ClientSubsystem = "nanorpc-client"
-	// ClientSessionSubsystem is the value used for the [Subsystem] field
-	// when logging happens from the [ClientSession].
-	ClientSessionSubsystem = "nanorpc-client-session"
+	// SessionSubsystem is the value used for the [Subsystem] field
+	// when logging happens from the [Session].
+	SessionSubsystem = "nanorpc-client-session"
 )
 
 // WithDebug returns an annotated debug-level logger
@@ -71,9 +71,9 @@ func (c *Client) LogError(addr net.Addr, err error, format string, args ...any) 
 }
 
 // WithDebug returns an annotated debug-level logger
-func (cs *ClientSession) WithDebug() (slog.Logger, bool) {
+func (cs *Session) WithDebug() (slog.Logger, bool) {
 	if l, ok := cs.rc.WithDebug(cs.ra); ok {
-		l = l.WithField(Subsystem, ClientSessionSubsystem)
+		l = l.WithField(Subsystem, SessionSubsystem)
 		return l, true
 	}
 
@@ -81,16 +81,16 @@ func (cs *ClientSession) WithDebug() (slog.Logger, bool) {
 }
 
 // LogDebug writes a formatted log entry at debug-level.
-func (cs *ClientSession) LogDebug(format string, args ...any) {
+func (cs *Session) LogDebug(format string, args ...any) {
 	if l, ok := cs.WithDebug(); ok {
 		l.Printf(format, args...)
 	}
 }
 
 // WithInfo returns an annotated info-level logger
-func (cs *ClientSession) WithInfo() (slog.Logger, bool) {
+func (cs *Session) WithInfo() (slog.Logger, bool) {
 	if l, ok := cs.rc.WithInfo(cs.ra); ok {
-		l = l.WithField(Subsystem, ClientSessionSubsystem)
+		l = l.WithField(Subsystem, SessionSubsystem)
 		return l, true
 	}
 
@@ -98,16 +98,16 @@ func (cs *ClientSession) WithInfo() (slog.Logger, bool) {
 }
 
 // LogInfo writes a formatted log entry at info-level.
-func (cs *ClientSession) LogInfo(format string, args ...any) {
+func (cs *Session) LogInfo(format string, args ...any) {
 	if l, ok := cs.WithInfo(); ok {
 		l.Printf(format, args...)
 	}
 }
 
 // WithError returns an annotated error-level logger
-func (cs *ClientSession) WithError(err error) (slog.Logger, bool) {
+func (cs *Session) WithError(err error) (slog.Logger, bool) {
 	if l, ok := cs.rc.WithError(cs.ra, err); ok {
-		l = l.WithField(Subsystem, ClientSubsystem)
+		l = l.WithField(Subsystem, SessionSubsystem)
 		return l, true
 	}
 
@@ -115,7 +115,7 @@ func (cs *ClientSession) WithError(err error) (slog.Logger, bool) {
 }
 
 // LogError writes a formatted log entry at error-level.
-func (cs *ClientSession) LogError(err error, format string, args ...any) {
+func (cs *Session) LogError(err error, format string, args ...any) {
 	if l, ok := cs.WithError(err); ok {
 		l.Printf(format, args...)
 	}

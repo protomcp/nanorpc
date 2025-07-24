@@ -1,4 +1,5 @@
-package nanorpc
+// Package client implements a reconnecting NanoRPC client.
+package client
 
 import (
 	"context"
@@ -7,6 +8,8 @@ import (
 
 	"darvaza.org/core"
 	"darvaza.org/x/net/reconnect"
+
+	"github.com/amery/nanorpc/pkg/nanorpc"
 )
 
 // Client is a reconnecting NanoRPC client.
@@ -14,10 +17,10 @@ type Client struct {
 	reconnect.WorkGroup
 
 	rc           *reconnect.Client
-	cs           *ClientSession
+	cs           *Session
 	reqCounter   *RequestCounter
-	hc           *HashCache
-	getPathOneOf func(string) isNanoRPCRequest_PathOneof
+	hc           *nanorpc.HashCache
+	getPathOneOf func(string) nanorpc.PathOneOf
 
 	callOnConnect    func(context.Context, reconnect.WorkGroup) error
 	callOnDisconnect func(context.Context) error
@@ -48,8 +51,8 @@ func (c *Client) getOnError() func(context.Context, error) error {
 	return c.callOnError
 }
 
-// New creates a new [Client] using given [ClientConfig].
-func (cfg *ClientConfig) New() (*Client, error) {
+// New creates a new [Client] using given [Config].
+func (cfg *Config) New() (*Client, error) {
 	var c = new(Client)
 
 	ro, err := cfg.Export()
@@ -69,7 +72,7 @@ func (cfg *ClientConfig) New() (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
+func (c *Client) init(cfg *Config, rc *reconnect.Client) error {
 	reqCounter, err := NewRequestCounter()
 	if err != nil {
 		return core.Wrap(err, "RequestCounter")
@@ -94,7 +97,7 @@ func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
 
 // NewClient a new [Client] with default options
 func NewClient(ctx context.Context, address string) (*Client, error) {
-	cfg := ClientConfig{
+	cfg := Config{
 		Context: ctx,
 		Remote:  address,
 	}
@@ -103,4 +106,4 @@ func NewClient(ctx context.Context, address string) (*Client, error) {
 }
 
 // RequestCallback handles a response to a request
-type RequestCallback func(context.Context, int32, *NanoRPCResponse) error
+type RequestCallback func(context.Context, int32, *nanorpc.NanoRPCResponse) error

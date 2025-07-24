@@ -1,4 +1,4 @@
-package nanorpc
+package client
 
 import (
 	"testing"

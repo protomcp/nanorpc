@@ -1,4 +1,4 @@
-package nanorpc
+package client
 
 import (
 	"context"
@@ -7,11 +7,12 @@ import (
 
 	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/net/reconnect"
+	"github.com/amery/nanorpc/pkg/nanorpc"
 )
 
 // ClientConfigTestCase represents a test case for client configuration
 type ClientConfigTestCase struct {
-	config *ClientConfig
+	config *Config
 	name   string
 }
 
@@ -27,18 +28,18 @@ func (tc ClientConfigTestCase) test(t *testing.T) {
 	// Verify all required fields are set
 	AssertNotNil(t, tc.config.Context, "Context should not be nil after SetDefaults")
 	AssertNotNil(t, tc.config.Logger, "Logger should not be nil after SetDefaults")
-	AssertNotNil(t, tc.config.HashCache, "HashCache should not be nil after SetDefaults")
+	AssertNotNil(t, tc.config.HashCache, "nanorpc.HashCache should not be nil after SetDefaults")
 	AssertNotNil(t, tc.config.WaitReconnect, "WaitReconnect should not be nil after SetDefaults")
 }
 
 var clientConfigTestCases = []ClientConfigTestCase{
 	{
 		name:   "empty_config",
-		config: &ClientConfig{},
+		config: &Config{},
 	},
 	{
 		name: "partial_config",
-		config: &ClientConfig{
+		config: &Config{
 			Remote:      "localhost:8080",
 			DialTimeout: 1 * time.Second,
 		},
@@ -53,7 +54,7 @@ func TestClientConfig_SetDefaults(t *testing.T) {
 
 // TestClientConfig_DefaultValues tests that default values are set correctly
 func TestClientConfig_DefaultValues(t *testing.T) {
-	cfg := &ClientConfig{}
+	cfg := &Config{}
 	err := cfg.SetDefaults()
 	AssertNoError(t, err, "SetDefaults failed")
 
@@ -64,7 +65,7 @@ func TestClientConfig_DefaultValues(t *testing.T) {
 	AssertEqual(t, 10*time.Second, cfg.IdleTimeout, "IdleTimeout default mismatch")
 	AssertEqual(t, 5*time.Second, cfg.ReconnectDelay, "ReconnectDelay default mismatch")
 	AssertEqual(t, 5*time.Second, cfg.KeepAlive, "KeepAlive default mismatch")
-	AssertEqual(t, hashCache, cfg.HashCache, "HashCache should be global instance")
+	AssertEqual(t, hashCache, cfg.HashCache, "nanorpc.HashCache should be global instance")
 }
 
 // TestClientConfig_PreserveExisting tests that existing values are preserved
@@ -72,10 +73,10 @@ func TestClientConfig_PreserveExisting(t *testing.T) {
 	type contextKey string
 	customCtx := context.WithValue(context.Background(), contextKey("test"), "value")
 	customLogger := discard.New()
-	customHashCache := &HashCache{}
+	customHashCache := &nanorpc.HashCache{}
 	customWaiter := reconnect.NewConstantWaiter(1 * time.Second)
 
-	cfg := &ClientConfig{
+	cfg := &Config{
 		Context:         customCtx,
 		Logger:          customLogger,
 		HashCache:       customHashCache,
@@ -96,7 +97,7 @@ func TestClientConfig_PreserveExisting(t *testing.T) {
 	// Check that custom values are preserved
 	AssertEqual(t, customCtx, cfg.Context, "Context was not preserved")
 	AssertEqual(t, customLogger, cfg.Logger, "Logger was not preserved")
-	AssertEqual(t, customHashCache, cfg.HashCache, "HashCache was not preserved")
+	AssertEqual(t, customHashCache, cfg.HashCache, "nanorpc.HashCache was not preserved")
 	AssertNotNil(t, cfg.WaitReconnect, "WaitReconnect should not be nil")
 	AssertEqual(t, 3*time.Second, cfg.DialTimeout, "DialTimeout was not preserved")
 	AssertEqual(t, 4*time.Second, cfg.ReadTimeout, "ReadTimeout was not preserved")
@@ -110,7 +111,7 @@ func TestClientConfig_PreserveExisting(t *testing.T) {
 
 // ExportTestCase represents a test case for Export method
 type ExportTestCase struct {
-	config      *ClientConfig
+	config      *Config
 	name        string
 	expectError bool
 }
@@ -143,33 +144,33 @@ func (tc ExportTestCase) test(t *testing.T) {
 var exportTestCases = []ExportTestCase{
 	{
 		name:        "missing_remote",
-		config:      &ClientConfig{},
+		config:      &Config{},
 		expectError: true,
 	},
 	{
 		name: "no_port",
-		config: &ClientConfig{
+		config: &Config{
 			Remote: "localhost",
 		},
 		expectError: true,
 	},
 	{
 		name: "port_zero",
-		config: &ClientConfig{
+		config: &Config{
 			Remote: "localhost:0",
 		},
 		expectError: true,
 	},
 	{
 		name: "valid_config",
-		config: &ClientConfig{
+		config: &Config{
 			Remote: "localhost:8080",
 		},
 		expectError: false,
 	},
 	{
 		name: "ipv6_config",
-		config: &ClientConfig{
+		config: &Config{
 			Remote: "[::1]:8080",
 		},
 		expectError: false,
@@ -185,22 +186,22 @@ func TestClientConfig_Export(t *testing.T) {
 // TestClientConfig_getHashCache tests the getHashCache method
 func TestClientConfig_getHashCache(t *testing.T) {
 	// Test with nil HashCache
-	cfg := &ClientConfig{}
+	cfg := &Config{}
 	hc := cfg.getHashCache()
 	AssertNotNil(t, hc, "getHashCache should not return nil")
 	AssertEqual(t, hashCache, hc, "Expected global hashCache")
 
 	// Test with custom HashCache
-	customHC := &HashCache{}
+	customHC := &nanorpc.HashCache{}
 	cfg.HashCache = customHC
 	hc = cfg.getHashCache()
-	AssertEqual(t, customHC, hc, "Expected custom HashCache")
+	AssertEqual(t, customHC, hc, "Expected custom nanorpc.HashCache")
 }
 
 // GetPathOneOfTestCase represents a test case for newGetPathOneOf
 type GetPathOneOfTestCase struct {
-	hc       *HashCache
-	testFunc func(t *testing.T, hc *HashCache)
+	hc       *nanorpc.HashCache
+	testFunc func(t *testing.T, hc *nanorpc.HashCache)
 	name     string
 }
 
@@ -216,8 +217,8 @@ func (tc GetPathOneOfTestCase) test(t *testing.T) {
 // newGetPathOneOfTestCase creates a new test case
 func newGetPathOneOfTestCase(
 	name string,
-	hc *HashCache,
-	testFunc func(t *testing.T, hc *HashCache),
+	hc *nanorpc.HashCache,
+	testFunc func(t *testing.T, hc *nanorpc.HashCache),
 ) GetPathOneOfTestCase {
 	return GetPathOneOfTestCase{
 		name:     name,
@@ -227,39 +228,41 @@ func newGetPathOneOfTestCase(
 }
 
 // testAlwaysHashPathsFalse tests AlwaysHashPaths=false behaviour
-func testAlwaysHashPathsFalse(t *testing.T, hc *HashCache) {
-	cfg := &ClientConfig{
+func testAlwaysHashPathsFalse(t *testing.T, hc *nanorpc.HashCache) {
+	cfg := &Config{
 		AlwaysHashPaths: false,
 	}
 
 	getPathOneOf := cfg.newGetPathOneOf(hc)
 	result := getPathOneOf("/test/path")
 
-	pathOneof := AssertTypeIs[*NanoRPCRequest_Path](t, result, "Expected *NanoRPCRequest_Path")
+	pathOneof := AssertTypeIs[*nanorpc.NanoRPCRequest_Path](t, result, "Expected *nanorpc.NanoRPCRequest_Path")
 	AssertEqual(t, "/test/path", pathOneof.Path, "Path mismatch")
 }
 
 // testAlwaysHashPathsTrue tests AlwaysHashPaths=true behaviour
-func testAlwaysHashPathsTrue(t *testing.T, hc *HashCache) {
-	cfg := &ClientConfig{
+func testAlwaysHashPathsTrue(t *testing.T, hc *nanorpc.HashCache) {
+	cfg := &Config{
 		AlwaysHashPaths: true,
 	}
 
 	getPathOneOf := cfg.newGetPathOneOf(hc)
 	result := getPathOneOf("/test/path")
 
-	pathHashOneof := AssertTypeIs[*NanoRPCRequest_PathHash](t, result, "Expected *NanoRPCRequest_PathHash")
+	pathHashOneof := AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result,
+		"Expected *nanorpc.NanoRPCRequest_PathHash")
 	AssertNotEqual(t, uint32(0), pathHashOneof.PathHash, "Expected non-zero hash")
 
 	// Test consistency
 	result2 := getPathOneOf("/test/path")
-	pathHashOneof2 := AssertTypeIs[*NanoRPCRequest_PathHash](t, result2, "Expected *NanoRPCRequest_PathHash")
+	pathHashOneof2 := AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result2,
+		"Expected *nanorpc.NanoRPCRequest_PathHash")
 	AssertEqual(t, pathHashOneof.PathHash, pathHashOneof2.PathHash, "Hash should be consistent")
 }
 
 // testAlwaysHashPathsTrueNilCache tests AlwaysHashPaths=true with nil cache
-func testAlwaysHashPathsTrueNilCache(t *testing.T, _ *HashCache) {
-	cfg := &ClientConfig{
+func testAlwaysHashPathsTrueNilCache(t *testing.T, _ *nanorpc.HashCache) {
+	cfg := &Config{
 		AlwaysHashPaths: true,
 		HashCache:       nil,
 	}
@@ -267,11 +270,12 @@ func testAlwaysHashPathsTrueNilCache(t *testing.T, _ *HashCache) {
 	getPathOneOf := cfg.newGetPathOneOf(nil)
 	result := getPathOneOf("/test/path")
 
-	pathHashOneof := AssertTypeIs[*NanoRPCRequest_PathHash](t, result, "Expected *NanoRPCRequest_PathHash")
+	pathHashOneof := AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result,
+		"Expected *nanorpc.NanoRPCRequest_PathHash")
 	AssertNotEqual(t, uint32(0), pathHashOneof.PathHash, "Expected non-zero hash")
 }
 
-func getPathOneOfTestCases(hc *HashCache) []GetPathOneOfTestCase {
+func getPathOneOfTestCases(hc *nanorpc.HashCache) []GetPathOneOfTestCase {
 	return []GetPathOneOfTestCase{
 		newGetPathOneOfTestCase("AlwaysHashPaths_false", hc, testAlwaysHashPathsFalse),
 		newGetPathOneOfTestCase("AlwaysHashPaths_true", hc, testAlwaysHashPathsTrue),
@@ -281,18 +285,18 @@ func getPathOneOfTestCases(hc *HashCache) []GetPathOneOfTestCase {
 
 // TestClientConfig_newGetPathOneOf tests the newGetPathOneOf method
 func TestClientConfig_newGetPathOneOf(t *testing.T) {
-	hc := &HashCache{}
+	hc := &nanorpc.HashCache{}
 	for _, tc := range getPathOneOfTestCases(hc) {
 		t.Run(tc.name, tc.test)
 	}
 }
 
 // createConfigWithCallbacks creates a test config with callback tracking
-func createConfigWithCallbacks() (cfgPtr *ClientConfig, onDisconnectPtr, onErrorPtr *bool) {
+func createConfigWithCallbacks() (cfgPtr *Config, onDisconnectPtr, onErrorPtr *bool) {
 	onDisconnectCalled := false
 	onErrorCalled := false
 
-	cfg := &ClientConfig{
+	cfg := &Config{
 		Remote: "localhost:8080",
 		OnConnect: func(context.Context, reconnect.WorkGroup) error {
 			return nil
