@@ -14,7 +14,9 @@ import (
 	"github.com/amery/nanorpc/pkg/nanorpc"
 )
 
-// hashCache is the default hash cache for the client package
+// hashCache is the default hash cache for the client package.
+// It is used when Config.HashCache is nil and provides automatic
+// FNV-1a path hashing with collision detection.
 var hashCache = new(nanorpc.HashCache)
 
 // Config describes how the [Client] will operate
@@ -37,7 +39,8 @@ type Config struct {
 	AlwaysHashPaths bool
 }
 
-// SetDefaults fills gaps in [Config]
+// SetDefaults fills gaps in [Config].
+// If HashCache is nil, assigns the global package-level hashCache.
 func (cfg *Config) SetDefaults() error {
 	if err := config.Set(cfg); err != nil {
 		return err
@@ -114,12 +117,27 @@ func (cfg *Config) newGetPathOneOf(hc *nanorpc.HashCache) func(string) nanorpc.P
 		}
 
 		return func(path string) nanorpc.PathOneOf {
-			return nanorpc.GetPathOneOfHash(hc.Hash(path))
+			hash, err := hc.Hash(path)
+			if err != nil {
+				cfg.logErrorf(err, "Falling back to string path to maintain compatibility")
+				// Fall back to string path on hash collision
+				return nanorpc.GetPathOneOfString(path)
+			}
+
+			return nanorpc.GetPathOneOfHash(hash)
 		}
 	}
 
 	// use string
 	return func(path string) nanorpc.PathOneOf {
 		return nanorpc.GetPathOneOfString(path)
+	}
+}
+
+func (cfg *Config) logErrorf(err error, msg string, args ...any) {
+	if cfg != nil && cfg.Logger != nil {
+		logger := cfg.Logger.Error()
+		logger = logger.WithField(slog.ErrorFieldName, err)
+		logger.Printf(msg, args...)
 	}
 }

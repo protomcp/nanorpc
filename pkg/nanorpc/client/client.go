@@ -52,6 +52,7 @@ func (c *Client) getOnError() func(context.Context, error) error {
 }
 
 // New creates a new [Client] using given [Config].
+// If Config.HashCache is nil, the global package-level hashCache will be used.
 func (cfg *Config) New() (*Client, error) {
 	var c = new(Client)
 
@@ -95,7 +96,8 @@ func (c *Client) init(cfg *Config, rc *reconnect.Client) error {
 	return nil
 }
 
-// NewClient a new [Client] with default options
+// NewClient creates a new [Client] with default options.
+// Uses the global package-level hashCache for path hashing.
 func NewClient(ctx context.Context, address string) (*Client, error) {
 	cfg := Config{
 		Context: ctx,

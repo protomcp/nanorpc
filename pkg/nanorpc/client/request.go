@@ -93,7 +93,13 @@ func (c *Client) RequestByHash(path uint32, msg proto.Message, cb RequestCallbac
 
 // RequestWithHash enqueues a NanoRPC request using the hash of the given path
 func (c *Client) RequestWithHash(path string, msg proto.Message, cb RequestCallback) (int32, error) {
-	return c.RequestByHash(c.hc.Hash(path), msg, cb)
+	hash, err := c.hc.Hash(path)
+	if err != nil {
+		// Fall back to string path on hash collision
+		c.LogError(nil, err, "Falling back to string path to maintain compatibility")
+		return c.Request(path, msg, cb)
+	}
+	return c.RequestByHash(hash, msg, cb)
 }
 
 // Subscribe enqueues a NanoRPC subscription request
@@ -124,7 +130,13 @@ func (c *Client) SubscribeByHash(path uint32, msg proto.Message, cb RequestCallb
 
 // SubscribeWithHash enqueues a NanoRPC request using the hash of the given path.
 func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCallback) (int32, error) {
-	return c.SubscribeByHash(c.hc.Hash(path), msg, cb)
+	hash, err := c.hc.Hash(path)
+	if err != nil {
+		// Fall back to string path on hash collision
+		c.LogError(nil, err, "Falling back to string path to maintain compatibility")
+		return c.Subscribe(path, msg, cb)
+	}
+	return c.SubscribeByHash(hash, msg, cb)
 }
 
 func (c *Client) enqueue(m *nanorpc.NanoRPCRequest, msg proto.Message, cb RequestCallback) (int32, error) {
