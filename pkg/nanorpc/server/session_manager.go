@@ -21,6 +21,11 @@ type DefaultSessionManager struct {
 
 // NewDefaultSessionManager creates a new session manager
 func NewDefaultSessionManager(handler MessageHandler, logger slog.Logger) *DefaultSessionManager {
+	// Add session manager component field to logger
+	if logger != nil {
+		logger = logger.WithField(common.FieldComponent, common.ComponentSessionManager)
+	}
+
 	return &DefaultSessionManager{
 		sessions: make(map[string]Session),
 		handler:  handler,
@@ -59,10 +64,11 @@ func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
 	sm.mu.Unlock()
 
 	// Log session creation
-	sm.getLogger().Info().
-		WithField(common.FieldSessionID, sessionID).
-		WithField(common.FieldRemoteAddr, conn.RemoteAddr().String()).
-		Print("Session created")
+	if l, ok := sm.WithInfo(); ok {
+		l.WithField(common.FieldSessionID, sessionID).
+			WithField(common.FieldRemoteAddr, conn.RemoteAddr().String()).
+			Print("Session created")
+	}
 
 	return session
 }
@@ -74,9 +80,10 @@ func (sm *DefaultSessionManager) RemoveSession(sessionID string) {
 	sm.mu.Unlock()
 
 	// Log session removal
-	sm.getLogger().Info().
-		WithField(common.FieldSessionID, sessionID).
-		Print("Session removed")
+	if l, ok := sm.WithInfo(); ok {
+		l.WithField(common.FieldSessionID, sessionID).
+			Print("Session removed")
+	}
 }
 
 // GetSession retrieves a session by ID
@@ -100,10 +107,10 @@ func (sm *DefaultSessionManager) Shutdown(_ context.Context) error {
 	// Close all sessions
 	for _, session := range sessions {
 		if err := session.Close(); err != nil {
-			sm.getLogger().Warn().
-				WithField(common.FieldSessionID, session.ID()).
-				WithField(common.FieldError, err).
-				Print("Failed to close session")
+			if l, ok := sm.WithError(err); ok {
+				l.WithField(common.FieldSessionID, session.ID()).
+					Print("Failed to close session")
+			}
 		}
 	}
 
