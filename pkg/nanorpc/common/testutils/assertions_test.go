@@ -315,3 +315,40 @@ func TestContains(t *testing.T) {
 		}
 	}
 }
+
+// TestAssertTypeIs tests the AssertTypeIs function
+func TestAssertTypeIs(t *testing.T) {
+	// Test successful type assertion
+	mt := &mockT{}
+	var value any = "hello"
+	result := AssertTypeIs[string](mt, value, "")
+	AssertFalse(t, mt.Failed(), "AssertTypeIs failed with correct type")
+	AssertEqual(t, "hello", result, "AssertTypeIs should return the correct value")
+
+	// Test failed type assertion
+	mt = &mockT{}
+	var intValue any = 42
+	_ = AssertTypeIs[string](mt, intValue, "")
+	AssertTrue(t, mt.Failed(), "AssertTypeIs should fail with incorrect type")
+	AssertContains(t, mt.buf.String(), "expected type string but got int", "")
+
+	// Test with custom message
+	mt = &mockT{}
+	_ = AssertTypeIs[string](mt, intValue, "custom message: %s", "test")
+	AssertContains(t, mt.buf.String(), "custom message: test: expected type string but got int", "")
+
+	// Test with pointer types
+	mt = &mockT{}
+	type MyStruct struct{ Value int }
+	var structPtr any = &MyStruct{Value: 123}
+	resultPtr := AssertTypeIs[*MyStruct](mt, structPtr, "")
+	AssertFalse(t, mt.Failed(), "AssertTypeIs failed with correct pointer type")
+	AssertEqual(t, 123, resultPtr.Value, "AssertTypeIs should return struct with correct value")
+
+	// Test with interface types
+	mt = &mockT{}
+	var errValue any = errors.New("test error")
+	resultErr := AssertTypeIs[error](mt, errValue, "")
+	AssertFalse(t, mt.Failed(), "AssertTypeIs failed with interface type")
+	AssertEqual(t, "test error", resultErr.Error(), "AssertTypeIs should return correct error")
+}

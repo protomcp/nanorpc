@@ -17,6 +17,7 @@
 //	AssertNoError  - asserts an error is nil
 //	AssertError    - asserts an error is not nil
 //	AssertContains - asserts a string contains a substring
+//	AssertTypeIs   - asserts a value is of a specific type and returns it
 //
 // All assertion functions support optional formatted messages:
 //

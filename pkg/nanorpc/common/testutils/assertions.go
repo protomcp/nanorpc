@@ -184,6 +184,28 @@ func AssertContains(t T, str, substr string, name string, args ...any) {
 	}
 }
 
+// AssertTypeIs fails the test if value is not of the expected type.
+// It returns the value cast to the expected type if successful.
+//
+// Example:
+//
+//	req := getSomeInterface()
+//	typedReq := AssertTypeIs[*MyRequest](t, req, "expected *MyRequest")
+func AssertTypeIs[U any](t T, value any, name string, args ...any) U {
+	t.Helper()
+	result, ok := value.(U)
+	if !ok {
+		var zero U
+		msg := fmt.Sprintf("expected type %T but got %T", zero, value)
+		if name != "" {
+			prefix := fmt.Sprintf(name, args...)
+			msg = fmt.Sprintf("%s: %s", prefix, msg)
+		}
+		t.Fatal(msg)
+	}
+	return result
+}
+
 // isNil checks if a value is nil using reflection
 func isNil(value any) bool {
 	if value == nil {
