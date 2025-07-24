@@ -9,6 +9,8 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/sync/workgroup"
+
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // Server represents a decoupled NanoRPC server
@@ -59,7 +61,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	s.wg.OnCancel = s.onGroupCancel
 
 	s.getLogger().Info().
-		WithField(FieldLocalAddr, s.listener.Addr().String()).
+		WithField(common.FieldLocalAddr, s.listener.Addr().String()).
 		Print("Server started")
 
 	// Start accept loop in workgroup with error catching
@@ -73,7 +75,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	// Log final status
 	if err != nil && err != context.Canceled {
 		s.getLogger().Error().
-			WithField(FieldError, err).
+			WithField(common.FieldError, err).
 			Print("Server stopped with error")
 	} else {
 		s.getLogger().Info().Print("Server stopped")
@@ -104,7 +106,7 @@ func (s *Server) acceptLoop(ctx context.Context) error {
 // handleNewConnection processes a new client connection
 func (s *Server) handleNewConnection(_ context.Context, conn net.Conn) {
 	s.getLogger().Debug().
-		WithField(FieldRemoteAddr, conn.RemoteAddr().String()).
+		WithField(common.FieldRemoteAddr, conn.RemoteAddr().String()).
 		Print("Connection accepted")
 
 	session := s.sessionManager.AddSession(conn)
@@ -129,7 +131,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Close listener to stop accepting new connections
 	if err := s.listener.Close(); err != nil {
 		s.getLogger().Warn().
-			WithField(FieldError, err).
+			WithField(common.FieldError, err).
 			Print("Failed to close listener")
 	}
 
@@ -139,7 +141,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Shutdown session manager
 	if err := s.sessionManager.Shutdown(ctx); err != nil {
 		s.getLogger().Warn().
-			WithField(FieldError, err).
+			WithField(common.FieldError, err).
 			Print("Session manager shutdown error")
 	}
 
@@ -159,13 +161,13 @@ func (s *Server) onGroupCancel(_ context.Context, err error) {
 	logger := s.getLogger()
 	if err != nil && err != context.Canceled {
 		logger.Error().
-			WithField(FieldError, err).
+			WithField(common.FieldError, err).
 			Print("Server cancelled with error")
 	}
 	// Ensure listener is closed on cancel
 	if closeErr := s.listener.Close(); closeErr != nil {
 		logger.Warn().
-			WithField(FieldError, closeErr).
+			WithField(common.FieldError, closeErr).
 			Print("Failed to close listener during cancel")
 	}
 }
@@ -183,7 +185,7 @@ func (s *Server) catchAcceptError(_ context.Context, err error) error {
 		if errors.Is(opErr.Err, net.ErrClosed) {
 			// This is expected when shutting down
 			s.getLogger().Debug().
-				WithField(FieldError, err).
+				WithField(common.FieldError, err).
 				Print("Accept loop stopped due to closed listener")
 			return nil // Don't propagate this error
 		}
@@ -197,8 +199,8 @@ func (s *Server) catchAcceptError(_ context.Context, err error) error {
 func (s *Server) catchSessionError(_ context.Context, err error, sessionID string) error {
 	if err != nil && err != context.Canceled {
 		s.getLogger().Error().
-			WithField(FieldSessionID, sessionID).
-			WithField(FieldError, err).
+			WithField(common.FieldSessionID, sessionID).
+			WithField(common.FieldError, err).
 			Print("Session error")
 	}
 	// Don't propagate session errors - they shouldn't crash the server

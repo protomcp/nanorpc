@@ -13,6 +13,8 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
 
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
+
 	"github.com/amery/nanorpc/pkg/nanorpc"
 )
 
@@ -108,7 +110,7 @@ func (s *DefaultSession) decodeAndHandle(ctx context.Context, data []byte) error
 	req, _, err := nanorpc.DecodeRequest(data)
 	if err != nil {
 		s.getLogger().Error().
-			WithField(FieldError, err).
+			WithField(common.FieldError, err).
 			WithField("data_length", len(data)).
 			WithField("data_preview", hexDump(data, 32)).
 			Print("Failed to decode request")
@@ -117,8 +119,8 @@ func (s *DefaultSession) decodeAndHandle(ctx context.Context, data []byte) error
 
 	if err := s.handler.HandleMessage(ctx, s, req); err != nil {
 		s.getLogger().Error().
-			WithField(FieldRequestID, req.GetRequestId()).
-			WithField(FieldError, err).
+			WithField(common.FieldRequestID, req.GetRequestId()).
+			WithField(common.FieldError, err).
 			Print("Handler error")
 		return nil // Continue on handler errors
 	}

@@ -7,6 +7,8 @@ import (
 
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
+
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // DefaultSessionManager implements SessionManager interface
@@ -45,9 +47,9 @@ func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
 
 	// Create session logger with all relevant fields
 	sessionLogger := sm.getLogger().
-		WithField(FieldSessionID, sessionID).
-		WithField(FieldRemoteAddr, conn.RemoteAddr().String()).
-		WithField(FieldComponent, ComponentSession)
+		WithField(common.FieldSessionID, sessionID).
+		WithField(common.FieldRemoteAddr, conn.RemoteAddr().String()).
+		WithField(common.FieldComponent, common.ComponentSession)
 
 	// Update session with the logger
 	session.logger = sessionLogger
@@ -58,8 +60,8 @@ func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
 
 	// Log session creation
 	sm.getLogger().Info().
-		WithField(FieldSessionID, sessionID).
-		WithField(FieldRemoteAddr, conn.RemoteAddr().String()).
+		WithField(common.FieldSessionID, sessionID).
+		WithField(common.FieldRemoteAddr, conn.RemoteAddr().String()).
 		Print("Session created")
 
 	return session
@@ -73,7 +75,7 @@ func (sm *DefaultSessionManager) RemoveSession(sessionID string) {
 
 	// Log session removal
 	sm.getLogger().Info().
-		WithField(FieldSessionID, sessionID).
+		WithField(common.FieldSessionID, sessionID).
 		Print("Session removed")
 }
 
@@ -99,8 +101,8 @@ func (sm *DefaultSessionManager) Shutdown(_ context.Context) error {
 	for _, session := range sessions {
 		if err := session.Close(); err != nil {
 			sm.getLogger().Warn().
-				WithField(FieldSessionID, session.ID()).
-				WithField(FieldError, err).
+				WithField(common.FieldSessionID, session.ID()).
+				WithField(common.FieldError, err).
 				Print("Failed to close session")
 		}
 	}
