@@ -156,7 +156,10 @@ c.Wait() // Wait for all goroutines to finish
 The package includes test utilities for writing unit tests:
 
 ```go
-import "github.com/amery/nanorpc/pkg/nanorpc/client"
+import (
+    "github.com/amery/nanorpc/pkg/nanorpc/client"
+    "github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+)
 
 func TestMyClient(t *testing.T) {
     cfg := &client.Config{
@@ -164,8 +167,8 @@ func TestMyClient(t *testing.T) {
     }
 
     c, err := cfg.New()
-    client.AssertNoError(t, err, "Failed to create client")
-    client.AssertNotNil(t, c, "Client should not be nil")
+    testutils.AssertNoError(t, err, "Failed to create client")
+    testutils.AssertNotNil(t, c, "Client should not be nil")
 
     // Test with concurrent operations
     helper := client.NewConcurrentTestHelper(t, 10)

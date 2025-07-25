@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/amery/nanorpc/pkg/nanorpc"
+	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 type requestTypeTestCase struct {
@@ -23,7 +24,7 @@ func (tc requestTypeTestCase) test(t *testing.T) {
 	}
 
 	// Verify the request type matches expectation
-	AssertEqual(t, tc.expectedType, req.RequestType, "RequestType mismatch")
+	testutils.AssertEqual(t, tc.expectedType, req.RequestType, "RequestType mismatch")
 }
 
 func newRequestTypeTestCase(name string, requestType, expectedType nanorpc.NanoRPCRequest_Type) requestTypeTestCase {
@@ -35,7 +36,7 @@ func newRequestTypeTestCase(name string, requestType, expectedType nanorpc.NanoR
 }
 
 func subscriptionRequestTypeTestCases() []requestTypeTestCase {
-	return S(
+	return testutils.S(
 		newRequestTypeTestCase("Subscribe_uses_TYPE_SUBSCRIBE",
 			nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE),
 		newRequestTypeTestCase("Request_uses_TYPE_REQUEST",
@@ -63,7 +64,7 @@ func TestRequestConstruction(t *testing.T) {
 		},
 	}
 
-	AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE, subscribeReq.RequestType,
+	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE, subscribeReq.RequestType,
 		"Subscribe request should use TYPE_SUBSCRIBE")
 
 	// Test Request construction (like what Request() method does)
@@ -74,7 +75,7 @@ func TestRequestConstruction(t *testing.T) {
 		},
 	}
 
-	AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_REQUEST, requestReq.RequestType,
+	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_REQUEST, requestReq.RequestType,
 		"Request should use TYPE_REQUEST")
 
 	// Test Ping construction (like what Ping() method does)
@@ -82,7 +83,7 @@ func TestRequestConstruction(t *testing.T) {
 		RequestType: nanorpc.NanoRPCRequest_TYPE_PING,
 	}
 
-	AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_PING, pingReq.RequestType,
+	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_PING, pingReq.RequestType,
 		"Ping request should use TYPE_PING")
 }
 
@@ -96,9 +97,9 @@ func TestPathOneofTypes(t *testing.T) {
 		},
 	}
 
-	pathOneof := AssertTypeIs[*nanorpc.NanoRPCRequest_Path](t, pathReq.PathOneof,
+	pathOneof := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_Path](t, pathReq.PathOneof,
 		"Expected *nanorpc.NanoRPCRequest_Path")
-	AssertEqual(t, "/events", pathOneof.Path, "Path mismatch")
+	testutils.AssertEqual(t, "/events", pathOneof.Path, "Path mismatch")
 
 	// Test hash path
 	hashReq := &nanorpc.NanoRPCRequest{
@@ -108,9 +109,9 @@ func TestPathOneofTypes(t *testing.T) {
 		},
 	}
 
-	hashOneof := AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, hashReq.PathOneof,
+	hashOneof := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, hashReq.PathOneof,
 		"Expected *nanorpc.NanoRPCRequest_PathHash")
-	AssertEqual(t, uint32(0x12345678), hashOneof.PathHash, "Hash mismatch")
+	testutils.AssertEqual(t, uint32(0x12345678), hashOneof.PathHash, "Hash mismatch")
 }
 
 type stringRepresentationTestCase struct {
@@ -119,7 +120,7 @@ type stringRepresentationTestCase struct {
 }
 
 func (tc stringRepresentationTestCase) test(t *testing.T) {
-	AssertNotEqual(t, "", tc.value.String(), "%s should have a string representation", tc.name)
+	testutils.AssertNotEqual(t, "", tc.value.String(), "%s should have a string representation", tc.name)
 }
 
 func newStringRepresentationTestCase(name string, value interface{ String() string }) stringRepresentationTestCase {
@@ -127,7 +128,7 @@ func newStringRepresentationTestCase(name string, value interface{ String() stri
 }
 
 func requestTypeStringTestCases() []stringRepresentationTestCase {
-	return S(
+	return testutils.S(
 		newStringRepresentationTestCase("TYPE_UNSPECIFIED", nanorpc.NanoRPCRequest_TYPE_UNSPECIFIED),
 		newStringRepresentationTestCase("TYPE_PING", nanorpc.NanoRPCRequest_TYPE_PING),
 		newStringRepresentationTestCase("TYPE_REQUEST", nanorpc.NanoRPCRequest_TYPE_REQUEST),
@@ -136,7 +137,7 @@ func requestTypeStringTestCases() []stringRepresentationTestCase {
 }
 
 func responseTypeStringTestCases() []stringRepresentationTestCase {
-	return S(
+	return testutils.S(
 		newStringRepresentationTestCase("TYPE_UNSPECIFIED", nanorpc.NanoRPCResponse_TYPE_UNSPECIFIED),
 		newStringRepresentationTestCase("TYPE_PONG", nanorpc.NanoRPCResponse_TYPE_PONG),
 		newStringRepresentationTestCase("TYPE_RESPONSE", nanorpc.NanoRPCResponse_TYPE_RESPONSE),
