@@ -10,7 +10,7 @@ import (
 
 // Example_jsonEchoHandler demonstrates using JSON helpers for request/response handling
 func Example_jsonEchoHandler() {
-	handler := server.NewDefaultMessageHandler()
+	handler := server.NewDefaultMessageHandler(nil)
 
 	// Register a JSON echo handler
 	_ = handler.RegisterHandlerFunc("/api/json/echo", func(_ context.Context, req *server.RequestContext) error {
@@ -39,7 +39,7 @@ func Example_jsonEchoHandler() {
 
 // Example_protobufHandler demonstrates using protobuf helpers
 func Example_protobufHandler() {
-	handler := server.NewDefaultMessageHandler()
+	handler := server.NewDefaultMessageHandler(nil)
 
 	// Register a protobuf handler
 	_ = handler.RegisterHandlerFunc("/api/proto/ping", func(_ context.Context, req *server.RequestContext) error {
@@ -66,7 +66,7 @@ func Example_protobufHandler() {
 
 // Example_errorHandlers demonstrates various error response helpers
 func Example_errorHandlers() {
-	handler := server.NewDefaultMessageHandler()
+	handler := server.NewDefaultMessageHandler(nil)
 
 	// Handler that returns not found
 	_ = handler.RegisterHandlerFunc("/api/users/get", func(_ context.Context, req *server.RequestContext) error {
@@ -100,7 +100,7 @@ func Example_errorHandlers() {
 
 // Example_dataAccessHelpers demonstrates request data access helpers
 func Example_dataAccessHelpers() {
-	handler := server.NewDefaultMessageHandler()
+	handler := server.NewDefaultMessageHandler(nil)
 
 	_ = handler.RegisterHandlerFunc("/api/info", func(_ context.Context, req *server.RequestContext) error {
 		// Access request metadata

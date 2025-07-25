@@ -33,7 +33,7 @@ func (tc *handleRequestTestCase) test(t *testing.T) {
 	t.Helper()
 
 	// Create handler with test configuration
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	_ = handler.RegisterHandlerFunc(pathEcho, tc.echoHandler)
 
 	// Create mock session

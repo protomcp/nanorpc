@@ -40,7 +40,7 @@ func NewServer(listener Listener, sessionManager SessionManager,
 // NewDefaultServer creates a server with default components
 func NewDefaultServer(netListener net.Listener, logger slog.Logger) *Server {
 	listener := NewListenerAdapter(netListener)
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil) // Creates new HashCache internally
 	sessionManager := NewDefaultSessionManager(handler, logger)
 
 	return NewServer(listener, sessionManager, handler, logger)
