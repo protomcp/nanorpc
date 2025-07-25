@@ -8,10 +8,12 @@ import (
 	"sync"
 
 	"darvaza.org/core"
+	"darvaza.org/slog"
 	"darvaza.org/x/net/reconnect"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/amery/nanorpc/pkg/nanorpc"
-	"google.golang.org/protobuf/proto"
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // clientRequest combines in a single object the fields needed for
@@ -31,10 +33,11 @@ type clientRequestQueue struct {
 type Session struct {
 	reconnect.WorkGroup
 
-	c  *Client
-	rc *reconnect.Client
-	ra net.Addr
-	ss *reconnect.StreamSession[*nanorpc.NanoRPCResponse, clientRequest]
+	c      *Client
+	rc     *reconnect.Client
+	ra     net.Addr
+	ss     *reconnect.StreamSession[*nanorpc.NanoRPCResponse, clientRequest]
+	logger slog.Logger
 
 	cb []clientRequestQueue
 	mu sync.Mutex
@@ -254,10 +257,15 @@ func newClientSession(ctx context.Context, c *Client, queueSize uint, conn net.C
 		},
 	}
 
+	// Create session logger with fields added once
+	sessionLogger := common.WithComponent(c.getLogger(), common.ComponentSession)
+	sessionLogger = common.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
+
 	cs := &Session{
-		c:  c,
-		rc: c.rc,
-		ra: conn.RemoteAddr(),
+		c:      c,
+		rc:     c.rc,
+		ra:     conn.RemoteAddr(),
+		logger: sessionLogger,
 
 		ss:        ss,
 		WorkGroup: ss,

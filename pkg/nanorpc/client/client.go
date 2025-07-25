@@ -11,6 +11,7 @@ import (
 	"darvaza.org/x/net/reconnect"
 
 	"github.com/amery/nanorpc/pkg/nanorpc"
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // Client is a reconnecting NanoRPC client.
@@ -95,8 +96,11 @@ func (c *Client) init(cfg *Config, rc *reconnect.Client) error {
 	c.callOnDisconnect = cfg.OnDisconnect
 	c.callOnError = cfg.OnError
 
-	// Set logger from config, will use default if nil
+	// Set logger from config, add component field if provided
 	c.logger = cfg.Logger
+	if c.logger != nil {
+		c.logger = c.logger.WithField(common.FieldComponent, common.ComponentClient)
+	}
 
 	return nil
 }

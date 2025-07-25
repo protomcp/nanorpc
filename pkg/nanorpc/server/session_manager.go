@@ -21,10 +21,8 @@ type DefaultSessionManager struct {
 
 // NewDefaultSessionManager creates a new session manager
 func NewDefaultSessionManager(handler MessageHandler, logger slog.Logger) *DefaultSessionManager {
-	// Add session manager component field to logger
-	if logger != nil {
-		logger = logger.WithField(common.FieldComponent, common.ComponentSessionManager)
-	}
+	// Add session manager component field to logger using common helper
+	logger = common.WithComponent(logger, common.ComponentSessionManager)
 
 	return &DefaultSessionManager{
 		sessions: make(map[string]Session),
@@ -50,11 +48,10 @@ func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
 	session := NewDefaultSession(conn, sm.handler, nil)
 	sessionID := session.ID()
 
-	// Create session logger with all relevant fields
-	sessionLogger := sm.getLogger().
-		WithField(common.FieldSessionID, sessionID).
-		WithField(common.FieldRemoteAddr, conn.RemoteAddr().String()).
-		WithField(common.FieldComponent, common.ComponentSession)
+	// Create session logger with all relevant fields using common helpers
+	sessionLogger := common.WithSessionID(sm.getLogger(), sessionID)
+	sessionLogger = common.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
+	sessionLogger = common.WithComponent(sessionLogger, common.ComponentSession)
 
 	// Update session with the logger
 	session.logger = sessionLogger
@@ -63,11 +60,11 @@ func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
 	sm.sessions[sessionID] = session
 	sm.mu.Unlock()
 
-	// Log session creation
+	// Log session creation using common helpers
 	if l, ok := sm.WithInfo(); ok {
-		l.WithField(common.FieldSessionID, sessionID).
-			WithField(common.FieldRemoteAddr, conn.RemoteAddr().String()).
-			Print("Session created")
+		l = common.WithSessionID(l, sessionID)
+		l = common.WithRemoteAddr(l, conn.RemoteAddr())
+		l.Print("Session created")
 	}
 
 	return session
@@ -79,10 +76,10 @@ func (sm *DefaultSessionManager) RemoveSession(sessionID string) {
 	delete(sm.sessions, sessionID)
 	sm.mu.Unlock()
 
-	// Log session removal
+	// Log session removal using common helpers
 	if l, ok := sm.WithInfo(); ok {
-		l.WithField(common.FieldSessionID, sessionID).
-			Print("Session removed")
+		l = common.WithSessionID(l, sessionID)
+		l.Print("Session removed")
 	}
 }
 
@@ -108,8 +105,8 @@ func (sm *DefaultSessionManager) Shutdown(_ context.Context) error {
 	for _, session := range sessions {
 		if err := session.Close(); err != nil {
 			if l, ok := sm.WithError(err); ok {
-				l.WithField(common.FieldSessionID, session.ID()).
-					Print("Failed to close session")
+				l = common.WithSessionID(l, session.ID())
+				l.Print("Failed to close session")
 			}
 		}
 	}

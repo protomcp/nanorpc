@@ -12,8 +12,8 @@ import (
 // getLogger returns the base logger for the client, creating one if needed
 func (c *Client) getLogger() slog.Logger {
 	if c.logger == nil {
-		// Create a discard logger if none provided
-		c.logger = discard.New().WithField(common.FieldComponent, common.ComponentClient)
+		// Create a simple discard logger if none provided
+		c.logger = discard.New()
 	}
 	return c.logger
 }
@@ -22,7 +22,7 @@ func (c *Client) getLogger() slog.Logger {
 func (c *Client) WithDebug(addr net.Addr) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if debug, ok := logger.Debug().WithEnabled(); ok {
-		return debug.WithField(common.FieldRemoteAddr, addr.String()), true
+		return common.WithRemoteAddr(debug, addr), true
 	}
 	return nil, false
 }
@@ -38,7 +38,7 @@ func (c *Client) LogDebug(addr net.Addr, msg string) {
 func (c *Client) WithInfo(addr net.Addr) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if info, ok := logger.Info().WithEnabled(); ok {
-		return info.WithField(common.FieldRemoteAddr, addr.String()), true
+		return common.WithRemoteAddr(info, addr), true
 	}
 	return nil, false
 }
@@ -50,13 +50,29 @@ func (c *Client) LogInfo(addr net.Addr, msg string) {
 	}
 }
 
+// WithWarn returns an annotated warn-level logger
+func (c *Client) WithWarn(addr net.Addr, err error) (slog.Logger, bool) {
+	logger := c.getLogger()
+	if warn, ok := logger.Warn().WithEnabled(); ok {
+		warn = common.WithError(warn, err)
+		return common.WithRemoteAddr(warn, addr), true
+	}
+	return nil, false
+}
+
+// LogWarn writes a log entry at warn-level.
+func (c *Client) LogWarn(addr net.Addr, err error, msg string) {
+	if l, ok := c.WithWarn(addr, err); ok {
+		l.Print(msg)
+	}
+}
+
 // WithError returns an annotated error-level logger
 func (c *Client) WithError(addr net.Addr, err error) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return errorLog.
-			WithField(common.FieldRemoteAddr, addr.String()).
-			WithField(common.FieldError, err), true
+		errorLog = common.WithError(errorLog, err)
+		return common.WithRemoteAddr(errorLog, addr), true
 	}
 	return nil, false
 }
@@ -65,7 +81,7 @@ func (c *Client) WithError(addr net.Addr, err error) (slog.Logger, bool) {
 func (c *Client) getErrorLogger(err error) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return errorLog.WithField(common.FieldError, err), true
+		return common.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -77,12 +93,15 @@ func (c *Client) LogError(addr net.Addr, err error, msg string) {
 	}
 }
 
-// getLogger returns the session logger with session-specific fields
+// getLogger returns the configured session logger or lazily initializes one
 func (cs *Session) getLogger() slog.Logger {
-	logger := cs.c.getLogger()
-	return logger.
-		WithField(common.FieldComponent, common.ComponentSession).
-		WithField(common.FieldRemoteAddr, cs.ra.String())
+	if cs.logger == nil {
+		// Fallback initialization if logger wasn't set during creation
+		logger := common.WithComponent(cs.c.getLogger(), common.ComponentSession)
+		logger = common.WithRemoteAddr(logger, cs.ra)
+		cs.logger = logger
+	}
+	return cs.logger
 }
 
 // WithDebug returns an annotated debug-level logger
@@ -117,11 +136,27 @@ func (cs *Session) LogInfo(msg string) {
 	}
 }
 
+// WithWarn returns an annotated warn-level logger
+func (cs *Session) WithWarn(err error) (slog.Logger, bool) {
+	logger := cs.getLogger()
+	if warn, ok := logger.Warn().WithEnabled(); ok {
+		return common.WithError(warn, err), true
+	}
+	return nil, false
+}
+
+// LogWarn writes a log entry at warn-level.
+func (cs *Session) LogWarn(err error, msg string) {
+	if l, ok := cs.WithWarn(err); ok {
+		l.Print(msg)
+	}
+}
+
 // WithError returns an annotated error-level logger
 func (cs *Session) WithError(err error) (slog.Logger, bool) {
 	logger := cs.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return errorLog.WithField(common.FieldError, err), true
+		return common.WithError(errorLog, err), true
 	}
 	return nil, false
 }

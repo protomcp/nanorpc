@@ -43,17 +43,17 @@ func (s *Server) LogInfo(msg string) {
 }
 
 // WithWarn returns an annotated warn-level logger
-func (s *Server) WithWarn() (slog.Logger, bool) {
+func (s *Server) WithWarn(err error) (slog.Logger, bool) {
 	logger := s.getLogger()
 	if warn, ok := logger.Warn().WithEnabled(); ok {
-		return warn, true
+		return common.WithError(warn, err), true
 	}
 	return nil, false
 }
 
 // LogWarn writes a log entry at warn-level.
-func (s *Server) LogWarn(msg string) {
-	if l, ok := s.WithWarn(); ok {
+func (s *Server) LogWarn(err error, msg string) {
+	if l, ok := s.WithWarn(err); ok {
 		l.Print(msg)
 	}
 }
@@ -62,7 +62,7 @@ func (s *Server) LogWarn(msg string) {
 func (s *Server) WithError(err error) (slog.Logger, bool) {
 	logger := s.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return errorLog.WithField(common.FieldError, err), true
+		return common.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -108,11 +108,27 @@ func (sm *DefaultSessionManager) LogInfo(msg string) {
 	}
 }
 
+// WithWarn returns an annotated warn-level logger
+func (sm *DefaultSessionManager) WithWarn(err error) (slog.Logger, bool) {
+	logger := sm.getLogger()
+	if warn, ok := logger.Warn().WithEnabled(); ok {
+		return common.WithError(warn, err), true
+	}
+	return nil, false
+}
+
+// LogWarn writes a log entry at warn-level.
+func (sm *DefaultSessionManager) LogWarn(err error, msg string) {
+	if l, ok := sm.WithWarn(err); ok {
+		l.Print(msg)
+	}
+}
+
 // WithError returns an annotated error-level logger
 func (sm *DefaultSessionManager) WithError(err error) (slog.Logger, bool) {
 	logger := sm.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return errorLog.WithField(common.FieldError, err), true
+		return common.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -158,11 +174,27 @@ func (s *DefaultSession) LogInfo(msg string) {
 	}
 }
 
+// WithWarn returns an annotated warn-level logger
+func (s *DefaultSession) WithWarn(err error) (slog.Logger, bool) {
+	logger := s.getLogger()
+	if warn, ok := logger.Warn().WithEnabled(); ok {
+		return common.WithError(warn, err), true
+	}
+	return nil, false
+}
+
+// LogWarn writes a log entry at warn-level.
+func (s *DefaultSession) LogWarn(err error, msg string) {
+	if l, ok := s.WithWarn(err); ok {
+		l.Print(msg)
+	}
+}
+
 // WithError returns an annotated error-level logger
 func (s *DefaultSession) WithError(err error) (slog.Logger, bool) {
 	logger := s.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return errorLog.WithField(common.FieldError, err), true
+		return common.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -179,9 +211,7 @@ func (s *DefaultSession) LogError(err error, msg string) {
 // logAccept logs successful connection acceptance
 func (s *Server) logAccept(conn net.Conn) {
 	if l, ok := s.WithDebug(); ok {
-		l.WithFields(slog.Fields{
-			common.FieldRemoteAddr: conn.RemoteAddr().String(),
-			common.FieldLocalAddr:  conn.LocalAddr().String(),
-		}).Print("connection accepted")
+		l = common.WithConnAddrs(l, conn)
+		l.Print("connection accepted")
 	}
 }

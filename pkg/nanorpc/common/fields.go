@@ -1,7 +1,11 @@
 // Package common provides shared constants and types used by both client and server.
 package common
 
-import "darvaza.org/slog"
+import (
+	"net"
+
+	"darvaza.org/slog"
+)
 
 // Field name constants for structured logging.
 // These are exported to allow callers to perform field transformations
@@ -80,3 +84,60 @@ const (
 	StateReconnecting  = "reconnecting"
 	StateShuttingDown  = "shutting_down"
 )
+
+// Logger helper functions for safe field addition
+
+// WithRemoteAddr safely adds a remote address field to a logger.
+// If logger or addr is nil, returns the original logger unchanged.
+func WithRemoteAddr(logger slog.Logger, addr net.Addr) slog.Logger {
+	if logger != nil && addr != nil {
+		return logger.WithField(FieldRemoteAddr, addr.String())
+	}
+	return logger
+}
+
+// WithLocalAddr safely adds a local address field to a logger.
+// If logger or addr is nil, returns the original logger unchanged.
+func WithLocalAddr(logger slog.Logger, addr net.Addr) slog.Logger {
+	if logger != nil && addr != nil {
+		return logger.WithField(FieldLocalAddr, addr.String())
+	}
+	return logger
+}
+
+// WithConnAddrs safely adds both remote and local address fields from a connection.
+// If logger, conn, or either address is nil, those fields are skipped.
+func WithConnAddrs(logger slog.Logger, conn net.Conn) slog.Logger {
+	if logger != nil && conn != nil {
+		logger = WithRemoteAddr(logger, conn.RemoteAddr())
+		logger = WithLocalAddr(logger, conn.LocalAddr())
+	}
+	return logger
+}
+
+// WithComponent adds a component field to a logger.
+// If logger is nil, returns nil.
+func WithComponent(logger slog.Logger, component string) slog.Logger {
+	if logger != nil {
+		return logger.WithField(FieldComponent, component)
+	}
+	return logger
+}
+
+// WithSessionID adds a session ID field to a logger.
+// If logger is nil, returns nil.
+func WithSessionID(logger slog.Logger, sessionID string) slog.Logger {
+	if logger != nil {
+		return logger.WithField(FieldSessionID, sessionID)
+	}
+	return logger
+}
+
+// WithError adds an error field to a logger.
+// If logger or err is nil, returns the original logger unchanged.
+func WithError(logger slog.Logger, err error) slog.Logger {
+	if logger != nil && err != nil {
+		return logger.WithField(FieldError, err)
+	}
+	return logger
+}

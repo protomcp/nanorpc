@@ -26,10 +26,8 @@ type Server struct {
 // NewServer creates a new decoupled server
 func NewServer(listener Listener, sessionManager SessionManager,
 	messageHandler MessageHandler, logger slog.Logger) *Server {
-	// Add server component field to logger
-	if logger != nil {
-		logger = logger.WithField(common.FieldComponent, common.ComponentServer)
-	}
+	// Add server component field to logger using common helper
+	logger = common.WithComponent(logger, common.ComponentServer)
 
 	return &Server{
 		listener:       listener,
@@ -66,8 +64,8 @@ func (s *Server) Serve(ctx context.Context) error {
 	s.wg.OnCancel = s.onGroupCancel
 
 	if l, ok := s.WithInfo(); ok {
-		l.WithField(common.FieldLocalAddr, s.listener.Addr().String()).
-			Print("Server started")
+		l = common.WithLocalAddr(l, s.listener.Addr())
+		l.Print("Server started")
 	}
 
 	// Start accept loop in workgroup with error catching
@@ -132,9 +130,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 	// Close listener to stop accepting new connections
 	if err := s.listener.Close(); err != nil {
-		if l, ok := s.WithWarn(); ok {
-			l.WithField(common.FieldError, err).
-				Print("Failed to close listener")
+		if l, ok := s.WithWarn(err); ok {
+			l.Print("Failed to close listener")
 		}
 	}
 
@@ -143,9 +140,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 	// Shutdown session manager
 	if err := s.sessionManager.Shutdown(ctx); err != nil {
-		if l, ok := s.WithWarn(); ok {
-			l.WithField(common.FieldError, err).
-				Print("Session manager shutdown error")
+		if l, ok := s.WithWarn(err); ok {
+			l.Print("Session manager shutdown error")
 		}
 	}
 
@@ -167,9 +163,8 @@ func (s *Server) onGroupCancel(_ context.Context, err error) {
 	}
 	// Ensure listener is closed on cancel
 	if closeErr := s.listener.Close(); closeErr != nil {
-		if l, ok := s.WithWarn(); ok {
-			l.WithField(common.FieldError, closeErr).
-				Print("Failed to close listener during cancel")
+		if l, ok := s.WithWarn(closeErr); ok {
+			l.Print("Failed to close listener during cancel")
 		}
 	}
 }
@@ -183,8 +178,8 @@ func (s *Server) catchAcceptError(_ context.Context, err error) error {
 	// Check for expected shutdown error
 	if s.isExpectedAcceptError(err) {
 		if l, ok := s.WithDebug(); ok {
-			l.WithField(common.FieldError, err).
-				Print("Accept loop stopped due to closed listener")
+			l = common.WithError(l, err)
+			l.Print("Accept loop stopped due to closed listener")
 		}
 		return nil
 	}
@@ -202,8 +197,8 @@ func (*Server) isExpectedAcceptError(err error) bool {
 func (s *Server) catchSessionError(_ context.Context, err error, sessionID string) error {
 	if err != nil && err != context.Canceled {
 		if l, ok := s.WithError(err); ok {
-			l.WithField(common.FieldSessionID, sessionID).
-				Print("Session error")
+			l = common.WithSessionID(l, sessionID)
+			l.Print("Session error")
 		}
 	}
 	// Don't propagate session errors - they shouldn't crash the server
