@@ -17,7 +17,7 @@ The NanoRPC client features:
 ## Basic Usage
 
 ```go
-import "github.com/amery/nanorpc/pkg/nanorpc/client"
+import "protomcp.org/nanorpc/pkg/nanorpc/client"
 
 // Create a simple client
 c, err := client.NewClient(context.Background(), "localhost:8080")
@@ -157,8 +157,8 @@ The package includes test utilities for writing unit tests:
 
 ```go
 import (
-    "github.com/amery/nanorpc/pkg/nanorpc/client"
-    "github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+    "protomcp.org/nanorpc/pkg/nanorpc/client"
+    "protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 func TestMyClient(t *testing.T) {

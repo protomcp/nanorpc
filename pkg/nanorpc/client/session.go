@@ -12,8 +12,8 @@ import (
 	"darvaza.org/x/net/reconnect"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 )
 
 // clientRequest combines in a single object the fields needed for

@@ -10,7 +10,7 @@ import (
 	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/sync/workgroup"
 
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 )
 
 // Server represents a decoupled NanoRPC server

@@ -13,9 +13,9 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
 
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 // DefaultSession implements Session interface

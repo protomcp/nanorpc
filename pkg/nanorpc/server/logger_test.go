@@ -6,8 +6,8 @@ import (
 
 	"darvaza.org/slog"
 
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
-	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // Test server default logger

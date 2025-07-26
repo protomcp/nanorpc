@@ -5,7 +5,7 @@ import (
 
 	"darvaza.org/slog"
 
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 )
 
 // Server logging methods

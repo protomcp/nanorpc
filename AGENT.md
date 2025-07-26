@@ -61,7 +61,7 @@ make generate
 
 The project uses a sophisticated build system that handles multiple Go modules:
 
-- **Root module**: `github.com/amery/nanorpc`
+- **Root module**: `protomcp.org/nanorpc`
 - **Submodules**: `pkg/generator`, `pkg/nanopb`, `pkg/nanorpc`
 - **Dynamic rules**: Generated via `internal/build/gen_mk.sh`
 - **Dependency tracking**: Handles inter-module dependencies

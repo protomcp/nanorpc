@@ -11,7 +11,7 @@ import (
 	"darvaza.org/x/config"
 	"darvaza.org/x/net/reconnect"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 // hashCache is the default hash cache for the client package.

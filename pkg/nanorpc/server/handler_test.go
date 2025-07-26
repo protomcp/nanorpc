@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
-	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // Test helpers and factories

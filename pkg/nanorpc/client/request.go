@@ -6,8 +6,8 @@ import (
 	"darvaza.org/core"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 )
 
 // SubscribeCallback is a function given to [Subscribe] to be called on every update
