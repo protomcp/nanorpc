@@ -1,11 +1,13 @@
-package nanorpc
+package client
 
 import (
 	"context"
 
 	"darvaza.org/core"
-
 	"google.golang.org/protobuf/proto"
+
+	"github.com/amery/nanorpc/pkg/nanorpc"
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // SubscribeCallback is a function given to [Subscribe] to be called on every update
@@ -25,8 +27,8 @@ type Subscriber interface {
 // Ping returns false if the [Client] isn't connected.
 func (c *Client) Ping() bool {
 	// assemble header
-	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_PING,
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_PING,
 	}
 
 	_, err := c.enqueue(m, nil, nil)
@@ -38,8 +40,8 @@ func (c *Client) Ping() bool {
 // the channel returns nil on success or ErrPingTimeout
 // if not connected or disconnected before answered.
 func (c *Client) Pong() <-chan error {
-	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_PING,
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_PING,
 	}
 
 	// size 1 so we can write even if no-one is listening.
@@ -52,8 +54,8 @@ func (c *Client) Pong() <-chan error {
 	}
 
 	// callback
-	cb := func(_ context.Context, _ int32, pong *NanoRPCResponse) error {
-		h(ResponseAsError(pong))
+	cb := func(_ context.Context, _ int32, pong *nanorpc.NanoRPCResponse) error {
+		h(nanorpc.ResponseAsError(pong))
 		return nil
 	}
 
@@ -69,8 +71,8 @@ func (c *Client) Pong() <-chan error {
 // if [ClientOptions].AlwaysHashPaths was set.
 func (c *Client) Request(path string, msg proto.Message, cb RequestCallback) (int32, error) {
 	// assemble header
-	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_REQUEST,
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
 		PathOneof:   c.getPathOneOf(path),
 	}
 
@@ -80,9 +82,9 @@ func (c *Client) Request(path string, msg proto.Message, cb RequestCallback) (in
 // RequestByHash enqueues a NanoRPC request using a given path_hash.
 func (c *Client) RequestByHash(path uint32, msg proto.Message, cb RequestCallback) (int32, error) {
 	// assemble header
-	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_REQUEST,
-		PathOneof: &NanoRPCRequest_PathHash{
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		PathOneof: &nanorpc.NanoRPCRequest_PathHash{
 			PathHash: path,
 		},
 	}
@@ -92,7 +94,16 @@ func (c *Client) RequestByHash(path uint32, msg proto.Message, cb RequestCallbac
 
 // RequestWithHash enqueues a NanoRPC request using the hash of the given path
 func (c *Client) RequestWithHash(path string, msg proto.Message, cb RequestCallback) (int32, error) {
-	return c.RequestByHash(c.hc.Hash(path), msg, cb)
+	hash, err := c.hc.Hash(path)
+	if err != nil {
+		// Fall back to string path on hash collision
+		if logger, ok := c.getErrorLogger(err); ok {
+			logger.WithField(common.FieldPath, path).
+				Print("Falling back to string path to maintain compatibility")
+		}
+		return c.Request(path, msg, cb)
+	}
+	return c.RequestByHash(hash, msg, cb)
 }
 
 // Subscribe enqueues a NanoRPC subscription request
@@ -100,8 +111,8 @@ func (c *Client) RequestWithHash(path string, msg proto.Message, cb RequestCallb
 // if [ClientOptions].AlwaysHashPaths was set.
 func (c *Client) Subscribe(path string, msg proto.Message, cb RequestCallback) (int32, error) {
 	// assemble header
-	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_SUBSCRIBE,
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE,
 		PathOneof:   c.getPathOneOf(path),
 	}
 
@@ -111,9 +122,9 @@ func (c *Client) Subscribe(path string, msg proto.Message, cb RequestCallback) (
 // SubscribeByHash enqueues a NanoRPC request using a given path_hash.
 func (c *Client) SubscribeByHash(path uint32, msg proto.Message, cb RequestCallback) (int32, error) {
 	// assemble header
-	m := &NanoRPCRequest{
-		RequestType: NanoRPCRequest_TYPE_SUBSCRIBE,
-		PathOneof: &NanoRPCRequest_PathHash{
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE,
+		PathOneof: &nanorpc.NanoRPCRequest_PathHash{
 			PathHash: path,
 		},
 	}
@@ -123,10 +134,19 @@ func (c *Client) SubscribeByHash(path uint32, msg proto.Message, cb RequestCallb
 
 // SubscribeWithHash enqueues a NanoRPC request using the hash of the given path.
 func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCallback) (int32, error) {
-	return c.SubscribeByHash(c.hc.Hash(path), msg, cb)
+	hash, err := c.hc.Hash(path)
+	if err != nil {
+		// Fall back to string path on hash collision
+		if logger, ok := c.getErrorLogger(err); ok {
+			logger.WithField(common.FieldPath, path).
+				Print("Falling back to string path to maintain compatibility")
+		}
+		return c.Subscribe(path, msg, cb)
+	}
+	return c.SubscribeByHash(hash, msg, cb)
 }
 
-func (c *Client) enqueue(m *NanoRPCRequest, msg proto.Message, cb RequestCallback) (int32, error) {
+func (c *Client) enqueue(m *nanorpc.NanoRPCRequest, msg proto.Message, cb RequestCallback) (int32, error) {
 	cs, err := c.getSession()
 	if err != nil {
 		return 0, err
@@ -156,12 +176,12 @@ func GetResponse[Q, A proto.Message](ctx context.Context, c Requester, path stri
 
 func newGetResponseCallback(out proto.Message) (<-chan error, RequestCallback) {
 	ch := make(chan error, 1)
-	cb := func(_ context.Context, _ int32, res *NanoRPCResponse) error {
+	cb := func(_ context.Context, _ int32, res *nanorpc.NanoRPCResponse) error {
 		defer close(ch)
 
-		_, present, err := DecodeResponseData(res, out)
+		_, present, err := nanorpc.DecodeResponseData(res, out)
 		if err == nil && !present {
-			ch <- ErrNoResponse
+			ch <- nanorpc.ErrNoResponse
 		} else {
 			ch <- err
 		}
@@ -191,15 +211,15 @@ func newSubscribeCallback[A proto.Message](cb SubscribeCallback[A], newOut func(
 		}
 	}
 
-	fn := func(ctx context.Context, id int32, res *NanoRPCResponse) error {
+	fn := func(ctx context.Context, id int32, res *nanorpc.NanoRPCResponse) error {
 		out, err := newOut()
 		if err != nil {
 			return err
 		}
 
-		_, present, err := DecodeResponseData(res, out)
+		_, present, err := nanorpc.DecodeResponseData(res, out)
 		if err == nil && !present {
-			err = ErrNoResponse
+			err = nanorpc.ErrNoResponse
 		}
 
 		return cb(ctx, id, out, err)

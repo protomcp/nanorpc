@@ -1,27 +1,29 @@
-package nanorpc
+package client
 
 import (
 	"testing"
+
+	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // testBasicCounter tests basic counter functionality
 func testBasicCounter(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	AssertNoError(t, err, "NewRequestCounter failed")
+	testutils.AssertNoError(t, err, "NewRequestCounter failed")
 
 	// Test first ID
 	id1 := counter.Next()
-	AssertTrue(t, id1 > 0, "First ID should be positive")
+	testutils.AssertTrue(t, id1 > 0, "First ID should be positive")
 
 	// Test second ID (should be different)
 	id2 := counter.Next()
-	AssertTrue(t, id2 > 0, "Second ID should be positive")
-	AssertNotEqual(t, id1, id2, "IDs should be different")
+	testutils.AssertTrue(t, id2 > 0, "Second ID should be positive")
+	testutils.AssertNotEqual(t, id1, id2, "IDs should be different")
 
 	// Test sequential nature
 	id3 := counter.Next()
-	AssertEqual(t, id2+1, id3, "Expected sequential increment")
+	testutils.AssertEqual(t, id2+1, id3, "Expected sequential increment")
 }
 
 func TestRequestCounter_Basic(t *testing.T) {
@@ -33,7 +35,7 @@ func testNilReceiver(t *testing.T) {
 	t.Helper()
 	var counter *RequestCounter
 	id := counter.Next()
-	AssertTrue(t, id > 0, "Nil receiver should return positive random ID")
+	testutils.AssertTrue(t, id > 0, "Nil receiver should return positive random ID")
 }
 
 func TestRequestCounter_NilReceiver(t *testing.T) {
@@ -44,13 +46,13 @@ func TestRequestCounter_NilReceiver(t *testing.T) {
 func testSkipZero(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	AssertNoError(t, err, "NewRequestCounter failed")
+	testutils.AssertNoError(t, err, "NewRequestCounter failed")
 
 	// Generate many IDs to test that zero is never returned
 	for i := range 1000 {
 		id := counter.Next()
-		AssertNotEqual(t, int32(0), id, "Counter should never return 0 at iteration %d", i)
-		AssertTrue(t, id > 0, "Counter should never return negative at iteration %d", i)
+		testutils.AssertNotEqual(t, int32(0), id, "Counter should never return 0 at iteration %d", i)
+		testutils.AssertTrue(t, id > 0, "Counter should never return negative at iteration %d", i)
 	}
 }
 
@@ -62,7 +64,7 @@ func TestRequestCounter_SkipZero(t *testing.T) {
 func testConcurrency(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	AssertNoError(t, err, "NewRequestCounter failed")
+	testutils.AssertNoError(t, err, "NewRequestCounter failed")
 
 	numGoroutines := 100
 	numIDsPerGoroutine := 10
@@ -82,11 +84,10 @@ func testConcurrency(t *testing.T) {
 	seen := make(map[int32]bool)
 	results, _ := helper.GetResults()
 	for i := range results {
-		ids, ok := GetResult[[]int32](results, i)
-		AssertTrue(t, ok, "Failed to get result %d as []int32", i)
+		ids := testutils.AssertTypeIs[[]int32](t, results[i], "Failed to get result %d as []int32", i)
 		for j, id := range ids {
-			AssertTrue(t, id > 0, "ID at goroutine %d, index %d should be positive", i, j)
-			AssertFalse(t, seen[id], "Duplicate ID found: %d", id)
+			testutils.AssertTrue(t, id > 0, "ID at goroutine %d, index %d should be positive", i, j)
+			testutils.AssertFalse(t, seen[id], "Duplicate ID found: %d", id)
 			seen[id] = true
 		}
 	}
@@ -100,19 +101,19 @@ func TestRequestCounter_Concurrency(t *testing.T) {
 func testWraparound(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	AssertNoError(t, err, "NewRequestCounter failed")
+	testutils.AssertNoError(t, err, "NewRequestCounter failed")
 
 	// Simulate wraparound by setting counter to near max
 	counter.counter.Store(2147483646) // Just below MaxInt32
 
 	id1 := counter.Next()
-	AssertEqual(t, int32(2147483647), id1, "Expected MaxInt32")
+	testutils.AssertEqual(t, int32(2147483647), id1, "Expected MaxInt32")
 
 	id2 := counter.Next()
-	AssertEqual(t, int32(1), id2, "Expected wraparound to 1 (skipping 0)")
+	testutils.AssertEqual(t, int32(1), id2, "Expected wraparound to 1 (skipping 0)")
 
 	id3 := counter.Next()
-	AssertEqual(t, int32(2), id3, "Expected 2 after wraparound")
+	testutils.AssertEqual(t, int32(2), id3, "Expected 2 after wraparound")
 }
 
 func TestRequestCounter_Wraparound(t *testing.T) {
@@ -125,8 +126,8 @@ func testRandomRequestID(t *testing.T) {
 	// Test that NewRandomRequestID generates valid IDs
 	for range 100 {
 		id, err := NewRandomRequestID()
-		AssertNoError(t, err, "NewRandomRequestID failed")
-		AssertTrue(t, id > 0, "NewRandomRequestID should return positive ID")
+		testutils.AssertNoError(t, err, "NewRandomRequestID failed")
+		testutils.AssertTrue(t, id > 0, "NewRandomRequestID should return positive ID")
 	}
 }
 
@@ -143,14 +144,14 @@ func testRandomRequestIDUniqueness(t *testing.T) {
 
 	for range numIDs {
 		id, err := NewRandomRequestID()
-		AssertNoError(t, err, "NewRandomRequestID failed")
+		testutils.AssertNoError(t, err, "NewRandomRequestID failed")
 		seen[id] = true
 	}
 
 	// We should have close to numIDs unique values
 	// Allow for some duplicates due to randomness
 	minExpected := numIDs * 95 / 100
-	AssertTrue(t, len(seen) > minExpected, "Expected at least %d unique IDs, got %d", minExpected, len(seen))
+	testutils.AssertTrue(t, len(seen) > minExpected, "Expected at least %d unique IDs, got %d", minExpected, len(seen))
 }
 
 func TestNewRandomRequestID_Uniqueness(t *testing.T) {
@@ -162,10 +163,10 @@ func testStartingPoint(t *testing.T) {
 	t.Helper()
 	// Test that different counters start at different points
 	counter1, err := NewRequestCounter()
-	AssertNoError(t, err, "NewRequestCounter failed")
+	testutils.AssertNoError(t, err, "NewRequestCounter failed")
 
 	counter2, err := NewRequestCounter()
-	AssertNoError(t, err, "NewRequestCounter failed")
+	testutils.AssertNoError(t, err, "NewRequestCounter failed")
 
 	id1 := counter1.Next()
 	id2 := counter2.Next()
@@ -179,7 +180,7 @@ func testStartingPoint(t *testing.T) {
 				sameCount++
 			}
 		}
-		AssertTrue(t, sameCount < 6,
+		testutils.AssertTrue(t, sameCount < 6,
 			"Counters appear to be synchronized, expected different starting points. Same count: %d", sameCount)
 	}
 }

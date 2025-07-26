@@ -7,7 +7,7 @@ import (
 )
 
 func TestDefaultSessionManager_AddSession(t *testing.T) {
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	sm := NewDefaultSessionManager(handler, nil)
 
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
@@ -29,7 +29,7 @@ func TestDefaultSessionManager_AddSession(t *testing.T) {
 }
 
 func TestDefaultSessionManager_RemoveSession(t *testing.T) {
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	sm := NewDefaultSessionManager(handler, nil)
 
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
@@ -51,7 +51,7 @@ func TestDefaultSessionManager_RemoveSession(t *testing.T) {
 }
 
 func TestDefaultSessionManager_GetSession_NotFound(t *testing.T) {
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	sm := NewDefaultSessionManager(handler, nil)
 
 	session := sm.GetSession("non-existent")
@@ -61,7 +61,7 @@ func TestDefaultSessionManager_GetSession_NotFound(t *testing.T) {
 }
 
 func TestDefaultSessionManager_Shutdown(t *testing.T) {
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	sm := NewDefaultSessionManager(handler, nil)
 
 	// Add multiple sessions

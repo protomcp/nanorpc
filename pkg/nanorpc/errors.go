@@ -18,6 +18,9 @@ var (
 
 	// ErrSessionClosed indicates the session has been closed
 	ErrSessionClosed = errors.New("session closed")
+
+	// ErrHashCollision indicates two different paths hash to the same value
+	ErrHashCollision = errors.New("hash collision detected")
 )
 
 var (

@@ -1,4 +1,4 @@
-package nanorpc
+package client
 
 import (
 	"context"
@@ -10,14 +10,21 @@ import (
 	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/config"
 	"darvaza.org/x/net/reconnect"
+
+	"github.com/amery/nanorpc/pkg/nanorpc"
 )
 
-// ClientConfig describes how the [Client] will operate
-type ClientConfig struct {
+// hashCache is the default hash cache for the client package.
+// It is used when Config.HashCache is nil and provides automatic
+// FNV-1a path hashing with collision detection.
+var hashCache = new(nanorpc.HashCache)
+
+// Config describes how the [Client] will operate
+type Config struct {
 	Context         context.Context
 	Logger          slog.Logger
 	WaitReconnect   reconnect.Waiter
-	HashCache       *HashCache
+	HashCache       *nanorpc.HashCache
 	OnConnect       func(context.Context, reconnect.WorkGroup) error
 	OnDisconnect    func(context.Context) error
 	OnError         func(context.Context, error) error
@@ -32,8 +39,9 @@ type ClientConfig struct {
 	AlwaysHashPaths bool
 }
 
-// SetDefaults fills gaps in [ClientConfig]
-func (cfg *ClientConfig) SetDefaults() error {
+// SetDefaults fills gaps in [Config].
+// If HashCache is nil, assigns the global package-level hashCache.
+func (cfg *Config) SetDefaults() error {
 	if err := config.Set(cfg); err != nil {
 		return err
 	}
@@ -59,7 +67,7 @@ func (cfg *ClientConfig) SetDefaults() error {
 }
 
 // Export generates a [reconnect.Config]
-func (cfg *ClientConfig) Export() (*reconnect.Config, error) {
+func (cfg *Config) Export() (*reconnect.Config, error) {
 	_, port, err := core.SplitHostPort(cfg.Remote)
 	switch {
 	case err != nil:
@@ -91,7 +99,7 @@ func (cfg *ClientConfig) Export() (*reconnect.Config, error) {
 	return out, nil
 }
 
-func (cfg *ClientConfig) getHashCache() *HashCache {
+func (cfg *Config) getHashCache() *nanorpc.HashCache {
 	if hc := cfg.HashCache; hc != nil {
 		// use given HashCache
 		return hc
@@ -101,24 +109,35 @@ func (cfg *ClientConfig) getHashCache() *HashCache {
 	return hashCache
 }
 
-func (cfg *ClientConfig) newGetPathOneOf(hc *HashCache) func(string) isNanoRPCRequest_PathOneof {
+func (cfg *Config) newGetPathOneOf(hc *nanorpc.HashCache) func(string) nanorpc.PathOneOf {
 	if cfg.AlwaysHashPaths {
 		// use path_hash
 		if hc == nil {
 			hc = cfg.getHashCache()
 		}
 
-		return func(path string) isNanoRPCRequest_PathOneof {
-			return &NanoRPCRequest_PathHash{
-				PathHash: hc.Hash(path),
+		return func(path string) nanorpc.PathOneOf {
+			hash, err := hc.Hash(path)
+			if err != nil {
+				cfg.logErrorf(err, "Falling back to string path to maintain compatibility")
+				// Fall back to string path on hash collision
+				return nanorpc.GetPathOneOfString(path)
 			}
+
+			return nanorpc.GetPathOneOfHash(hash)
 		}
 	}
 
 	// use string
-	return func(path string) isNanoRPCRequest_PathOneof {
-		return &NanoRPCRequest_Path{
-			Path: path,
-		}
+	return func(path string) nanorpc.PathOneOf {
+		return nanorpc.GetPathOneOfString(path)
+	}
+}
+
+func (cfg *Config) logErrorf(err error, msg string, args ...any) {
+	if cfg != nil && cfg.Logger != nil {
+		logger := cfg.Logger.Error()
+		logger = logger.WithField(slog.ErrorFieldName, err)
+		logger.Printf(msg, args...)
 	}
 }

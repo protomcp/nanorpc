@@ -17,10 +17,10 @@ type HashCache struct {
 }
 
 // Hash returns the path_hash for a given path,
-// and stores it if new.
-func (hc *HashCache) Hash(path string) uint32 {
+// and stores it if new. Returns an error if a hash collision is detected.
+func (hc *HashCache) Hash(path string) (uint32, error) {
 	if v, ok := hc.getHash(path); ok {
-		return v
+		return v, nil
 	}
 	return hc.computeHash(path)
 }
@@ -42,7 +42,7 @@ func (hc *HashCache) getHash(path string) (uint32, bool) {
 	return v, ok
 }
 
-func (hc *HashCache) computeHash(path string) uint32 {
+func (hc *HashCache) computeHash(path string) (uint32, error) {
 	h := fnv.New32a()
 	n, err := h.Write([]byte(path))
 
@@ -57,14 +57,23 @@ func (hc *HashCache) computeHash(path string) uint32 {
 		}
 
 		value := h.Sum32()
+
+		// Check for hash collision
+		if existingPath, exists := hc.path[value]; exists && existingPath != path {
+			// Hash collision detected
+			return 0, core.Wrapf(ErrHashCollision,
+				"paths %q and %q both hash to 0x%08x",
+				existingPath, path, value)
+		}
+
 		hc.hash[path] = value
 		hc.path[value] = path
-		return value
+		return value, nil
 	case err == nil:
 		err = errors.New("failed to write to fnv-1a hasher")
 	}
 
-	panic(core.NewPanicError(1, err)) // reference hc.Hash
+	return 0, err
 }
 
 // DehashRequest attempts to convert path_hash in a [NanoRPCRequest]

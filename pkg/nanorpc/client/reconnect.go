@@ -1,4 +1,4 @@
-package nanorpc
+package client
 
 import (
 	"context"
@@ -83,7 +83,7 @@ func (c *Client) onReconnectError(ctx context.Context, conn net.Conn, err error)
 // session hooks
 //
 
-func (c *Client) getSession() (*ClientSession, error) {
+func (c *Client) getSession() (*Session, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -94,14 +94,14 @@ func (c *Client) getSession() (*ClientSession, error) {
 	return nil, reconnect.ErrNotConnected
 }
 
-func (c *Client) endSession(*ClientSession) {
+func (c *Client) endSession(*Session) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.cs = nil
 }
 
-func (c *Client) setSession(cs *ClientSession) error {
+func (c *Client) setSession(cs *Session) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

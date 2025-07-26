@@ -11,7 +11,7 @@ import (
 
 func TestDefaultSession_ID(t *testing.T) {
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	session := NewDefaultSession(conn, handler, nil)
 
 	id := session.ID()
@@ -28,7 +28,7 @@ func TestDefaultSession_ID(t *testing.T) {
 func TestDefaultSession_RemoteAddr(t *testing.T) {
 	expectedAddr := "127.0.0.1:12345"
 	conn := &mockConn{remoteAddr: expectedAddr}
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	session := NewDefaultSession(conn, handler, nil)
 
 	addr := session.RemoteAddr()
@@ -39,7 +39,7 @@ func TestDefaultSession_RemoteAddr(t *testing.T) {
 
 func TestDefaultSession_Close(t *testing.T) {
 	conn := &mockConn{remoteAddr: "127.0.0.1:12345"}
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	session := NewDefaultSession(conn, handler, nil)
 
 	err := session.Close()
@@ -128,7 +128,7 @@ func TestDefaultSession_HandlePing(t *testing.T) {
 		data:       pingData,
 	}
 
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	session := NewDefaultSession(conn, handler, nil)
 
 	// Handle the session

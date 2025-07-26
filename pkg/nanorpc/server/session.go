@@ -13,27 +13,37 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
 
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
+
 	"github.com/amery/nanorpc/pkg/nanorpc"
 )
 
 // DefaultSession implements Session interface
 type DefaultSession struct {
-	conn       net.Conn
-	handler    MessageHandler
-	logger     slog.Logger
-	id         string
-	remoteAddr string
-	mu         sync.Mutex
+	conn    net.Conn
+	handler MessageHandler
+	logger  slog.Logger
+	id      string
+	mu      sync.Mutex
 }
 
 // NewDefaultSession creates a new session
 func NewDefaultSession(conn net.Conn, handler MessageHandler, logger slog.Logger) *DefaultSession {
+	sessionID := generateSessionID(conn)
+
+	// Add session-specific fields to logger using common helpers
+	var sessionLogger slog.Logger
+	if logger != nil {
+		sessionLogger = common.WithComponent(logger, common.ComponentSession)
+		sessionLogger = common.WithSessionID(sessionLogger, sessionID)
+		sessionLogger = common.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
+	}
+
 	return &DefaultSession{
-		id:         generateSessionID(conn),
-		conn:       conn,
-		handler:    handler,
-		remoteAddr: conn.RemoteAddr().String(),
-		logger:     logger,
+		id:      sessionID,
+		conn:    conn,
+		handler: handler,
+		logger:  sessionLogger,
 	}
 }
 
@@ -55,7 +65,10 @@ func (s *DefaultSession) ID() string {
 
 // RemoteAddr returns the remote address
 func (s *DefaultSession) RemoteAddr() string {
-	return s.remoteAddr
+	if s.conn != nil && s.conn.RemoteAddr() != nil {
+		return s.conn.RemoteAddr().String()
+	}
+	return ""
 }
 
 // Handle processes messages for this session
@@ -108,7 +121,7 @@ func (s *DefaultSession) decodeAndHandle(ctx context.Context, data []byte) error
 	req, _, err := nanorpc.DecodeRequest(data)
 	if err != nil {
 		s.getLogger().Error().
-			WithField(FieldError, err).
+			WithField(common.FieldError, err).
 			WithField("data_length", len(data)).
 			WithField("data_preview", hexDump(data, 32)).
 			Print("Failed to decode request")
@@ -117,8 +130,8 @@ func (s *DefaultSession) decodeAndHandle(ctx context.Context, data []byte) error
 
 	if err := s.handler.HandleMessage(ctx, s, req); err != nil {
 		s.getLogger().Error().
-			WithField(FieldRequestID, req.GetRequestId()).
-			WithField(FieldError, err).
+			WithField(common.FieldRequestID, req.GetRequestId()).
+			WithField(common.FieldError, err).
 			Print("Handler error")
 		return nil // Continue on handler errors
 	}
@@ -154,7 +167,10 @@ func (s *DefaultSession) SendResponse(req *nanorpc.NanoRPCRequest, response *nan
 
 // generateSessionID creates a unique session identifier
 func generateSessionID(conn net.Conn) string {
-	return fmt.Sprintf("session-%s", conn.RemoteAddr().String())
+	if conn != nil && conn.RemoteAddr() != nil {
+		return fmt.Sprintf("session-%s", conn.RemoteAddr().String())
+	}
+	return fmt.Sprintf("session-unknown-%p", conn)
 }
 
 // hexDump returns a hex dump of data up to maxBytes, space-delimited

@@ -118,7 +118,8 @@ func AssertTypeIs[T any](t *testing.T, value any, msgAndArgs ...any) T {
 	t.Helper()
 	result, ok := value.(T)
 	if !ok {
-		msg := fmt.Sprintf("Expected type %T, got %T", *new(T), value)
+		var zero T
+		msg := fmt.Sprintf("Expected type %T, got %T", zero, value)
 		if len(msgAndArgs) > 0 {
 			msg = fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...) + ": " + msg
 		}

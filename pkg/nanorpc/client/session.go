@@ -1,4 +1,4 @@
-package nanorpc
+package client
 
 import (
 	"context"
@@ -8,39 +8,43 @@ import (
 	"sync"
 
 	"darvaza.org/core"
+	"darvaza.org/slog"
 	"darvaza.org/x/net/reconnect"
-
 	"google.golang.org/protobuf/proto"
+
+	"github.com/amery/nanorpc/pkg/nanorpc"
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // clientRequest combines in a single object the fields needed for
-// Encoding a NanoRPCRequest when using [reconnect.StreamSession]
+// Encoding a nanorpc.NanoRPCRequest when using [reconnect.StreamSession]
 type clientRequest struct {
-	r *NanoRPCRequest
+	r *nanorpc.NanoRPCRequest
 	d proto.Message
 }
 
 type clientRequestQueue struct {
 	Callback    RequestCallback
-	RequestType NanoRPCRequest_Type
+	RequestType nanorpc.NanoRPCRequest_Type
 	RequestID   int32
 }
 
-// ClientSession represents a connection to a NanoRPC server.
-type ClientSession struct {
+// Session represents a connection to a NanoRPC server.
+type Session struct {
 	reconnect.WorkGroup
 
-	c  *Client
-	rc *reconnect.Client
-	ra net.Addr
-	ss *reconnect.StreamSession[*NanoRPCResponse, clientRequest]
+	c      *Client
+	rc     *reconnect.Client
+	ra     net.Addr
+	ss     *reconnect.StreamSession[*nanorpc.NanoRPCResponse, clientRequest]
+	logger slog.Logger
 
 	cb []clientRequestQueue
 	mu sync.Mutex
 }
 
 // Spawn starts the required workers to handle the session
-func (cs *ClientSession) Spawn() error {
+func (cs *Session) Spawn() error {
 	if err := cs.ss.Spawn(); err != nil {
 		return err
 	}
@@ -49,7 +53,7 @@ func (cs *ClientSession) Spawn() error {
 	return nil
 }
 
-func (cs *ClientSession) run(ctx context.Context) error {
+func (cs *Session) run(ctx context.Context) error {
 	for {
 		if err := cs.doRunPass(ctx); err != nil {
 			return err
@@ -57,7 +61,7 @@ func (cs *ClientSession) run(ctx context.Context) error {
 	}
 }
 
-func (cs *ClientSession) doRunPass(ctx context.Context) error {
+func (cs *Session) doRunPass(ctx context.Context) error {
 	select {
 	case resp := <-cs.ss.Recv():
 		return cs.handleResponse(resp)
@@ -71,14 +75,14 @@ func (cs *ClientSession) doRunPass(ctx context.Context) error {
 //
 
 // IsActive indicates the session has registered callbacks
-func (cs *ClientSession) IsActive() bool {
+func (cs *Session) IsActive() bool {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
 	return len(cs.cb) > 0
 }
 
-func (cs *ClientSession) handleResponse(resp *NanoRPCResponse) error {
+func (cs *Session) handleResponse(resp *nanorpc.NanoRPCResponse) error {
 	if resp != nil && resp.RequestId > 0 {
 		reqID := resp.RequestId
 
@@ -96,7 +100,7 @@ func (cs *ClientSession) handleResponse(resp *NanoRPCResponse) error {
 // popRequestCallback searches the queue for a request ID and returns
 // the callback if registered. unless the message is the response to a subscription,
 // the callback will be removed.
-func (cs *ClientSession) popRequestCallback(reqID int32) RequestCallback {
+func (cs *Session) popRequestCallback(reqID int32) RequestCallback {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -106,7 +110,7 @@ func (cs *ClientSession) popRequestCallback(reqID int32) RequestCallback {
 	}
 
 	x := cs.cb[i]
-	if x.RequestType != NanoRPCRequest_TYPE_SUBSCRIBE {
+	if x.RequestType != nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE {
 		// remove unless it's a subscription
 		cs.cb = append(cs.cb[:i], cs.cb[i+1:]...)
 	}
@@ -115,7 +119,7 @@ func (cs *ClientSession) popRequestCallback(reqID int32) RequestCallback {
 }
 
 // Close clears out any outstanding request callback
-func (cs *ClientSession) Close() error {
+func (cs *Session) Close() error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -127,7 +131,7 @@ func (cs *ClientSession) Close() error {
 	return nil
 }
 
-func (cs *ClientSession) unsafePopOne(x clientRequestQueue) {
+func (cs *Session) unsafePopOne(x clientRequestQueue) {
 	cb := x.Callback
 	reqID := x.RequestID
 
@@ -141,11 +145,11 @@ func (cs *ClientSession) unsafePopOne(x clientRequestQueue) {
 // Send stores the optional callback and enqueues the request.
 // A zero RequestID will be replaced by a unique sequence number.
 // A negative RequestID will become zero.
-func (cs *ClientSession) Send(req *NanoRPCRequest, payload proto.Message, cb RequestCallback) error {
+func (cs *Session) Send(req *nanorpc.NanoRPCRequest, payload proto.Message, cb RequestCallback) error {
 	switch req.RequestType {
-	case NanoRPCRequest_TYPE_PING:
+	case nanorpc.NanoRPCRequest_TYPE_PING:
 		// no further checks
-	case NanoRPCRequest_TYPE_REQUEST, NanoRPCRequest_TYPE_SUBSCRIBE:
+	case nanorpc.NanoRPCRequest_TYPE_REQUEST, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE:
 		// callback required
 		if cb == nil {
 			return core.QuietWrap(os.ErrInvalid, "missing callback")
@@ -178,7 +182,7 @@ func (cs *ClientSession) Send(req *NanoRPCRequest, payload proto.Message, cb Req
 	return cs.ss.Send(clientRequest{req, payload})
 }
 
-func (cs *ClientSession) nextRequestID() int32 {
+func (cs *Session) nextRequestID() int32 {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -193,7 +197,7 @@ func (cs *ClientSession) nextRequestID() int32 {
 }
 
 // unsafeIndexRequestCallback finds the position of the callback for a RequestID.
-func (cs *ClientSession) unsafeIndexRequestCallback(reqID int32) (int, bool) {
+func (cs *Session) unsafeIndexRequestCallback(reqID int32) (int, bool) {
 	for i, x := range cs.cb {
 		if x.RequestID == reqID {
 			return i, true
@@ -207,7 +211,7 @@ func (cs *ClientSession) unsafeIndexRequestCallback(reqID int32) (int, bool) {
 // StreamSession callbacks
 //
 
-func (cs *ClientSession) onSetReadDeadline() error {
+func (cs *Session) onSetReadDeadline() error {
 	if cs.IsActive() {
 		return cs.rc.ResetReadDeadline()
 	}
@@ -216,19 +220,19 @@ func (cs *ClientSession) onSetReadDeadline() error {
 	return cs.rc.SetReadDeadline(d)
 }
 
-func (cs *ClientSession) onSetWriteDeadline() error {
+func (cs *Session) onSetWriteDeadline() error {
 	return cs.rc.ResetDeadline()
 }
 
-func (cs *ClientSession) onUnsetReadDeadline() error {
+func (cs *Session) onUnsetReadDeadline() error {
 	return cs.rc.SetReadDeadline(0)
 }
 
-func (cs *ClientSession) onUnsetWriteDeadline() error {
+func (cs *Session) onUnsetWriteDeadline() error {
 	return cs.rc.SetWriteDeadline(0)
 }
 
-func (cs *ClientSession) onError(err error) {
+func (cs *Session) onError(err error) {
 	cs.LogError(err, "error")
 }
 
@@ -236,27 +240,32 @@ func (cs *ClientSession) onError(err error) {
 // factory
 //
 
-func newClientSession(ctx context.Context, c *Client, queueSize uint, conn net.Conn) *ClientSession {
-	ss := &reconnect.StreamSession[*NanoRPCResponse, clientRequest]{
+func newClientSession(ctx context.Context, c *Client, queueSize uint, conn net.Conn) *Session {
+	ss := &reconnect.StreamSession[*nanorpc.NanoRPCResponse, clientRequest]{
 		QueueSize: queueSize,
 		Conn:      c.rc,
 		Context:   ctx,
 
-		Split: Split,
+		Split: nanorpc.Split,
 		MarshalTo: func(r clientRequest, w io.Writer) error {
-			_, err := EncodeRequestTo(w, r.r, r.d)
+			_, err := nanorpc.EncodeRequestTo(w, r.r, r.d)
 			return err
 		},
-		Unmarshal: func(data []byte) (*NanoRPCResponse, error) {
-			resp, _, err := DecodeResponse(data)
+		Unmarshal: func(data []byte) (*nanorpc.NanoRPCResponse, error) {
+			resp, _, err := nanorpc.DecodeResponse(data)
 			return resp, err
 		},
 	}
 
-	cs := &ClientSession{
-		c:  c,
-		rc: c.rc,
-		ra: conn.RemoteAddr(),
+	// Create session logger with fields added once
+	sessionLogger := common.WithComponent(c.getLogger(), common.ComponentSession)
+	sessionLogger = common.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
+
+	cs := &Session{
+		c:      c,
+		rc:     c.rc,
+		ra:     conn.RemoteAddr(),
+		logger: sessionLogger,
 
 		ss:        ss,
 		WorkGroup: ss,

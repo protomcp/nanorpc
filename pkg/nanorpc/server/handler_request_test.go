@@ -24,15 +24,8 @@ type handleRequestTestCase struct {
 
 // echoHandler handles echo requests
 func (*handleRequestTestCase) echoHandler(_ context.Context, req *RequestContext) error {
-	// Echo back the request data in a successful response
-	response := &nanorpc.NanoRPCResponse{
-		RequestId:      req.Request.RequestId,
-		ResponseType:   nanorpc.NanoRPCResponse_TYPE_RESPONSE,
-		ResponseStatus: nanorpc.NanoRPCResponse_STATUS_OK,
-		Data:           req.Request.Data, // Echo the data
-	}
-
-	return req.Session.SendResponse(req.Request, response)
+	// Echo back the request data using the new helper method
+	return req.SendOK(req.GetData())
 }
 
 // test runs the test case
@@ -40,7 +33,7 @@ func (tc *handleRequestTestCase) test(t *testing.T) {
 	t.Helper()
 
 	// Create handler with test configuration
-	handler := NewDefaultMessageHandler()
+	handler := NewDefaultMessageHandler(nil)
 	_ = handler.RegisterHandlerFunc(pathEcho, tc.echoHandler)
 
 	// Create mock session

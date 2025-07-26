@@ -1,4 +1,5 @@
-package nanorpc
+// Package client implements a reconnecting NanoRPC client.
+package client
 
 import (
 	"context"
@@ -6,7 +7,11 @@ import (
 	"time"
 
 	"darvaza.org/core"
+	"darvaza.org/slog"
 	"darvaza.org/x/net/reconnect"
+
+	"github.com/amery/nanorpc/pkg/nanorpc"
+	"github.com/amery/nanorpc/pkg/nanorpc/common"
 )
 
 // Client is a reconnecting NanoRPC client.
@@ -14,10 +19,11 @@ type Client struct {
 	reconnect.WorkGroup
 
 	rc           *reconnect.Client
-	cs           *ClientSession
+	cs           *Session
 	reqCounter   *RequestCounter
-	hc           *HashCache
-	getPathOneOf func(string) isNanoRPCRequest_PathOneof
+	hc           *nanorpc.HashCache
+	getPathOneOf func(string) nanorpc.PathOneOf
+	logger       slog.Logger
 
 	callOnConnect    func(context.Context, reconnect.WorkGroup) error
 	callOnDisconnect func(context.Context) error
@@ -48,8 +54,9 @@ func (c *Client) getOnError() func(context.Context, error) error {
 	return c.callOnError
 }
 
-// New creates a new [Client] using given [ClientConfig].
-func (cfg *ClientConfig) New() (*Client, error) {
+// New creates a new [Client] using given [Config].
+// If Config.HashCache is nil, the global package-level hashCache will be used.
+func (cfg *Config) New() (*Client, error) {
 	var c = new(Client)
 
 	ro, err := cfg.Export()
@@ -69,7 +76,7 @@ func (cfg *ClientConfig) New() (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
+func (c *Client) init(cfg *Config, rc *reconnect.Client) error {
 	reqCounter, err := NewRequestCounter()
 	if err != nil {
 		return core.Wrap(err, "RequestCounter")
@@ -89,12 +96,19 @@ func (c *Client) init(cfg *ClientConfig, rc *reconnect.Client) error {
 	c.callOnDisconnect = cfg.OnDisconnect
 	c.callOnError = cfg.OnError
 
+	// Set logger from config, add component field if provided
+	c.logger = cfg.Logger
+	if c.logger != nil {
+		c.logger = c.logger.WithField(common.FieldComponent, common.ComponentClient)
+	}
+
 	return nil
 }
 
-// NewClient a new [Client] with default options
+// NewClient creates a new [Client] with default options.
+// Uses the global package-level hashCache for path hashing.
 func NewClient(ctx context.Context, address string) (*Client, error) {
-	cfg := ClientConfig{
+	cfg := Config{
 		Context: ctx,
 		Remote:  address,
 	}
@@ -103,4 +117,4 @@ func NewClient(ctx context.Context, address string) (*Client, error) {
 }
 
 // RequestCallback handles a response to a request
-type RequestCallback func(context.Context, int32, *NanoRPCResponse) error
+type RequestCallback func(context.Context, int32, *nanorpc.NanoRPCResponse) error

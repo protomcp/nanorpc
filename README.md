@@ -35,13 +35,14 @@ The nanorpc protocol supports multiple communication patterns:
 
 ### Go Client Library
 
-The [`pkg/nanorpc`](pkg/nanorpc/) module provides a complete Go client
-implementation with:
+The [`pkg/nanorpc/client`](pkg/nanorpc/client/) package provides a complete Go
+client implementation with:
 
 - Connection management and automatic reconnection
 - Request/response handling with correlation IDs
 - Subscription management with callback support
-- Hash-based path optimization
+- Hash-based path optimization for embedded systems
+- Thread-safe operation with request queuing
 - Comprehensive error handling
 
 ### Embedded C Support
@@ -51,13 +52,23 @@ Integration with [nanopb][nanopb-url] for embedded C applications
 
 ### Go Server Library
 
-The [`pkg/nanorpc/server`](pkg/nanorpc/server/) module provides a complete Go
+The [`pkg/nanorpc/server`](pkg/nanorpc/server/) package provides a complete Go
 server implementation with decoupled architecture design:
 
 - Clean separation of concerns (Listener, SessionManager, MessageHandler)
-- Ping-pong protocol support with extensible message handling
+- Request/response and ping-pong protocol support
+- Extensible message handling with RequestContext
 - Graceful shutdown and session management
-- Comprehensive test coverage (86.4%)
+- Comprehensive test coverage
+
+### Shared Types
+
+The [`pkg/nanorpc`](pkg/nanorpc/) package provides shared types and utilities:
+
+- Protocol buffer definitions and generated code
+- Hash cache implementation for path hashing
+- Request/response encoding and decoding utilities
+- Type aliases for protocol buffer internals
 
 ## Development
 

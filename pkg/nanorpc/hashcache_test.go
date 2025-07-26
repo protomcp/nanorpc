@@ -20,11 +20,13 @@ func (tc HashTestCase) test(t *testing.T) {
 	hc := &HashCache{}
 
 	// Test first hash computation
-	hash1 := hc.Hash(tc.path)
+	hash1, err := hc.Hash(tc.path)
+	AssertNil(t, err, "Hash should not error for path %s", tc.path)
 	AssertNotEqual(t, uint32(0), hash1, "Hash should not be 0 for path %s", tc.path)
 
 	// Test cached hash retrieval (should be same)
-	hash2 := hc.Hash(tc.path)
+	hash2, err := hc.Hash(tc.path)
+	AssertNil(t, err, "Hash should not error on second call")
 	AssertEqual(t, hash1, hash2, "Hash should be consistent")
 
 	// Test reverse lookup
@@ -57,7 +59,8 @@ func TestHashCache_Path(t *testing.T) {
 
 	// Test known hash
 	originalPath := "/test/path"
-	hash := hc.Hash(originalPath)
+	hash, err := hc.Hash(originalPath)
+	AssertNil(t, err, "Hash should not error")
 
 	retrievedPath, ok := hc.Path(hash)
 	AssertTrue(t, ok, "Should find path for known hash")
@@ -84,8 +87,9 @@ func (tc DehashRequestTestCase) test(t *testing.T) {
 	if tc.expectOK && tc.request != nil {
 		if hashOneof, ok := tc.request.PathOneof.(*NanoRPCRequest_PathHash); ok {
 			// Make sure this hash is known
-			hc.Hash(tc.expectPath)
-			hashOneof.PathHash = hc.Hash(tc.expectPath)
+			hash, err := hc.Hash(tc.expectPath)
+			AssertNil(t, err, "Hash should not error")
+			hashOneof.PathHash = hash
 		}
 	}
 
@@ -149,7 +153,8 @@ func TestHashCache_Consistency(t *testing.T) {
 
 	// Test hash function consistency (should match fnv.New32a)
 	testPath := "/test/consistency"
-	cacheHash := hc.Hash(testPath)
+	cacheHash, err := hc.Hash(testPath)
+	AssertNil(t, err, "Hash should not error")
 
 	// Compute expected hash manually
 	h := fnv.New32a()
@@ -170,7 +175,7 @@ func TestHashCache_Concurrency(t *testing.T) {
 
 	helper := NewConcurrentTestHelper(t, numGoroutines)
 	helper.Run(func(_ int) (any, error) {
-		return hc.Hash(path), nil
+		return hc.Hash(path)
 	})
 
 	// All results should be the same
@@ -199,7 +204,8 @@ func TestHashCache_DifferentPaths(t *testing.T) {
 
 	hashes := make(map[uint32]string)
 	for _, path := range paths {
-		hash := hc.Hash(path)
+		hash, err := hc.Hash(path)
+		AssertNil(t, err, "Hash should not error for path %s", path)
 		if existingPath, exists := hashes[hash]; exists {
 			t.Errorf("Hash collision: path %s and %s both have hash %d", path, existingPath, hash)
 		} else {
@@ -212,17 +218,20 @@ func TestHashCache_EdgeCases(t *testing.T) {
 	hc := &HashCache{}
 
 	// Test empty path
-	emptyHash := hc.Hash("")
+	emptyHash, err := hc.Hash("")
+	AssertNil(t, err, "Hash should not error for empty path")
 	AssertNotEqual(t, uint32(0), emptyHash, "Empty path should have non-zero hash")
 
 	// Test very long path
 	longPath := "/very/long/path/that/goes/on/and/on/and/on/with/many/segments/to/test/handling/of/longer/paths"
-	longHash := hc.Hash(longPath)
+	longHash, err := hc.Hash(longPath)
+	AssertNil(t, err, "Hash should not error for long path")
 	AssertNotEqual(t, uint32(0), longHash, "Long path should have non-zero hash")
 
 	// Test special characters
 	specialPath := "/path/with/unicode/characters"
-	specialHash := hc.Hash(specialPath)
+	specialHash, err := hc.Hash(specialPath)
+	AssertNil(t, err, "Hash should not error for special path")
 	AssertNotEqual(t, uint32(0), specialHash, "Special character path should have non-zero hash")
 
 	// All should be retrievable
