@@ -7,9 +7,9 @@
 package nanorpc
 
 import (
-	_ "github.com/amery/nanorpc/pkg/nanopb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "protomcp.org/nanorpc/pkg/nanopb"
 	reflect "reflect"
 	sync "sync"
 )

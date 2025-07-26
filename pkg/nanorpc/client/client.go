@@ -10,8 +10,8 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/x/net/reconnect"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 )
 
 // Client is a reconnecting NanoRPC client.

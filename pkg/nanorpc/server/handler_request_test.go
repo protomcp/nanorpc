@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 const (

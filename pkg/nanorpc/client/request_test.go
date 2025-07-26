@@ -3,8 +3,8 @@ package client
 import (
 	"testing"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
-	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 type requestTypeTestCase struct {

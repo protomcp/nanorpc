@@ -1,4 +1,4 @@
-module github.com/amery/nanorpc/pkg/generator
+module protomcp.org/nanorpc/pkg/generator
 
 go 1.23.0
 

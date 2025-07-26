@@ -106,6 +106,6 @@ make build
 - <https://github.com/nanopb/nanopb>
 - <https://github.com/amery/protogen>
 
-[codecov-badge]: https://codecov.io/gh/amery/nanorpc/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/amery/nanorpc
+[codecov-badge]: https://codecov.io/gh/protomcp/nanorpc/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/protomcp/nanorpc
 [nanopb-url]: https://github.com/nanopb/nanopb

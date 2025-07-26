@@ -1,9 +1,9 @@
-module github.com/amery/nanorpc
+module protomcp.org/nanorpc
 
 go 1.23.0
 
 replace (
-	github.com/amery/nanorpc/pkg/generator => ./pkg/generator
-	github.com/amery/nanorpc/pkg/nanopb => ./pkg/nanopb
-	github.com/amery/nanorpc/pkg/nanorpc => ./pkg/nanorpc
+	protomcp.org/nanorpc/pkg/generator => ./pkg/generator
+	protomcp.org/nanorpc/pkg/nanopb => ./pkg/nanopb
+	protomcp.org/nanorpc/pkg/nanorpc => ./pkg/nanorpc
 )

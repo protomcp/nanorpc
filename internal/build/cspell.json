@@ -28,6 +28,8 @@
     "protodelim",
     "protogen",
     "protoimpl",
+    "PROTOMCP",
+    "protomcp",
     "protoreflect",
     "protos",
     "protowire",

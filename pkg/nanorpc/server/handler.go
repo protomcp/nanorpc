@@ -6,7 +6,7 @@ import (
 
 	"darvaza.org/core"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 // RequestContext provides request information and response utilities

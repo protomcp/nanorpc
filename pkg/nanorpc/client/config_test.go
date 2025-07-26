@@ -8,8 +8,8 @@ import (
 	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/net/reconnect"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
-	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // ClientConfigTestCase represents a test case for client configuration

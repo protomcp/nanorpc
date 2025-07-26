@@ -8,7 +8,7 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
 
-	"github.com/amery/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 )
 
 // DefaultSessionManager implements SessionManager interface

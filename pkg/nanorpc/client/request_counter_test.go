@@ -3,7 +3,7 @@ package client
 import (
 	"testing"
 
-	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // testBasicCounter tests basic counter functionality

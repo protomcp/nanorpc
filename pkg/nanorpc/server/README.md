@@ -44,7 +44,7 @@ responsibilities:
 ## Installation
 
 ```bash
-go get github.com/amery/nanorpc/pkg/nanorpc/server
+go get protomcp.org/nanorpc/pkg/nanorpc/server
 ```
 
 ## Quick Start
@@ -59,7 +59,7 @@ import (
     "log"
     "net"
 
-    "github.com/amery/nanorpc/pkg/nanorpc/server"
+    "protomcp.org/nanorpc/pkg/nanorpc/server"
 )
 
 func main() {
@@ -92,7 +92,7 @@ import (
     "log"
     "net"
 
-    "github.com/amery/nanorpc/pkg/nanorpc/server"
+    "protomcp.org/nanorpc/pkg/nanorpc/server"
 )
 
 func main() {
@@ -129,7 +129,7 @@ import (
     "net"
     "time"
 
-    "github.com/amery/nanorpc/pkg/nanorpc/server"
+    "protomcp.org/nanorpc/pkg/nanorpc/server"
 )
 
 func main() {
@@ -241,7 +241,7 @@ The package includes comprehensive testing utilities:
 Run individual component tests:
 
 ```bash
-go test -v github.com/amery/nanorpc/pkg/nanorpc/server
+go test -v protomcp.org/nanorpc/pkg/nanorpc/server
 ```
 
 ### Integration Tests
@@ -302,9 +302,9 @@ The decoupled architecture enables easy extension for:
 - **Rate Limiting**: Per-session or global rate controls
 - **Metrics Collection**: Connection and request monitoring
 
-[godoc-badge]: https://pkg.go.dev/badge/github.com/amery/nanorpc/pkg/nanorpc/server.svg
-[godoc-url]: https://pkg.go.dev/github.com/amery/nanorpc/pkg/nanorpc/server
-[goreportcard-badge]: https://goreportcard.com/badge/github.com/amery/nanorpc/pkg/nanorpc/server
-[goreportcard-url]: https://goreportcard.com/report/github.com/amery/nanorpc/pkg/nanorpc/server
-[codecov-badge]: https://codecov.io/gh/amery/nanorpc/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/amery/nanorpc
+[godoc-badge]: https://pkg.go.dev/badge/protomcp.org/nanorpc/pkg/nanorpc/server.svg
+[godoc-url]: https://pkg.go.dev/protomcp.org/nanorpc/pkg/nanorpc/server
+[goreportcard-badge]: https://goreportcard.com/badge/protomcp.org/nanorpc/pkg/nanorpc/server
+[goreportcard-url]: https://goreportcard.com/report/protomcp.org/nanorpc/pkg/nanorpc/server
+[codecov-badge]: https://codecov.io/gh/protomcp/nanorpc/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/protomcp/nanorpc

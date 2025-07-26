@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
-	"github.com/amery/nanorpc/pkg/nanorpc/server"
+	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/server"
 )
 
 // Example_jsonEchoHandler demonstrates using JSON helpers for request/response handling

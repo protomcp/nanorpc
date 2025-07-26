@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 func TestDefaultSession_ID(t *testing.T) {

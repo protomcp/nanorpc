@@ -1,4 +1,4 @@
-module github.com/amery/nanorpc/pkg/nanorpc
+module protomcp.org/nanorpc/pkg/nanorpc
 
 go 1.23.0
 
@@ -11,7 +11,7 @@ require (
 	darvaza.org/x/net v0.4.0
 	darvaza.org/x/sync v0.3.0
 	github.com/amery/defaults v0.1.0 // indirect
-	github.com/amery/nanorpc/pkg/nanopb v0.1.0
+	protomcp.org/nanorpc/pkg/nanopb v0.1.0
 )
 
 require google.golang.org/protobuf v1.35.2
@@ -29,4 +29,4 @@ require (
 	golang.org/x/text v0.27.0 // indirect
 )
 
-replace github.com/amery/nanorpc/pkg/nanopb => ../nanopb
+replace protomcp.org/nanorpc/pkg/nanopb => ../nanopb

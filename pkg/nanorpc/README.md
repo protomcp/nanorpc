@@ -22,7 +22,7 @@ see the companion `server` package.
 ## Installation
 
 ```bash
-go get github.com/amery/nanorpc/pkg/nanorpc
+go get protomcp.org/nanorpc/pkg/nanorpc
 ```
 
 ## Quick Start
@@ -38,7 +38,7 @@ import (
 
     "darvaza.org/slog"
 
-    "github.com/amery/nanorpc/pkg/nanorpc"
+    "protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 func main() {
@@ -252,9 +252,9 @@ for i := 0; i < 10; i++ {
 wg.Wait()
 ```
 
-[godoc-badge]: https://pkg.go.dev/badge/github.com/amery/nanorpc/pkg/nanorpc.svg
-[godoc-url]: https://pkg.go.dev/github.com/amery/nanorpc/pkg/nanorpc
-[goreportcard-badge]: https://goreportcard.com/badge/github.com/amery/nanorpc/pkg/nanorpc
-[goreportcard-url]: https://goreportcard.com/report/github.com/amery/nanorpc/pkg/nanorpc
-[codecov-badge]: https://codecov.io/gh/amery/nanorpc/branch/main/graph/badge.svg?flag=nanorpc
-[codecov-url]: https://codecov.io/gh/amery/nanorpc?flag=nanorpc
+[godoc-badge]: https://pkg.go.dev/badge/protomcp.org/nanorpc/pkg/nanorpc.svg
+[godoc-url]: https://pkg.go.dev/protomcp.org/nanorpc/pkg/nanorpc
+[goreportcard-badge]: https://goreportcard.com/badge/protomcp.org/nanorpc/pkg/nanorpc
+[goreportcard-url]: https://goreportcard.com/report/protomcp.org/nanorpc/pkg/nanorpc
+[codecov-badge]: https://codecov.io/gh/protomcp/nanorpc/branch/main/graph/badge.svg?flag=nanorpc
+[codecov-url]: https://codecov.io/gh/protomcp/nanorpc?flag=nanorpc

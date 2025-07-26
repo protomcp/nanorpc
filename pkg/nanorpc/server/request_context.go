@@ -7,7 +7,7 @@ import (
 	"darvaza.org/core"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 // SendOK sends a successful response with optional data

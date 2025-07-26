@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/amery/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
 // testData is a test struct for JSON marshaling tests

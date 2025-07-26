@@ -6,7 +6,7 @@ import (
 
 	"darvaza.org/slog"
 
-	"github.com/amery/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // mockAddr implements net.Addr for testing

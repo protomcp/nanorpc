@@ -8,6 +8,6 @@
 //   - Error handling utilities
 //
 // The actual client and server implementations are in separate packages:
-//   - Client: github.com/amery/nanorpc/pkg/nanorpc/client
-//   - Server: github.com/amery/nanorpc/pkg/nanorpc/server
+//   - Client: protomcp.org/nanorpc/pkg/nanorpc/client
+//   - Server: protomcp.org/nanorpc/pkg/nanorpc/server
 package nanorpc
