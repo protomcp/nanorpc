@@ -14,7 +14,10 @@ require (
 	protomcp.org/nanorpc/pkg/nanopb v0.2.0
 )
 
-require google.golang.org/protobuf v1.35.2
+require (
+	github.com/rs/xid v1.6.0
+	google.golang.org/protobuf v1.35.2
+)
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
