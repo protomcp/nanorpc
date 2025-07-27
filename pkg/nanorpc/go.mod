@@ -7,6 +7,7 @@ require (
 	darvaza.org/slog v0.5.14
 	darvaza.org/slog/handlers/discard v0.4.16
 	darvaza.org/x/config v0.3.10
+	darvaza.org/x/container v0.3.1
 	darvaza.org/x/fs v0.3.6 // indirect
 	darvaza.org/x/net v0.4.0
 	darvaza.org/x/sync v0.3.0
