@@ -92,7 +92,7 @@ func (tc *hashCacheTestCase) test(t *testing.T) {
 	hashCache := &nanorpc.HashCache{}
 	handler := NewDefaultMessageHandler(hashCache)
 	registerTestHandler(t, handler, tc.registerPath, []byte("success"))
-	session := newTestSession()
+	session := newTestSession("", 0)
 
 	// Create request
 	var pathOneof any
@@ -272,7 +272,7 @@ func (tc *pathResolutionTestCase) test(t *testing.T) {
 	}
 
 	// Execute
-	session := newTestSession()
+	session := newTestSession("", 0)
 	req := newTestRequest(400, tc.requestHash)
 	err := handler.HandleMessage(context.Background(), session, req)
 	testutils.AssertNoError(t, err, "handle message")
@@ -341,7 +341,7 @@ func TestDefaultMessageHandler_HashCollision(t *testing.T) {
 	testutils.AssertError(t, err, "registering duplicate path should fail")
 
 	// Verify hash-based request still works
-	session := newTestSession()
+	session := newTestSession("", 0)
 	hash1, _ := hashCache.Hash(path1)
 	req := newTestRequest(100, hash1)
 

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
 )
@@ -91,10 +92,17 @@ func (m *mockSessionWithError) SendResponse(req *nanorpc.NanoRPCRequest, respons
 // Test helper functions
 
 // newTestSession creates a new mock session for testing
-func newTestSession() *mockSession {
+func newTestSession(id string, port uint16) *mockSession {
+	if id == "" {
+		id = "test-session"
+	}
+	if port == 0 {
+		port = 12345
+	}
+
 	return &mockSession{
-		id:         "test-session",
-		remoteAddr: "127.0.0.1:12345",
+		id:         id,
+		remoteAddr: fmt.Sprintf("127.0.0.1:%d", port),
 	}
 }
 
