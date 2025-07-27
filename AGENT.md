@@ -130,12 +130,28 @@ The nanorpc protocol supports:
 
 ## Development Workflow
 
+### MANDATORY: Test-Driven Development (TDD)
+
+**ALL DEVELOPMENT MUST FOLLOW TDD**:
+
+1. **Write failing tests first** - Define expected behaviour in tests
+2. **Implement minimal code** - Write just enough to pass tests
+3. **Refactor for quality** - Improve code while maintaining tests
+4. **Repeat cycle** - Continue until feature is complete
+
+**Test Infrastructure**:
+
+- Common test utilities in `pkg/nanorpc/common/testutils/`
+- Server-specific mocks in `pkg/nanorpc/server/testutils_test.go`
+- Client-specific mocks in `pkg/nanorpc/client/testutils_test.go`
+
 ### Before Starting Work
 
-1. **Read the plans**: Check existing plan documents for context
-2. **Understand modules**: Review go.mod files in each package
-3. **Check dependencies**: Understand inter-module relationships
-4. **Review tests**: Examine existing test patterns
+1. **Read the plans**: Check existing plan documents for context.
+2. **Understand modules**: Review go.mod files in each package.
+3. **Check dependencies**: Understand inter-module relationships.
+4. **Review tests**: Examine existing test patterns.
+5. **Write tests first**: Always start with failing tests.
 
 ### Code Quality Standards
 
