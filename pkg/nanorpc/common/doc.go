@@ -23,6 +23,17 @@
 //
 //	logger.WithField(common.FieldState, common.StateConnected)
 //
+// # Slice Utilities
+//
+// The package provides generic slice manipulation utilities for preventing
+// memory leaks when working with slices containing reference types:
+//
+//	// Clear a slice for reuse, preventing memory leaks
+//	responses = common.ClearSlice(responses)
+//
+//	// Clear and release the underlying array
+//	responses = common.ClearAndNilSlice(responses)
+//
 // # Sub-packages
 //
 // The testutils subpackage provides testing utilities including mock loggers

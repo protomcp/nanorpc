@@ -76,6 +76,11 @@ func (sm *DefaultSessionManager) RemoveSession(sessionID string) {
 	delete(sm.sessions, sessionID)
 	sm.mu.Unlock()
 
+	// Clean up subscriptions for this session
+	if subMgr, ok := sm.handler.(SubscriptionManager); ok {
+		subMgr.RemoveSubscriptionsForSession(sessionID)
+	}
+
 	// Log session removal using common helpers
 	if l, ok := sm.WithInfo(); ok {
 		l = common.WithSessionID(l, sessionID)

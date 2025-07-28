@@ -756,19 +756,6 @@ func TestRequestContext_Getters(t *testing.T) {
 	}
 }
 
-// mockSessionWithError is a mock session that returns errors
-type mockSessionWithError struct {
-	sendError error
-	mockSession
-}
-
-func (m *mockSessionWithError) SendResponse(req *nanorpc.NanoRPCRequest, response *nanorpc.NanoRPCResponse) error {
-	if m.sendError != nil {
-		return m.sendError
-	}
-	return m.mockSession.SendResponse(req, response)
-}
-
 // errorPropagationTestCase tests error propagation
 type errorPropagationTestCase struct {
 	rc         *RequestContext

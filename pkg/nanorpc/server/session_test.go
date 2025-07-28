@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,9 +20,21 @@ func TestDefaultSession_ID(t *testing.T) {
 		t.Fatal("Session ID should not be empty")
 	}
 
-	expectedPrefix := "session-127.0.0.1:12345"
-	if id != expectedPrefix {
-		t.Fatalf("Expected ID to be %q, got %q", expectedPrefix, id)
+	expectedSuffix := "@127.0.0.1:12345"
+	if !strings.HasSuffix(id, expectedSuffix) {
+		t.Fatalf("Expected ID to end with %q, got %q", expectedSuffix, id)
+	}
+
+	// Check that the ID has the expected xid@addr format
+	parts := strings.SplitN(id, "@", 2)
+	if len(parts) != 2 {
+		t.Fatalf("Expected ID format 'xid@addr', got %q", id)
+	}
+	if parts[0] == "" {
+		t.Fatal("Session ID xid part should not be empty")
+	}
+	if parts[1] != "127.0.0.1:12345" {
+		t.Fatalf("Expected address part to be '127.0.0.1:12345', got %q", parts[1])
 	}
 }
 

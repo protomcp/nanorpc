@@ -10,34 +10,6 @@ import (
 
 // Test helpers and factories
 
-func newTestSession() *mockSession {
-	return &mockSession{
-		id:         "test-session",
-		remoteAddr: "127.0.0.1:12345",
-	}
-}
-
-func newTestRequest(id int32, pathOneOf any) *nanorpc.NanoRPCRequest {
-	req := &nanorpc.NanoRPCRequest{
-		RequestId:   id,
-		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
-	}
-
-	switch p := pathOneOf.(type) {
-	case string:
-		req.PathOneof = nanorpc.GetPathOneOfString(p)
-	case uint32:
-		req.PathOneof = nanorpc.GetPathOneOfHash(p)
-	case nanorpc.PathOneOf:
-		req.PathOneof = p
-	default:
-		// This shouldn't happen in tests, but be defensive
-		req.PathOneof = nil
-	}
-
-	return req
-}
-
 func registerTestHandler(t testutils.T, handler *DefaultMessageHandler, path string, response []byte) {
 	t.Helper()
 	err := handler.RegisterHandlerFunc(path, func(_ context.Context, req *RequestContext) error {
@@ -120,7 +92,7 @@ func (tc *hashCacheTestCase) test(t *testing.T) {
 	hashCache := &nanorpc.HashCache{}
 	handler := NewDefaultMessageHandler(hashCache)
 	registerTestHandler(t, handler, tc.registerPath, []byte("success"))
-	session := newTestSession()
+	session := newTestSession("", 0)
 
 	// Create request
 	var pathOneof any
@@ -300,7 +272,7 @@ func (tc *pathResolutionTestCase) test(t *testing.T) {
 	}
 
 	// Execute
-	session := newTestSession()
+	session := newTestSession("", 0)
 	req := newTestRequest(400, tc.requestHash)
 	err := handler.HandleMessage(context.Background(), session, req)
 	testutils.AssertNoError(t, err, "handle message")
@@ -369,7 +341,7 @@ func TestDefaultMessageHandler_HashCollision(t *testing.T) {
 	testutils.AssertError(t, err, "registering duplicate path should fail")
 
 	// Verify hash-based request still works
-	session := newTestSession()
+	session := newTestSession("", 0)
 	hash1, _ := hashCache.Hash(path1)
 	req := newTestRequest(100, hash1)
 

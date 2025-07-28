@@ -12,6 +12,7 @@ import (
 	"darvaza.org/core"
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
+	"github.com/rs/xid"
 
 	"protomcp.org/nanorpc/pkg/nanorpc/common"
 
@@ -29,7 +30,7 @@ type DefaultSession struct {
 
 // NewDefaultSession creates a new session
 func NewDefaultSession(conn net.Conn, handler MessageHandler, logger slog.Logger) *DefaultSession {
-	sessionID := generateSessionID(conn)
+	sessionID := NewSessionID(conn)
 
 	// Add session-specific fields to logger using common helpers
 	var sessionLogger slog.Logger
@@ -165,12 +166,15 @@ func (s *DefaultSession) SendResponse(req *nanorpc.NanoRPCRequest, response *nan
 	return err
 }
 
-// generateSessionID creates a unique session identifier
-func generateSessionID(conn net.Conn) string {
-	if conn != nil && conn.RemoteAddr() != nil {
-		return fmt.Sprintf("session-%s", conn.RemoteAddr().String())
+// NewSessionID creates a unique session identifier using rs/xid
+func NewSessionID(conn net.Conn) string {
+	id := xid.New().String()
+	if conn != nil {
+		if addr := conn.RemoteAddr(); addr != nil {
+			return fmt.Sprintf("%s@%s", id, addr.String())
+		}
 	}
-	return fmt.Sprintf("session-unknown-%p", conn)
+	return id
 }
 
 // hexDump returns a hex dump of data up to maxBytes, space-delimited

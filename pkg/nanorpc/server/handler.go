@@ -5,9 +5,13 @@ import (
 	"sync"
 
 	"darvaza.org/core"
+	"darvaza.org/slog"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
 )
+
+// SessionErrorHandler is a callback for handling errors in the message handler
+type SessionErrorHandler func(err error, session Session, fields slog.Fields, format string, args ...any)
 
 // RequestContext provides request information and response utilities
 type RequestContext struct {
@@ -20,10 +24,13 @@ type RequestContext struct {
 // DefaultMessageHandler implements MessageHandler interface with hash-based path resolution.
 // It maintains an internal HashCache to enable efficient hash-to-path mapping for
 // embedded clients that send hash-based requests instead of string paths.
+// It also manages subscriptions using intrusive lists for efficient removal.
 type DefaultMessageHandler struct {
-	handlers  map[string]RequestHandler
-	hashCache *nanorpc.HashCache
-	mu        sync.RWMutex
+	handlers      map[string]RequestHandler
+	hashCache     *nanorpc.HashCache
+	subscriptions SubscriptionMap // PathHash -> subscription list
+	callOnError   SessionErrorHandler
+	mu            sync.RWMutex
 }
 
 // NewDefaultMessageHandler creates a new message handler with an optional HashCache.
@@ -33,8 +40,9 @@ func NewDefaultMessageHandler(hashCache *nanorpc.HashCache) *DefaultMessageHandl
 		hashCache = &nanorpc.HashCache{}
 	}
 	return &DefaultMessageHandler{
-		handlers:  make(map[string]RequestHandler),
-		hashCache: hashCache,
+		handlers:      make(map[string]RequestHandler),
+		hashCache:     hashCache,
+		subscriptions: make(SubscriptionMap),
 	}
 }
 
@@ -43,6 +51,13 @@ func NewDefaultMessageHandler(hashCache *nanorpc.HashCache) *DefaultMessageHandl
 // Hash collisions during registration are extremely unlikely but would cause registration to fail.
 func (h *DefaultMessageHandler) RegisterHandlerFunc(path string, fn RequestHandlerFunc) error {
 	return h.RegisterHandler(path, fn)
+}
+
+// onError calls the error handler if it's set
+func (h *DefaultMessageHandler) onError(err error, session Session, fields slog.Fields, format string, args ...any) {
+	if h != nil && h.callOnError != nil {
+		h.callOnError(err, session, fields, format, args...)
+	}
 }
 
 // RegisterHandler registers a handler for a specific path.
@@ -103,6 +118,8 @@ func (h *DefaultMessageHandler) HandleMessage(ctx context.Context, session Sessi
 		return h.handlePing(ctx, session, req)
 	case nanorpc.NanoRPCRequest_TYPE_REQUEST:
 		return h.handleRequest(ctx, session, req)
+	case nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE:
+		return h.Subscribe(ctx, session, req)
 	default:
 		// Ignore unsupported request types for now
 		return nil
