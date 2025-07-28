@@ -68,3 +68,9 @@ func (f RequestHandlerFunc) Handle(ctx context.Context, req *RequestContext) err
 
 	return f(ctx, req)
 }
+
+// SubscriptionManager handles subscription lifecycle
+type SubscriptionManager interface {
+	// RemoveSubscriptionsForSession removes all subscriptions for a given session
+	RemoveSubscriptionsForSession(sessionID string)
+}
