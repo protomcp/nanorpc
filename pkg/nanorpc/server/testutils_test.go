@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
+	"protomcp.org/nanorpc/pkg/nanorpc/common"
 )
 
 // mockSession implements Session interface for testing
@@ -14,6 +16,7 @@ type mockSession struct {
 	lastResponse *nanorpc.NanoRPCResponse
 	lastData     []byte
 	responses    []*nanorpc.NanoRPCResponse // Store all responses for subscription testing
+	mu           sync.Mutex                 // Protect concurrent access
 }
 
 func (m *mockSession) ID() string {
@@ -44,7 +47,10 @@ func (m *mockSession) SendResponse(req *nanorpc.NanoRPCRequest, response *nanorp
 		return err
 	}
 
-	// Store response for verification
+	// Store response for verification (thread-safe)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.lastResponse = response
 	if response.Data != nil {
 		m.lastData = response.Data
@@ -61,17 +67,30 @@ func (m *mockSession) SendResponse(req *nanorpc.NanoRPCRequest, response *nanorp
 
 // GetLastResponse returns the last response sent
 func (m *mockSession) GetLastResponse() *nanorpc.NanoRPCResponse {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.lastResponse
 }
 
 // GetAllResponses returns all responses sent (for subscription testing)
 func (m *mockSession) GetAllResponses() []*nanorpc.NanoRPCResponse {
-	return m.responses
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Return a copy to avoid race conditions
+	if m.responses == nil {
+		return nil
+	}
+	result := make([]*nanorpc.NanoRPCResponse, len(m.responses))
+	copy(result, m.responses)
+	return result
 }
 
 // ClearResponses clears the response history
 func (m *mockSession) ClearResponses() {
-	m.responses = m.responses[:0]
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.responses = common.ClearSlice(m.responses)
 	m.lastResponse = nil
 	m.lastData = nil
 }
