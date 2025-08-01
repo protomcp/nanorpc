@@ -76,25 +76,62 @@ func (hc *HashCache) computeHash(path string) (uint32, error) {
 	return 0, err
 }
 
+// ResolvePath extracts the path and hash from a request.
+// For string paths, it computes and caches the hash.
+// For hash paths, it attempts to resolve to the original string.
+// Returns (path, pathHash, error) where error indicates a hash collision.
+func (hc *HashCache) ResolvePath(req *NanoRPCRequest) (string, uint32, error) {
+	if req == nil {
+		return "", 0, nil
+	}
+
+	// Check for string path first
+	if path, ok := AsPathOneOfString(req.PathOneof); ok {
+		pathHash, err := hc.Hash(path)
+		return path, pathHash, err
+	}
+
+	// Check for hash path
+	if pathHash, ok := AsPathOneOfHash(req.PathOneof); ok {
+		// Try to resolve hash to path
+		if path, ok := hc.Path(pathHash); ok {
+			return path, pathHash, nil
+		}
+		// If we can't resolve the hash, return empty path
+		return "", pathHash, nil
+	}
+
+	// No path specified
+	return "", 0, nil
+}
+
 // DehashRequest attempts to convert path_hash in a [NanoRPCRequest]
 // into a string path.
+//
+// IMPORTANT: This method modifies the given request in-place when converting
+// from hash to string path. If you need to preserve the original request,
+// make a copy before calling this method.
 func (hc *HashCache) DehashRequest(r *NanoRPCRequest) (*NanoRPCRequest, bool) {
-	if r != nil {
-		switch p := r.PathOneof.(type) {
-		case *NanoRPCRequest_PathHash:
-			path, ok := hc.Path(p.PathHash)
-			if ok {
-				// known hash, replace with string
-				r.PathOneof = &NanoRPCRequest_Path{
-					Path: path,
-				}
-				return r, true
+	if r == nil {
+		return nil, false
+	}
+
+	if _, ok := AsPathOneOfString(r.PathOneof); ok {
+		// already string path
+		return r, true
+	}
+
+	if hash, ok := AsPathOneOfHash(r.PathOneof); ok {
+		path, ok := hc.Path(hash)
+		if ok {
+			// known hash, replace with string
+			r.PathOneof = &NanoRPCRequest_Path{
+				Path: path,
 			}
-		case *NanoRPCRequest_Path:
-			// already string path
 			return r, true
 		}
 	}
 
+	// unknown hash or invalid request
 	return r, false
 }

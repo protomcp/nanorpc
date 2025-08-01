@@ -1,7 +1,9 @@
 package nanorpc
 
 import (
+	"errors"
 	"hash/fnv"
+	"strings"
 	"testing"
 )
 
@@ -11,11 +13,11 @@ type HashTestCase struct {
 	path string
 }
 
-func (tc HashTestCase) GetName() string {
+func (tc HashTestCase) Name() string {
 	return tc.name
 }
 
-func (tc HashTestCase) test(t *testing.T) {
+func (tc HashTestCase) Test(t *testing.T) {
 	t.Helper()
 	hc := &HashCache{}
 
@@ -45,7 +47,7 @@ var hashTestCases = []HashTestCase{
 
 func TestHashCache_Hash(t *testing.T) {
 	for _, tc := range hashTestCases {
-		t.Run(tc.name, tc.test)
+		t.Run(tc.Name(), tc.Test)
 	}
 }
 
@@ -75,11 +77,11 @@ type DehashRequestTestCase struct {
 	expectOK   bool
 }
 
-func (tc DehashRequestTestCase) GetName() string {
+func (tc DehashRequestTestCase) Name() string {
 	return tc.name
 }
 
-func (tc DehashRequestTestCase) test(t *testing.T) {
+func (tc DehashRequestTestCase) Test(t *testing.T) {
 	t.Helper()
 	hc := &HashCache{}
 
@@ -144,7 +146,7 @@ var dehashRequestTestCases = []DehashRequestTestCase{
 
 func TestHashCache_DehashRequest(t *testing.T) {
 	for _, tc := range dehashRequestTestCases {
-		t.Run(tc.name, tc.test)
+		t.Run(tc.Name(), tc.Test)
 	}
 }
 
@@ -246,4 +248,167 @@ func TestHashCache_EdgeCases(t *testing.T) {
 	retrievedPath, ok = hc.Path(specialHash)
 	AssertTrue(t, ok, "Special character path should be retrievable")
 	AssertEqual(t, specialPath, retrievedPath, "Special character path retrieval failed")
+}
+
+func TestHashCache_ResolvePath(t *testing.T) {
+	hc := &HashCache{}
+
+	t.Run("nil_request", func(t *testing.T) {
+		path, hash, err := hc.ResolvePath(nil)
+		AssertNil(t, err, "ResolvePath should not error for nil request")
+		AssertEqual(t, "", path, "Path should be empty for nil request")
+		AssertEqual(t, uint32(0), hash, "Hash should be 0 for nil request")
+	})
+
+	t.Run("string_path", func(t *testing.T) {
+		testPath := "/test/resolve/path"
+		req := &NanoRPCRequest{
+			PathOneof: GetPathOneOfString(testPath),
+		}
+
+		path, hash, err := hc.ResolvePath(req)
+		AssertNil(t, err, "ResolvePath should not error for string path")
+		AssertEqual(t, testPath, path, "Path should match input")
+		AssertNotEqual(t, uint32(0), hash, "Hash should not be 0")
+
+		// Verify hash is cached
+		cachedPath, ok := hc.Path(hash)
+		AssertTrue(t, ok, "Hash should be cached")
+		AssertEqual(t, testPath, cachedPath, "Cached path should match")
+	})
+
+	t.Run("known_hash_path", func(t *testing.T) {
+		// First, cache a path
+		testPath := "/test/known/hash"
+		expectedHash, err := hc.Hash(testPath)
+		AssertNil(t, err, "Hash should not error")
+
+		// Now resolve using hash
+		req := &NanoRPCRequest{
+			PathOneof: GetPathOneOfHash(expectedHash),
+		}
+
+		path, hash, err := hc.ResolvePath(req)
+		AssertNil(t, err, "ResolvePath should not error for known hash")
+		AssertEqual(t, testPath, path, "Path should be resolved from hash")
+		AssertEqual(t, expectedHash, hash, "Hash should match input")
+	})
+
+	t.Run("unknown_hash_path", func(t *testing.T) {
+		unknownHash := uint32(99999999)
+		req := &NanoRPCRequest{
+			PathOneof: GetPathOneOfHash(unknownHash),
+		}
+
+		path, hash, err := hc.ResolvePath(req)
+		AssertNil(t, err, "ResolvePath should not error for unknown hash")
+		AssertEqual(t, "", path, "Path should be empty for unknown hash")
+		AssertEqual(t, unknownHash, hash, "Hash should match input")
+	})
+
+	t.Run("no_path_specified", func(t *testing.T) {
+		req := &NanoRPCRequest{
+			PathOneof: nil,
+		}
+
+		path, hash, err := hc.ResolvePath(req)
+		AssertNil(t, err, "ResolvePath should not error when no path specified")
+		AssertEqual(t, "", path, "Path should be empty")
+		AssertEqual(t, uint32(0), hash, "Hash should be 0")
+	})
+
+	t.Run("empty_string_path", func(t *testing.T) {
+		req := &NanoRPCRequest{
+			PathOneof: GetPathOneOfString(""),
+		}
+
+		path, hash, err := hc.ResolvePath(req)
+		AssertNil(t, err, "ResolvePath should not error for empty string")
+		AssertEqual(t, "", path, "Path should be empty")
+
+		// Verify the actual behaviour of AsPathOneOfString for empty strings
+		if _, ok := AsPathOneOfString(req.PathOneof); ok {
+			// If AsPathOneOfString returns true, hash should be computed
+			AssertNotEqual(t, uint32(0), hash, "Hash should be computed for empty string")
+		} else {
+			// If AsPathOneOfString returns false, hash should be 0
+			AssertEqual(t, uint32(0), hash, "Hash should be 0 when AsPathOneOfString returns false")
+		}
+	})
+}
+
+// setupCollisionScenario sets up a simulated hash collision scenario
+func setupCollisionScenario(t *testing.T, hc *HashCache, path1, path2 string) {
+	t.Helper()
+
+	// First, cache path1 to get its hash
+	cachedHash, err := hc.Hash(path1)
+	AssertNil(t, err, "Hash should not error for first path")
+
+	// Simulate the state where path2 would hash to the same value as path1
+	// by manually setting up the collision condition
+	hc.mu.Lock()
+	// Replace path1 with path2 in the hash->path mapping
+	hc.path[cachedHash] = path2
+	// Remove path1 from path->hash mapping
+	delete(hc.hash, path1)
+	// Add path2 with the same hash
+	hc.hash[path2] = cachedHash
+	hc.mu.Unlock()
+}
+
+// testHashMethodCollision tests collision detection in Hash method
+func testHashMethodCollision(t *testing.T, path1, path2 string) {
+	t.Helper()
+
+	hc := &HashCache{}
+	setupCollisionScenario(t, hc, path1, path2)
+
+	// Now when we try to hash path1, it should detect the collision
+	_, err := hc.Hash(path1)
+	AssertNotNil(t, err, "Hash should error when collision detected")
+	AssertTrue(t, errors.Is(err, ErrHashCollision), "Error should be ErrHashCollision")
+
+	// Verify error message contains both conflicting paths
+	errMsg := err.Error()
+	AssertTrue(t, strings.Contains(errMsg, path1), "Error should mention path1: %s", errMsg)
+	AssertTrue(t, strings.Contains(errMsg, path2), "Error should mention path2: %s", errMsg)
+}
+
+// testResolvePathCollision tests collision detection in ResolvePath method
+func testResolvePathCollision(t *testing.T, path1, path2 string) {
+	t.Helper()
+
+	hc := &HashCache{}
+	setupCollisionScenario(t, hc, path1, path2)
+
+	// Test ResolvePath collision detection
+	req := &NanoRPCRequest{
+		PathOneof: GetPathOneOfString(path1),
+	}
+	_, _, err := hc.ResolvePath(req)
+	AssertNotNil(t, err, "ResolvePath should error on collision")
+	AssertTrue(t, errors.Is(err, ErrHashCollision), "ResolvePath error should be ErrHashCollision")
+}
+
+func TestHashCache_CollisionDetection(t *testing.T) {
+	// Create test paths that we'll use for collision simulation
+	path1 := "/test/path1"
+	path2 := "/different/path"
+
+	// Since real hash collisions are extremely rare with FNV-1a, we simulate
+	// the collision scenario by setting up the cache state that would occur
+	// if two different paths computed to the same hash value.
+	//
+	// This simulates what would happen if path2 computed to the same hash as path1:
+	// 1. The hash would already exist in hc.path[hash] with path1
+	// 2. When we try to store path2 with the same hash, collision detection triggers
+
+	t.Run("hash_method_collision", func(t *testing.T) {
+		testHashMethodCollision(t, path1, path2)
+	})
+
+	t.Run("resolve_path_collision", func(t *testing.T) {
+		testResolvePathCollision(t, path1, path2)
+	})
 }
