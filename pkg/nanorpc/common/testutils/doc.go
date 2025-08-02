@@ -17,6 +17,7 @@
 //	AssertNotNil    - asserts a value is not nil
 //	AssertNoError   - asserts an error is nil
 //	AssertError     - asserts an error is not nil
+//	AssertErrorIs   - asserts an error matches target using errors.Is
 //	AssertContains  - asserts a string contains a substring
 //	AssertTypeIs    - type-safe assertion with value return
 //
