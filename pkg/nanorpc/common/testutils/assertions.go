@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"darvaza.org/core"
 )
 
 // S is a generic slice constructor helper that creates a slice from variadic arguments.
@@ -28,13 +30,9 @@ func S[T any](items ...T) []T {
 //	AssertNotNil(t, err, "function should return an error")
 func AssertNotNil(t T, value any, name string, args ...any) {
 	t.Helper()
-	if isNil(value) {
-		msg := "expected non-nil value"
-		if name != "" {
-			prefix := fmt.Sprintf(name, args...)
-			msg = fmt.Sprintf("%s: %s", prefix, msg)
-		}
-		t.Fatal(msg)
+	ok := !core.IsNil(value)
+	if !ok {
+		doFatal(t, name, args, "expected non-nil value")
 	}
 }
 
@@ -48,13 +46,9 @@ func AssertNotNil(t T, value any, name string, args ...any) {
 //	AssertNoError(t, err, "doSomething failed")
 func AssertNoError(t T, err error, name string, args ...any) {
 	t.Helper()
-	if err != nil {
-		msg := fmt.Sprintf("unexpected error: %v", err)
-		if name != "" {
-			prefix := fmt.Sprintf(name, args...)
-			msg = fmt.Sprintf("%s: %s", prefix, msg)
-		}
-		t.Fatal(msg)
+	ok := err == nil
+	if !ok {
+		doFatal(t, name, args, "unexpected error: %v", err)
 	}
 }
 
@@ -68,14 +62,9 @@ func AssertNoError(t T, err error, name string, args ...any) {
 //	AssertError(t, err, "empty input should cause error")
 func AssertError(t T, err error, name string, args ...any) {
 	t.Helper()
-	if err == nil {
-		var msg string
-		if name != "" {
-			msg = fmt.Sprintf(name, args...)
-		} else {
-			msg = "expected an error but got nil"
-		}
-		t.Fatal(msg)
+	ok := err != nil
+	if !ok {
+		doFatal(t, name, args, "expected an error but got nil")
 	}
 }
 
@@ -89,13 +78,9 @@ func AssertError(t T, err error, name string, args ...any) {
 //	AssertEqual(t, expected, actual, "values should match")
 func AssertEqual[V any](t T, expected, actual V, name string, args ...any) {
 	t.Helper()
-	if !reflect.DeepEqual(expected, actual) {
-		msg := fmt.Sprintf("expected %v, got %v", expected, actual)
-		if name != "" {
-			prefix := fmt.Sprintf(name, args...)
-			msg = fmt.Sprintf("%s: %s", prefix, msg)
-		}
-		t.Fatal(msg)
+	ok := reflect.DeepEqual(expected, actual)
+	if !ok {
+		doFatal(t, name, args, "expected %v, got %v", expected, actual)
 	}
 }
 
@@ -136,13 +121,9 @@ func AssertFalse(t T, value bool, name string, args ...any) {
 //	AssertNil(t, result, "result should be nil on error")
 func AssertNil(t T, value any, name string, args ...any) {
 	t.Helper()
-	if !isNil(value) {
-		msg := fmt.Sprintf("expected nil, got %v", value)
-		if name != "" {
-			prefix := fmt.Sprintf(name, args...)
-			msg = fmt.Sprintf("%s: %s", prefix, msg)
-		}
-		t.Fatal(msg)
+	ok := core.IsNil(value)
+	if !ok {
+		doFatal(t, name, args, "expected nil, got %v", value)
 	}
 }
 
@@ -155,13 +136,9 @@ func AssertNil(t T, value any, name string, args ...any) {
 //	AssertNotEqual(t, 0, count, "count should not be zero")
 func AssertNotEqual[V any](t T, expected, actual V, name string, args ...any) {
 	t.Helper()
-	if reflect.DeepEqual(expected, actual) {
-		msg := fmt.Sprintf("expected values to be different, both were %v", expected)
-		if name != "" {
-			prefix := fmt.Sprintf(name, args...)
-			msg = fmt.Sprintf("%s: %s", prefix, msg)
-		}
-		t.Fatal(msg)
+	ok := !reflect.DeepEqual(expected, actual)
+	if !ok {
+		doFatal(t, name, args, "expected values to be different, both were %v", expected)
 	}
 }
 
@@ -174,13 +151,9 @@ func AssertNotEqual[V any](t T, expected, actual V, name string, args ...any) {
 //	AssertContains(t, output, "success", "output should indicate success")
 func AssertContains(t T, str, substr string, name string, args ...any) {
 	t.Helper()
-	if !strings.Contains(str, substr) {
-		msg := fmt.Sprintf("expected %q to contain %q", str, substr)
-		if name != "" {
-			prefix := fmt.Sprintf(name, args...)
-			msg = fmt.Sprintf("%s: %s", prefix, msg)
-		}
-		t.Fatal(msg)
+	ok := strings.Contains(str, substr)
+	if !ok {
+		doFatal(t, name, args, "expected %q to contain %q", str, substr)
 	}
 }
 
@@ -196,29 +169,20 @@ func AssertTypeIs[U any](t T, value any, name string, args ...any) U {
 	result, ok := value.(U)
 	if !ok {
 		var zero U
-		msg := fmt.Sprintf("expected type %T but got %T", zero, value)
-		if name != "" {
-			prefix := fmt.Sprintf(name, args...)
-			msg = fmt.Sprintf("%s: %s", prefix, msg)
-		}
-		t.Fatal(msg)
+		doFatal(t, name, args, "expected type %T but got %T", zero, value)
 	}
 	return result
 }
 
-// isNil checks if a value is nil using reflection
-func isNil(value any) bool {
-	if value == nil {
-		return true
+// doFatal builds a formatted error message and calls t.Fatal.
+// It combines an optional prefix message with a main message.
+func doFatal(t T, prefixFormat string, prefixArgs []any, messageFormat string, args ...any) {
+	var msg string
+	if prefixFormat != "" {
+		prefix := fmt.Sprintf(prefixFormat, prefixArgs...)
+		msg = fmt.Sprintf("%s: %s", prefix, fmt.Sprintf(messageFormat, args...))
+	} else {
+		msg = fmt.Sprintf(messageFormat, args...)
 	}
-	v := reflect.ValueOf(value)
-	if !v.IsValid() {
-		return true
-	}
-	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		return v.IsNil()
-	default:
-		return false
-	}
+	t.Fatal(msg)
 }
