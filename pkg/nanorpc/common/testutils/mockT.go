@@ -46,11 +46,26 @@ func (m *MockT) Fatal(args ...any) {
 	m.Errors = append(m.Errors, msg)
 }
 
+// Fatalf is equivalent to Logf followed by FailNow.
+// It formats according to a format specifier and marks the test as failed.
+func (m *MockT) Fatalf(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.Failed = true
+	m.FatalCalled = true
+
+	msg := fmt.Sprintf(format, args...)
+	m.Errors = append(m.Errors, msg)
+}
+
 // Error logs an error message without stopping the test.
-// Adds the message to both Errors and Logs slices.
+// Adds the message to the Errors slice and marks the test as failed.
 func (m *MockT) Error(args ...any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	m.Failed = true
 
 	var msg string
 	if len(args) > 0 {
@@ -58,7 +73,18 @@ func (m *MockT) Error(args ...any) {
 	}
 
 	m.Errors = append(m.Errors, msg)
-	m.Logs = append(m.Logs, msg)
+}
+
+// Errorf formats according to a format specifier and logs an error message without stopping the test.
+// Adds the message to the Errors slice and marks the test as failed.
+func (m *MockT) Errorf(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.Failed = true
+
+	msg := fmt.Sprintf(format, args...)
+	m.Errors = append(m.Errors, msg)
 }
 
 // Log logs a message.
@@ -75,6 +101,16 @@ func (m *MockT) Log(args ...any) {
 	m.Logs = append(m.Logs, msg)
 }
 
+// Logf formats its arguments according to the format and logs the message.
+// Adds the message to the Logs slice.
+func (m *MockT) Logf(format string, args ...any) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	msg := fmt.Sprintf(format, args...)
+	m.Logs = append(m.Logs, msg)
+}
+
 // LastLog returns the last log message and whether one exists.
 // This is not part of the T interface but is useful for testing.
 func (m *MockT) LastLog() (string, bool) {
@@ -88,15 +124,6 @@ func (m *MockT) LastLog() (string, bool) {
 // This is not part of the T interface but is useful for testing.
 func (m *MockT) LastError() (string, bool) {
 	if len(m.Errors) == 0 {
-		return "", false
-	}
-	return m.Errors[len(m.Errors)-1], true
-}
-
-// LastFatal returns the last error message if Fatal was called and whether one exists.
-// This is not part of the T interface but is useful for testing.
-func (m *MockT) LastFatal() (string, bool) {
-	if !m.FatalCalled || len(m.Errors) == 0 {
 		return "", false
 	}
 	return m.Errors[len(m.Errors)-1], true
