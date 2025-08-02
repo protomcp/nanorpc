@@ -347,3 +347,63 @@ func TestAssertTypeIs(t *testing.T) {
 	AssertFalse(t, mt.Failed, "AssertTypeIs failed with interface type")
 	AssertEqual(t, "test error", resultErr.Error(), "AssertTypeIs should return correct error")
 }
+
+// TestAssertErrorIs tests the AssertErrorIs function
+func TestAssertErrorIs(t *testing.T) {
+	baseErr := errors.New("base error")
+	customErr := errors.New("custom error")
+
+	// Test with matching errors - should not fail
+	mt := &MockT{}
+	AssertErrorIs(mt, baseErr, baseErr, "")
+	if mt.Failed {
+		t.Error("AssertErrorIs failed with matching errors")
+	}
+
+	// Test with wrapped error - should not fail when using errors.Is
+	mt = &MockT{}
+	// Create a properly wrapped error
+	wrappedError := &wrappedTestError{baseErr, "wrapper"}
+	AssertErrorIs(mt, wrappedError, baseErr, "")
+	if mt.Failed {
+		t.Error("AssertErrorIs failed with wrapped error")
+	}
+
+	// Test with non-matching errors - should fail
+	mt = &MockT{}
+	AssertErrorIs(mt, customErr, baseErr, "")
+	if !mt.Failed {
+		t.Error("AssertErrorIs didn't fail with non-matching errors")
+	}
+	lastError, _ := mt.LastError()
+	AssertContains(t, lastError, "expected error base error, got custom error", "")
+
+	// Test with nil error - should fail
+	mt = &MockT{}
+	AssertErrorIs(mt, nil, baseErr, "")
+	if !mt.Failed {
+		t.Error("AssertErrorIs didn't fail with nil error")
+	}
+	lastError, _ = mt.LastError()
+	AssertContains(t, lastError, "expected error base error, got <nil>", "")
+
+	// Test with custom message
+	mt = &MockT{}
+	AssertErrorIs(mt, customErr, baseErr, "custom message: %s", "test")
+	lastError, _ = mt.LastError()
+	AssertContains(t, lastError, "custom message: test: expected error base error, got custom error", "")
+}
+
+// wrappedTestError is a test helper that implements error wrapping for testing
+type wrappedTestError struct {
+	err error
+	msg string
+}
+
+func (e *wrappedTestError) Error() string {
+	return e.msg + ": " + e.err.Error()
+}
+
+func (e *wrappedTestError) Unwrap() error {
+	return e.err
+}

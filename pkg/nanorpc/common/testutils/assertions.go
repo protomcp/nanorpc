@@ -3,6 +3,7 @@
 package testutils
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -172,6 +173,22 @@ func AssertTypeIs[U any](t T, value any, name string, args ...any) U {
 		doFatal(t, name, args, "expected type %T but got %T", zero, value)
 	}
 	return result
+}
+
+// AssertErrorIs fails the test if the error does not match the target error.
+// Uses errors.Is to check if the error matches the target.
+// This is useful for checking specific error types or wrapped errors.
+//
+// Example:
+//
+//	err := doSomething()
+//	AssertErrorIs(t, err, ErrNotFound, "should return not found error")
+func AssertErrorIs(t T, err, target error, name string, args ...any) {
+	t.Helper()
+	ok := errors.Is(err, target)
+	if !ok {
+		doFatal(t, name, args, "expected error %v, got %v", target, err)
+	}
 }
 
 // doFatal builds a formatted error message and calls t.Fatal.
