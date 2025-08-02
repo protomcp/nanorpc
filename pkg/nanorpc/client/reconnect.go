@@ -70,11 +70,17 @@ func (c *Client) onReconnectDisconnect(ctx context.Context, conn net.Conn) error
 }
 
 func (c *Client) onReconnectError(ctx context.Context, conn net.Conn, err error) error {
+	var addr net.Addr
+
 	if fn := c.getOnError(); fn != nil {
 		return fn(ctx, err)
 	}
 
-	c.LogError(conn.RemoteAddr(), err, "error")
+	if conn != nil {
+		// conn is nil when connection failed
+		addr = conn.RemoteAddr()
+	}
+	c.LogError(addr, err, "error")
 
 	return err
 }
