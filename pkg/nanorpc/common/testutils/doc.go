@@ -32,18 +32,44 @@
 //
 // # Testing Interface
 //
-// The T interface provides a minimal testing interface compatible with
+// The T interface provides a comprehensive testing interface compatible with
 // *testing.T but allows for mock implementations in testing the package itself:
 //
 //	type T interface {
 //		Helper()
 //		Fatal(args ...any)
+//		Fatalf(format string, args ...any)
+//		Error(args ...any)
+//		Errorf(format string, args ...any)
+//		Log(args ...any)
+//		Logf(format string, args ...any)
 //	}
 //
 // This design eliminates circular dependencies and enables comprehensive
 // testing of the assertion functions themselves.
 //
 // # Mock Implementations
+//
+// ## MockT
+//
+// A complete T interface implementation for testing assertion functions:
+//
+//	mt := &MockT{}
+//	AssertEqual(mt, expected, actual)
+//
+//	// Verify test results
+//	if lastError, hasError := mt.LastError(); hasError {
+//		// Assertion failed as expected
+//	}
+//
+// MockT features:
+//   - Complete T interface implementation
+//   - Separate tracking of errors vs logs
+//   - Thread-safe operations with mutex protection
+//   - Fatal call detection with FatalCalled flag
+//   - Convenient LastError(), LastLog(), LastFatal() accessors
+//   - Reset() method for test reuse
+//   - Proper field alignment for memory efficiency
 //
 // ## MockFieldLogger
 //
