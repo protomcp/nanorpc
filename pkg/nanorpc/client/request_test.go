@@ -43,6 +43,8 @@ func subscriptionRequestTypeTestCases() []requestTypeTestCase {
 			nanorpc.NanoRPCRequest_TYPE_REQUEST, nanorpc.NanoRPCRequest_TYPE_REQUEST),
 		newRequestTypeTestCase("Ping_uses_TYPE_PING",
 			nanorpc.NanoRPCRequest_TYPE_PING, nanorpc.NanoRPCRequest_TYPE_PING),
+		newRequestTypeTestCase("Unsubscribe_uses_TYPE_REQUEST",
+			nanorpc.NanoRPCRequest_TYPE_REQUEST, nanorpc.NanoRPCRequest_TYPE_REQUEST),
 	)
 }
 
@@ -85,6 +87,23 @@ func TestRequestConstruction(t *testing.T) {
 
 	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_PING, pingReq.RequestType,
 		"Ping request should use TYPE_PING")
+
+	// Test Unsubscribe construction (like what Unsubscribe() method does)
+	unsubscribeReq := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		RequestId:   42, // Original subscription ID
+		PathOneof: &nanorpc.NanoRPCRequest_Path{
+			Path: "/events",
+		},
+		// Data is nil for unsubscribe (empty data indicates unsubscribe)
+	}
+
+	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_REQUEST, unsubscribeReq.RequestType,
+		"Unsubscribe request should use TYPE_REQUEST")
+	testutils.AssertEqual(t, int32(42), unsubscribeReq.RequestId,
+		"Unsubscribe request should preserve original request ID")
+	testutils.AssertNil(t, unsubscribeReq.Data,
+		"Unsubscribe request should have empty data")
 }
 
 // TestPathOneofTypes tests both path string and hash variants

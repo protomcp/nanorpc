@@ -42,6 +42,7 @@
     "shellcheck",
     "testutils",
     "Unmarshal",
+    "Unsubscriber",
     "Unwrappable",
     "Varint",
     "varint",
