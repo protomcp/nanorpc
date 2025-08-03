@@ -31,6 +31,9 @@ The nanorpc protocol supports multiple communication patterns:
 - Response types: `TYPE_PONG`, `TYPE_RESPONSE`, `TYPE_UPDATE`
 - Status codes: `STATUS_OK`, `STATUS_NOT_FOUND`, `STATUS_INTERNAL_ERROR`
 
+See [NANORPC_PROTOCOL.md](NANORPC_PROTOCOL.md) for the
+complete protocol specification.
+
 ## Components
 
 ### Go Client Library

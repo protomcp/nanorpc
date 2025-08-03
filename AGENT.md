@@ -120,6 +120,9 @@ The nanorpc protocol supports:
 - **Pub/sub messaging**: Subscription-based updates
 - **Error handling**: Structured error responses
 
+See the [NANORPC_PROTOCOL.md](NANORPC_PROTOCOL.md) document for the complete
+protocol specification.
+
 ### Key Features
 
 - **Embedded-friendly**: Designed for resource-constrained environments

@@ -97,6 +97,9 @@ log.Printf("Subscribed with request ID: %d", requestID)
 
 The nanorpc protocol supports three communication patterns:
 
+For the complete protocol specification, see
+[NANORPC_PROTOCOL.md](../../NANORPC_PROTOCOL.md).
+
 ### Ping-Pong
 
 Health checks and connection validation:
