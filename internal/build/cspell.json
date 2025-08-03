@@ -12,8 +12,10 @@
     "darvaza",
     "Dehash",
     "dehashing",
+    "Errorf",
     "extendee",
     "fieldalignment",
+    "fileopt",
     "golangci",
     "goroutines",
     "gotmpl",
@@ -32,6 +34,8 @@
     "protomcp",
     "protoreflect",
     "protos",
+    "protoscope",
+    "Protoscope",
     "protowire",
     "Println",
     "resp",
@@ -39,6 +43,8 @@
     "testutils",
     "Unmarshal",
     "Unwrappable",
+    "Varint",
+    "varint",
     "Wrapf"
   ],
   "ignorePaths": [

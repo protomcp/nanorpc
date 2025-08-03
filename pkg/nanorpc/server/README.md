@@ -170,6 +170,9 @@ func main() {
 
 Currently supports the ping-pong protocol pattern:
 
+For the complete protocol specification, see
+[NANORPC_PROTOCOL.md](../../../NANORPC_PROTOCOL.md).
+
 ### Ping-Pong Flow
 
 ```text
