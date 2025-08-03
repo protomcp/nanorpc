@@ -339,7 +339,26 @@ logger := baseLogger.WithField("request_id", req.RequestId)
 logger.Info().Print("processing request")
 
 // Component logging
-logger := slog.Default().WithField("component", "subscription-manager")
+logger := baseLogger.WithField("component", "subscription-manager")
+```
+
+#### Logger Helper Methods
+
+Client, Server, Session, and SessionManager types provide enhanced logging
+helper methods:
+
+```go
+// Client methods
+LogDebug(addr net.Addr, fields slog.Fields, msg string, args ...any)
+LogInfo(addr net.Addr, fields slog.Fields, msg string, args ...any)
+LogWarn(addr net.Addr, err error, fields slog.Fields, msg string, args ...any)
+LogError(addr net.Addr, err error, fields slog.Fields, msg string, args ...any)
+
+// Server/Session methods
+LogDebug(fields slog.Fields, msg string, args ...any)
+LogInfo(fields slog.Fields, msg string, args ...any)
+LogWarn(err error, fields slog.Fields, msg string, args ...any)
+LogError(err error, fields slog.Fields, msg string, args ...any)
 ```
 
 ### Concurrent Operations

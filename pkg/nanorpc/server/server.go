@@ -78,9 +78,9 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	// Log final status
 	if err != nil && err != context.Canceled {
-		s.LogError(err, "Server stopped with error")
+		s.LogError(err, nil, "Server stopped with error")
 	} else {
-		s.LogInfo("Server stopped")
+		s.LogInfo(nil, "Server stopped")
 	}
 
 	return err
@@ -126,7 +126,7 @@ func (s *Server) handleNewConnection(_ context.Context, conn net.Conn) {
 
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.LogInfo("Server shutting down")
+	s.LogInfo(nil, "Server shutting down")
 
 	// Close listener to stop accepting new connections
 	if err := s.listener.Close(); err != nil {
@@ -149,7 +149,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	done := s.wg.Done()
 	select {
 	case <-done:
-		s.LogInfo("Server shutdown complete")
+		s.LogInfo(nil, "Server shutdown complete")
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -159,7 +159,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // onGroupCancel is called when the workgroup is cancelled
 func (s *Server) onGroupCancel(_ context.Context, err error) {
 	if err != nil && err != context.Canceled {
-		s.LogError(err, "Server cancelled with error")
+		s.LogError(err, nil, "Server cancelled with error")
 	}
 	// Ensure listener is closed on cancel
 	if closeErr := s.listener.Close(); closeErr != nil {

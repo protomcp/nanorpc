@@ -226,14 +226,14 @@ func TestSessionLogMethods(t *testing.T) {
 	cs := newTestSession(c, "localhost:7777")
 
 	// Test LogDebug
-	cs.LogDebug("debug message")
+	cs.LogDebug(nil, "debug message")
 
 	// Test LogInfo
-	cs.LogInfo("info message")
+	cs.LogInfo(nil, "info message")
 
 	// Test LogError
 	testErr := core.ErrInvalid
-	cs.LogError(testErr, "error message")
+	cs.LogError(testErr, nil, "error message")
 
 	// Verify no panic
 	testutils.AssertNotNil(t, cs, "session should not be nil")
