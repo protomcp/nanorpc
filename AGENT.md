@@ -169,8 +169,15 @@ The project enforces quality through:
   FA="$GOXTOOLS/fieldalignment/cmd/fieldalignment"
   # Only run on hand-written files, not generated ones
   go -C pkg/nanorpc run "$FA@latest" -fix \
-    server.go server_*.go client.go client_*.go \
     errors.go hashcache.go path.go utils.go request_counter.go
+
+  # For client files (in separate package)
+  go -C pkg/nanorpc/client run "$FA@latest" -fix \
+    client.go client_*.go
+
+  # For server files (in separate package)
+  go -C pkg/nanorpc/server run "$FA@latest" -fix \
+    handler.go subscription.go interfaces.go
 
   # For test files with complex types, create a temporary file:
   # 1. Copy struct definitions to a temp.go file with simplified types
@@ -286,6 +293,109 @@ make test-nanorpc
 4. **Atomic commits** - Each commit should contain only related changes for a
    single purpose
 
+## Development Patterns with darvaza.org
+
+### Error Handling
+
+Use darvaza.org/core for consistent error handling:
+
+```go
+// Check nil receivers
+if obj == nil {
+    return core.ErrNilReceiver
+}
+
+// Wrap errors with context
+if err != nil {
+    return core.Wrapf(err, "failed to process %s", path)
+}
+
+// Create formatted errors
+return core.Errorf("invalid path hash: 0x%08x", hash)
+
+// Panic recovery in critical sections
+err := core.Catch(func() error {
+    // Code that might panic
+    return riskyOperation()
+})
+```
+
+### Structured Logging
+
+Use darvaza.org/slog with proper patterns:
+
+```go
+// Basic logging with levels
+logger.Info().Print("server started")
+logger.Error().WithField(slog.ErrorFieldName, err).Print("operation failed")
+
+// Check if logging is enabled before expensive operations
+if logger, ok := logger.Debug().WithEnabled(); ok {
+    logger.WithField("data", expensiveDebugData()).Print("debug info")
+}
+
+// Request-scoped logging
+logger := baseLogger.WithField("request_id", req.RequestId)
+logger.Info().Print("processing request")
+
+// Component logging
+logger := slog.Default().WithField("component", "subscription-manager")
+```
+
+### Concurrent Operations
+
+Use darvaza.org/x/sync/workgroup for goroutine management:
+
+```go
+// Create workgroup
+wg := workgroup.New(ctx)
+defer wg.Close()
+
+// Launch basic goroutine
+err := wg.Go(func(ctx context.Context) {
+    // Task implementation
+})
+
+// Launch with error handling
+err := wg.GoCatch(
+    func(ctx context.Context) error {
+        return doWork(ctx)
+    },
+    func(ctx context.Context, err error) error {
+        if err != nil && !errors.Is(err, context.Canceled) {
+            logger.Error().WithField(slog.ErrorFieldName, err).
+                Print("task failed")
+        }
+        return nil // Don't propagate to keep other workers running
+    },
+)
+
+// Wait for completion
+if err := wg.Wait(); err != nil {
+    logger.Error().WithField(slog.ErrorFieldName, err).Print("workgroup failed")
+}
+```
+
+### API Documentation
+
+Use `go doc` to verify API usage:
+
+```bash
+# Check package documentation
+go -C pkg/nanorpc doc server
+
+# Check specific types
+go -C pkg/nanorpc doc server.RequestContext
+
+# Check method signatures
+go -C pkg/nanorpc doc -src HashCache.Hash
+
+# Check darvaza.org dependencies
+go -C pkg/nanorpc doc darvaza.org/core.Catch
+go -C pkg/nanorpc doc darvaza.org/slog.Logger
+go -C pkg/nanorpc doc darvaza.org/x/sync/workgroup.Group
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -316,6 +426,7 @@ make test-nanorpc
 - Review test files for usage examples
 - Examine client implementation for protocol patterns
 - Refer to Protocol Buffer documentation for schema changes
+- Use `go doc` to verify API usage before implementation
 
 This project focuses on providing efficient, reliable RPC communication for
 embedded systems while maintaining clean, well-tested Go code.
