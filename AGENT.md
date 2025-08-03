@@ -295,6 +295,34 @@ make test-nanorpc
 
 ## Development Patterns with darvaza.org
 
+### API Verification First
+
+Always verify API usage with `go doc` before implementing:
+
+```bash
+# Check package documentation
+go -C pkg/nanorpc doc server
+
+# Check specific types and methods
+go -C pkg/nanorpc doc server.RequestContext
+go -C pkg/nanorpc doc -src HashCache.Hash
+
+# Check darvaza.org dependencies (accessible from nanorpc directory)
+go -C pkg/nanorpc doc darvaza.org/core.Catch
+go -C pkg/nanorpc doc darvaza.org/slog.Logger
+go -C pkg/nanorpc doc darvaza.org/x/sync/workgroup.Group
+```
+
+The `-C` flag allows checking documentation from the correct module context:
+
+```bash
+# ✅ CORRECT - Check from module directory
+go -C pkg/nanorpc doc HashCache
+
+# ❌ WRONG - May give incorrect results
+go doc protomcp.org/nanorpc/pkg/nanorpc.HashCache
+```
+
 ### Error Handling
 
 Use darvaza.org/core for consistent error handling:
@@ -322,7 +350,9 @@ err := core.Catch(func() error {
 
 ### Structured Logging
 
-Use darvaza.org/slog with proper patterns:
+Use darvaza.org/slog with proper patterns. For standardized field names,
+refer to `pkg/nanorpc/common/fields.go` which defines constants for field
+names and helper functions for safe field addition:
 
 ```go
 // Basic logging with levels
@@ -334,12 +364,19 @@ if logger, ok := logger.Debug().WithEnabled(); ok {
     logger.WithField("data", expensiveDebugData()).Print("debug info")
 }
 
-// Request-scoped logging
-logger := baseLogger.WithField("request_id", req.RequestId)
+// Request-scoped logging using standard field names
+logger := baseLogger.WithField(common.FieldRequestID, req.RequestId)
 logger.Info().Print("processing request")
 
-// Component logging
-logger := baseLogger.WithField("component", "subscription-manager")
+// Component logging using standard constants
+logger := common.WithComponent(baseLogger, common.ComponentServer)
+
+// Enhanced helper methods with structured fields
+server.LogInfo(slog.Fields{"port": 8080}, "server started on port %d", 8080)
+client.LogError(addr, err, slog.Fields{common.FieldAttempt: 3},
+    "connection failed after %d attempts", 3)
+session.LogDebug(slog.Fields{common.FieldRequestID: reqID},
+    "processing request %s", reqID)
 ```
 
 #### Logger Helper Methods
@@ -359,6 +396,12 @@ LogDebug(fields slog.Fields, msg string, args ...any)
 LogInfo(fields slog.Fields, msg string, args ...any)
 LogWarn(err error, fields slog.Fields, msg string, args ...any)
 LogError(err error, fields slog.Fields, msg string, args ...any)
+
+// Usage examples
+server.LogInfo(slog.Fields{"port": 8080}, "server started on port %d", 8080)
+client.LogError(addr, err, nil, "failed to connect")
+session.LogDebug(slog.Fields{"path": req.Path}, "processing request for %s",
+    req.Path)
 ```
 
 ### Concurrent Operations
@@ -395,25 +438,207 @@ if err := wg.Wait(); err != nil {
 }
 ```
 
-### API Documentation
+### Context Propagation
 
-Use `go doc` to verify API usage:
+Always pass context through the call stack:
+
+```go
+// Always pass context through the call stack
+func (s *Server) Handle(ctx context.Context, req Request) error {
+    // Create child context with timeout
+    ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+    defer cancel()
+
+    // Pass to next layer
+    return s.processRequest(ctx, req)
+}
+```
+
+### Testing Patterns
+
+#### Table-Driven Tests
+
+```go
+type testCase struct {
+    name     string
+    input    string
+    expected string
+    wantErr  bool
+}
+
+func (tc testCase) test(t *testing.T) {
+    t.Helper()
+
+    result, err := processInput(tc.input)
+    if tc.wantErr {
+        require.Error(t, err)
+        return
+    }
+
+    require.NoError(t, err)
+    assert.Equal(t, tc.expected, result)
+}
+
+func TestProcess(t *testing.T) {
+    tests := []testCase{
+        {
+            name:     "valid input",
+            input:    "test",
+            expected: "TEST",
+        },
+        {
+            name:    "empty input",
+            input:   "",
+            wantErr: true,
+        },
+    }
+
+    for _, tc := range tests {
+        t.Run(tc.name, tc.test)
+    }
+}
+```
+
+#### Concurrent Testing
+
+```go
+// Use existing test utilities
+helper := &ConcurrentTestHelper{
+    TestFunc: func(id int) error {
+        return client.Ping()
+    },
+    NumGoroutines: 50,
+}
+
+results := helper.Run()
+for i, err := range results {
+    assert.NoError(t, err, "goroutine %d failed", i)
+}
+```
+
+### Field Alignment
+
+Always optimize struct field alignment:
+
+```go
+// ✅ GOOD - Aligned by size
+type Session struct {
+    // 8-byte fields first
+    conn      net.Conn
+    logger    slog.Logger
+    createdAt time.Time
+
+    // 4-byte fields
+    id        int32
+
+    // 1-byte fields
+    active    bool
+
+    // Strings last
+    name      string
+}
+
+// ❌ BAD - Poor alignment
+type Session struct {
+    active    bool      // 1 byte + 7 padding
+    conn      net.Conn  // 8 bytes
+    id        int32     // 4 bytes + 4 padding
+    logger    slog.Logger // 8 bytes
+    name      string    // 16 bytes
+    createdAt time.Time // 8 bytes
+}
+```
+
+Use fieldalignment tool to check:
 
 ```bash
-# Check package documentation
-go -C pkg/nanorpc doc server
-
-# Check specific types
-go -C pkg/nanorpc doc server.RequestContext
-
-# Check method signatures
-go -C pkg/nanorpc doc -src HashCache.Hash
-
-# Check darvaza.org dependencies
-go -C pkg/nanorpc doc darvaza.org/core.Catch
-go -C pkg/nanorpc doc darvaza.org/slog.Logger
-go -C pkg/nanorpc doc darvaza.org/x/sync/workgroup.Group
+FA="golang.org/x/tools/go/analysis/passes/fieldalignment"
+go run "$FA/cmd/fieldalignment@latest" -fix ./...
 ```
+
+### Common Pitfalls to Avoid
+
+#### 1. Incorrect slog Usage
+
+```go
+// ❌ WRONG - WithError doesn't exist
+logger.WithError(err).Error("failed")
+
+// ✅ CORRECT
+logger.Error().WithField(slog.ErrorFieldName, err).Print("failed")
+```
+
+#### 2. Missing Nil Checks
+
+```go
+// ❌ WRONG - May panic
+func (s *Server) Start() {
+    s.logger.Info().Print("starting")
+}
+
+// ✅ CORRECT
+func (s *Server) Start() {
+    if s.logger != nil {
+        s.logger.Info().Print("starting")
+    }
+}
+```
+
+#### 3. Context Ignorance
+
+```go
+// ❌ WRONG - Ignores context cancellation
+func process() {
+    for {
+        doWork()
+    }
+}
+
+// ✅ CORRECT
+func process(ctx context.Context) error {
+    for {
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        default:
+            doWork()
+        }
+    }
+}
+```
+
+### Build and Quality Commands
+
+```bash
+# Full build cycle
+make all
+
+# Run tests with coverage
+make test GOTEST_FLAGS="-cover"
+
+# Fix code issues
+make tidy
+
+# Generate coverage reports
+make coverage
+
+# Update dependencies
+make up
+```
+
+### Git Workflow Best Practices
+
+```bash
+# ✅ CORRECT - Explicit file specification
+git add handler.go handler_test.go
+git commit -s handler.go handler_test.go -m "feat: add response helpers"
+
+# ❌ WRONG - Bulk operations
+git add .
+git commit -a -m "updates"
+```
+
+Always sign commits with `-s` flag and be explicit about files.
 
 ## Troubleshooting
 
