@@ -233,7 +233,7 @@ func (cs *Session) onUnsetWriteDeadline() error {
 }
 
 func (cs *Session) onError(err error) {
-	cs.LogError(err, "error")
+	cs.LogError(err, nil, "error")
 }
 
 //

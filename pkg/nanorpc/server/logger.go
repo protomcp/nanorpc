@@ -20,9 +20,12 @@ func (s *Server) WithDebug() (slog.Logger, bool) {
 }
 
 // LogDebug writes a log entry at debug-level.
-func (s *Server) LogDebug(msg string) {
+func (s *Server) LogDebug(fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithDebug(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -36,9 +39,12 @@ func (s *Server) WithInfo() (slog.Logger, bool) {
 }
 
 // LogInfo writes a log entry at info-level.
-func (s *Server) LogInfo(msg string) {
+func (s *Server) LogInfo(fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithInfo(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -52,9 +58,12 @@ func (s *Server) WithWarn(err error) (slog.Logger, bool) {
 }
 
 // LogWarn writes a log entry at warn-level.
-func (s *Server) LogWarn(err error, msg string) {
+func (s *Server) LogWarn(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithWarn(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -68,9 +77,12 @@ func (s *Server) WithError(err error) (slog.Logger, bool) {
 }
 
 // LogError writes a log entry at error-level.
-func (s *Server) LogError(err error, msg string) {
+func (s *Server) LogError(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithError(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -86,9 +98,12 @@ func (sm *DefaultSessionManager) WithDebug() (slog.Logger, bool) {
 }
 
 // LogDebug writes a log entry at debug-level.
-func (sm *DefaultSessionManager) LogDebug(msg string) {
+func (sm *DefaultSessionManager) LogDebug(fields slog.Fields, msg string, args ...any) {
 	if l, ok := sm.WithDebug(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -102,9 +117,12 @@ func (sm *DefaultSessionManager) WithInfo() (slog.Logger, bool) {
 }
 
 // LogInfo writes a log entry at info-level.
-func (sm *DefaultSessionManager) LogInfo(msg string) {
+func (sm *DefaultSessionManager) LogInfo(fields slog.Fields, msg string, args ...any) {
 	if l, ok := sm.WithInfo(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -118,9 +136,12 @@ func (sm *DefaultSessionManager) WithWarn(err error) (slog.Logger, bool) {
 }
 
 // LogWarn writes a log entry at warn-level.
-func (sm *DefaultSessionManager) LogWarn(err error, msg string) {
+func (sm *DefaultSessionManager) LogWarn(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := sm.WithWarn(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -134,9 +155,12 @@ func (sm *DefaultSessionManager) WithError(err error) (slog.Logger, bool) {
 }
 
 // LogError writes a log entry at error-level.
-func (sm *DefaultSessionManager) LogError(err error, msg string) {
+func (sm *DefaultSessionManager) LogError(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := sm.WithError(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -152,9 +176,12 @@ func (s *DefaultSession) WithDebug() (slog.Logger, bool) {
 }
 
 // LogDebug writes a log entry at debug-level.
-func (s *DefaultSession) LogDebug(msg string) {
+func (s *DefaultSession) LogDebug(fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithDebug(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -168,9 +195,12 @@ func (s *DefaultSession) WithInfo() (slog.Logger, bool) {
 }
 
 // LogInfo writes a log entry at info-level.
-func (s *DefaultSession) LogInfo(msg string) {
+func (s *DefaultSession) LogInfo(fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithInfo(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -184,9 +214,12 @@ func (s *DefaultSession) WithWarn(err error) (slog.Logger, bool) {
 }
 
 // LogWarn writes a log entry at warn-level.
-func (s *DefaultSession) LogWarn(err error, msg string) {
+func (s *DefaultSession) LogWarn(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithWarn(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -200,9 +233,12 @@ func (s *DefaultSession) WithError(err error) (slog.Logger, bool) {
 }
 
 // LogError writes a log entry at error-level.
-func (s *DefaultSession) LogError(err error, msg string) {
+func (s *DefaultSession) LogError(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := s.WithError(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
