@@ -191,6 +191,42 @@ func AssertErrorIs(t T, err, target error, name string, args ...any) {
 	}
 }
 
+// RequireNotNil is like AssertNotNil but uses Fatal instead of continuing.
+// This is useful when subsequent test code depends on the value not being nil.
+//
+// Example:
+//
+//	conn := RequireNotNil(t, getConnection(), "need valid connection")
+//	// conn is guaranteed to be non-nil beyond this point
+func RequireNotNil[U any](t T, value U, name string, args ...any) U {
+	t.Helper()
+	if core.IsNil(value) {
+		doFatal(t, name, args, "required non-nil value")
+	}
+	return value
+}
+
+// AssertPanic fails the test if the function does not panic.
+// This is useful for testing that invalid inputs cause panics.
+//
+// Example:
+//
+//	AssertPanic(t, func() { doSomethingThatShouldPanic() }, "should panic on invalid input")
+func AssertPanic(t T, fn func(), name string, args ...any) {
+	t.Helper()
+	defer func() {
+		if r := recover(); r == nil {
+			msg := "expected function to panic"
+			if name != "" {
+				prefix := fmt.Sprintf(name, args...)
+				msg = fmt.Sprintf("%s: %s", prefix, msg)
+			}
+			t.Fatal(msg)
+		}
+	}()
+	fn()
+}
+
 // doFatal builds a formatted error message and calls t.Fatal.
 // It combines an optional prefix message with a main message.
 func doFatal(t T, prefixFormat string, prefixArgs []any, messageFormat string, args ...any) {

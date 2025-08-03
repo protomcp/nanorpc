@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
 	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
@@ -349,4 +351,352 @@ func TestDefaultMessageHandler_HashCollision(t *testing.T) {
 	testutils.AssertNoError(t, err, "handle request")
 
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "path1")
+}
+
+// Test factories for unsubscribe protocol
+
+const testSubscriptionPath = "/test/subscription"
+
+func newUnsubscribeRequest(requestID int32) *nanorpc.NanoRPCRequest {
+	return &nanorpc.NanoRPCRequest{
+		RequestId:   requestID,
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		PathOneof:   nanorpc.GetPathOneOfString(testSubscriptionPath),
+		Data:        []byte{}, // Empty data = unsubscribe
+	}
+}
+
+func countSubscriptions(t testutils.T, handler *DefaultMessageHandler, pathHash uint32) int {
+	t.Helper()
+	handler.mu.RLock()
+	defer handler.mu.RUnlock()
+
+	subs := handler.subscriptions[pathHash]
+	if subs == nil {
+		return 0
+	}
+	return subs.Len()
+}
+
+// testUnsubscribeRemovesSubscription verifies unsubscribe removes subscription
+func testUnsubscribeRemovesSubscription(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+	session := newTestSession("test-session", 0)
+	testPath := testSubscriptionPath
+	pathHash, _ := handler.hashCache.Hash(testPath)
+
+	// Subscribe first
+	subReq := newTestSubscribeRequest(42, testPath, []byte("filter-data"))
+	err := handler.HandleMessage(context.Background(), session, subReq)
+	testutils.AssertNoError(t, err, "subscribe")
+	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash),
+		"subscription count after subscribe")
+
+	// Unsubscribe using the same request ID as the subscription
+	unsubscribeReq := newUnsubscribeRequest(42)
+	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
+	testutils.AssertNoError(t, err, "unsubscribe")
+
+	// Verify removed
+	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash),
+		"subscription count after unsubscribe")
+	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "")
+}
+
+// testUnsubscribeWithoutSubscription verifies behaviour when no subscription exists
+func testUnsubscribeWithoutSubscription(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+	session := newTestSession("test-session", 0)
+
+	// Unsubscribe without subscribing first
+	unsubscribeReq := newUnsubscribeRequest(44)
+	err := handler.HandleMessage(context.Background(), session, unsubscribeReq)
+	testutils.AssertNoError(t, err, "unsubscribe without subscription")
+
+	// Should get NOT_FOUND since no handler registered
+	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_NOT_FOUND, "")
+}
+
+// testUnsubscribeIsSessionSpecific verifies only the session's subscriptions are removed
+func testUnsubscribeIsSessionSpecific(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+	session1 := newTestSession("session-1", 0)
+	session2 := newTestSession("session-2", 0)
+	testPath := testSubscriptionPath
+	pathHash, _ := handler.hashCache.Hash(testPath)
+
+	// Both sessions subscribe
+	subscribeReq1 := newTestSubscribeRequest(42, testPath, []byte("filter-1"))
+	subscribeReq2 := newTestSubscribeRequest(52, testPath, []byte("filter-2"))
+
+	err := handler.HandleMessage(context.Background(), session1, subscribeReq1)
+	testutils.AssertNoError(t, err, "session1 subscribe")
+	err = handler.HandleMessage(context.Background(), session2, subscribeReq2)
+	testutils.AssertNoError(t, err, "session2 subscribe")
+
+	testutils.AssertEqual(t, 2, countSubscriptions(t, handler, pathHash),
+		"subscription count after both subscribe")
+
+	// Session1 unsubscribes its subscription (request ID 42)
+	unsubscribeReq := newUnsubscribeRequest(42)
+	err = handler.HandleMessage(context.Background(), session1, unsubscribeReq)
+	testutils.AssertNoError(t, err, "session1 unsubscribe")
+
+	// Only session2's subscription should remain
+	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash),
+		"subscription count after session1 unsubscribe")
+}
+
+// TestUnsubscribeProtocol tests that TYPE_REQUEST with empty data unsubscribes
+func TestUnsubscribeProtocol(t *testing.T) {
+	t.Run("unsubscribe removes subscription", testUnsubscribeRemovesSubscription)
+	t.Run("unsubscribe without subscription", testUnsubscribeWithoutSubscription)
+	t.Run("unsubscribe is session-specific", testUnsubscribeIsSessionSpecific)
+}
+
+// TestUnsubscribeEdgeCases tests comprehensive unsubscribe edge cases
+func TestUnsubscribeEdgeCases(t *testing.T) {
+	t.Run("hash-based unsubscribe", testUnsubscribeWithHashBasedRequest)
+	t.Run("non-existent subscription", testUnsubscribeNonExistentSubscription)
+	t.Run("mismatched request ID", testUnsubscribeWithMismatchedRequestID)
+	t.Run("zero path hash", testUnsubscribeWithZeroPathHash)
+}
+
+// testUnsubscribeWithHashBasedRequest tests unsubscribe using hash-based path
+func testUnsubscribeWithHashBasedRequest(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+	session := newTestSession("hash-session", 0)
+	testPath := testSubscriptionPath
+	pathHash, _ := handler.hashCache.Hash(testPath)
+
+	// Subscribe first using string path
+	subReq := newTestSubscribeRequest(100, testPath, []byte("hash-filter"))
+	err := handler.HandleMessage(context.Background(), session, subReq)
+	testutils.AssertNoError(t, err, "subscribe")
+	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription added")
+
+	// Unsubscribe using hash-based request
+	unsubscribeReq := &nanorpc.NanoRPCRequest{
+		RequestId:   100,
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		PathOneof:   nanorpc.GetPathOneOfHash(pathHash),
+		Data:        []byte{}, // Empty data = unsubscribe
+	}
+	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
+	testutils.AssertNoError(t, err, "unsubscribe")
+
+	// Verify subscription removed
+	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash), "subscription removed")
+	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "")
+}
+
+// testUnsubscribeNonExistentSubscription tests unsubscribe when no subscription exists
+func testUnsubscribeNonExistentSubscription(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+	session := newTestSession("non-existent-session", 0)
+	testPath := testSubscriptionPath
+	pathHash, _ := handler.hashCache.Hash(testPath)
+
+	// Register a handler for the path but don't subscribe
+	err := handler.RegisterHandlerFunc(testPath, func(_ context.Context, reqCtx *RequestContext) error {
+		return reqCtx.SendOK(nil)
+	})
+	testutils.AssertNoError(t, err, "register handler")
+
+	// Try to unsubscribe non-existent subscription
+	unsubscribeReq := newUnsubscribeRequest(200)
+	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
+	testutils.AssertNoError(t, err, "unsubscribe")
+
+	// Should succeed with OK status (normal request handling)
+	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash), "no subscriptions")
+	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "")
+}
+
+// testUnsubscribeWithMismatchedRequestID tests unsubscribe with wrong request ID
+func testUnsubscribeWithMismatchedRequestID(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+	session := newTestSession("mismatch-session", 0)
+	testPath := testSubscriptionPath
+	pathHash, _ := handler.hashCache.Hash(testPath)
+
+	// Subscribe with request ID 300
+	subReq := newTestSubscribeRequest(300, testPath, []byte("mismatch-filter"))
+	err := handler.HandleMessage(context.Background(), session, subReq)
+	testutils.AssertNoError(t, err, "subscribe")
+	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription added")
+
+	// Try to unsubscribe with different request ID (no handler registered)
+	unsubscribeReq := newUnsubscribeRequest(301)
+	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
+	testutils.AssertNoError(t, err, "unsubscribe")
+
+	// Original subscription should remain (request ID mismatch)
+	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription remains")
+	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_NOT_FOUND, "")
+}
+
+// testUnsubscribeWithZeroPathHash tests unsubscribe with zero path hash
+func testUnsubscribeWithZeroPathHash(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+	session := newTestSession("zero-hash-session", 0)
+
+	// Try to unsubscribe with zero path hash
+	unsubscribeReq := &nanorpc.NanoRPCRequest{
+		RequestId:   400,
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		PathOneof:   nanorpc.GetPathOneOfHash(0),
+		Data:        []byte{}, // Empty data = unsubscribe
+	}
+	err := handler.HandleMessage(context.Background(), session, unsubscribeReq)
+	testutils.AssertNoError(t, err, "unsubscribe")
+
+	// Should return NOT_FOUND (no handler for empty path)
+	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, 0), "no subscriptions")
+	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_NOT_FOUND, "")
+}
+
+// TestUnsubscribeConcurrency tests concurrent unsubscribe operations
+func TestUnsubscribeConcurrency(t *testing.T) {
+	handler, pathHash := setupConcurrentTestHandler(t)
+
+	const numGoroutines = 50
+	const numSubscriptionsPerGoroutine = 5
+
+	// Phase 1: Concurrent subscribe operations
+	runConcurrentSubscriptions(t, handler, pathHash, numGoroutines, numSubscriptionsPerGoroutine)
+
+	// Phase 2: Concurrent unsubscribe operations
+	runConcurrentUnsubscribeOperations(t, handler, pathHash, numGoroutines, numSubscriptionsPerGoroutine)
+}
+
+// setupConcurrentTestHandler creates and configures a handler for concurrent testing
+func setupConcurrentTestHandler(t *testing.T) (*DefaultMessageHandler, uint32) {
+	t.Helper()
+
+	handler := NewDefaultMessageHandler(nil)
+	testPath := testSubscriptionPath
+	pathHash, _ := handler.hashCache.Hash(testPath)
+
+	// Register handler for the path
+	err := handler.RegisterHandlerFunc(testPath, func(_ context.Context, reqCtx *RequestContext) error {
+		return reqCtx.SendOK(nil)
+	})
+	testutils.AssertNoError(t, err, "register handler")
+
+	return handler, pathHash
+}
+
+// runConcurrentSubscriptions executes concurrent subscribe operations
+func runConcurrentSubscriptions(t *testing.T, handler *DefaultMessageHandler, pathHash uint32,
+	numGoroutines, numSubscriptionsPerGoroutine int) {
+	t.Helper()
+
+	subscribeHelper := &testutils.ConcurrentTestHelper{
+		NumGoroutines: numGoroutines,
+		Timeout:       10 * time.Second,
+		TestFunc: func(id int) error {
+			return performSubscriptions(handler, id, numSubscriptionsPerGoroutine)
+		},
+	}
+
+	subscribeErrors := subscribeHelper.Run()
+	for i, err := range subscribeErrors {
+		testutils.AssertNoError(t, err, fmt.Sprintf("subscribe goroutine %d failed", i))
+	}
+
+	// Verify all subscriptions were created
+	expectedSubscriptions := numGoroutines * numSubscriptionsPerGoroutine
+	testutils.AssertEqual(t, expectedSubscriptions, countSubscriptions(t, handler, pathHash),
+		"all subscriptions created")
+}
+
+// runConcurrentUnsubscribeOperations executes concurrent unsubscribe operations
+func runConcurrentUnsubscribeOperations(t *testing.T, handler *DefaultMessageHandler, pathHash uint32,
+	numGoroutines, numSubscriptionsPerGoroutine int) {
+	t.Helper()
+
+	unsubscribeHelper := &testutils.ConcurrentTestHelper{
+		NumGoroutines: numGoroutines,
+		Timeout:       10 * time.Second,
+		TestFunc: func(id int) error {
+			return performUnsubscribeOperations(handler, id, numSubscriptionsPerGoroutine)
+		},
+	}
+
+	unsubscribeErrors := unsubscribeHelper.Run()
+	for i, err := range unsubscribeErrors {
+		testutils.AssertNoError(t, err, fmt.Sprintf("unsubscribe goroutine %d failed", i))
+	}
+
+	// Verify all subscriptions were removed
+	testutils.MustWaitForCondition(t,
+		func() bool { return countSubscriptions(t, handler, pathHash) == 0 },
+		5*time.Second, "all subscriptions removed")
+}
+
+// performSubscriptions creates subscriptions for a single goroutine
+func performSubscriptions(handler *DefaultMessageHandler, id, numSubscriptionsPerGoroutine int) error {
+	session := newTestSession(fmt.Sprintf("concurrent-session-%d", id), 0)
+	testPath := testSubscriptionPath
+
+	for i := 0; i < numSubscriptionsPerGoroutine; i++ {
+		requestID := int32(id*1000 + i)
+		subReq := newTestSubscribeRequest(requestID, testPath, []byte(fmt.Sprintf("filter-%d-%d", id, i)))
+		if err := handler.HandleMessage(context.Background(), session, subReq); err != nil {
+			return fmt.Errorf("subscribe failed for session %d, req %d: %w", id, i, err)
+		}
+	}
+	return nil
+}
+
+// performUnsubscribeOperations removes subscriptions for a single goroutine
+func performUnsubscribeOperations(handler *DefaultMessageHandler, id, numSubscriptionsPerGoroutine int) error {
+	session := newTestSession(fmt.Sprintf("concurrent-session-%d", id), 0)
+
+	for i := 0; i < numSubscriptionsPerGoroutine; i++ {
+		requestID := int32(id*1000 + i)
+		unsubscribeReq := newUnsubscribeRequest(requestID)
+		if err := handler.HandleMessage(context.Background(), session, unsubscribeReq); err != nil {
+			return fmt.Errorf("unsubscribe failed for session %d, req %d: %w", id, i, err)
+		}
+	}
+	return nil
+}
+
+// TestUnsubscribeByRequestIDEdgeCases tests the unsubscribeByRequestID method directly
+func TestUnsubscribeByRequestIDEdgeCases(t *testing.T) {
+	handler := NewDefaultMessageHandler(nil)
+
+	t.Run("nil handler", testUnsubscribeByRequestIDNilHandler)
+	t.Run("empty session ID", func(t *testing.T) {
+		testUnsubscribeByRequestIDEmptySession(t, handler)
+	})
+	t.Run("zero path hash", func(t *testing.T) {
+		testUnsubscribeByRequestIDZeroHash(t, handler)
+	})
+	t.Run("non-existent path hash", func(t *testing.T) {
+		testUnsubscribeByRequestIDNonExistentHash(t, handler)
+	})
+}
+
+func testUnsubscribeByRequestIDNilHandler(t *testing.T) {
+	var nilHandler *DefaultMessageHandler
+	removed := nilHandler.unsubscribeByRequestID("session", 123, 456)
+	testutils.AssertEqual(t, false, removed, "nil handler")
+}
+
+func testUnsubscribeByRequestIDEmptySession(t *testing.T, handler *DefaultMessageHandler) {
+	removed := handler.unsubscribeByRequestID("", 123, 456)
+	testutils.AssertEqual(t, false, removed, "empty session ID")
+}
+
+func testUnsubscribeByRequestIDZeroHash(t *testing.T, handler *DefaultMessageHandler) {
+	removed := handler.unsubscribeByRequestID("session", 123, 0)
+	testutils.AssertEqual(t, false, removed, "zero path hash")
+}
+
+func testUnsubscribeByRequestIDNonExistentHash(t *testing.T, handler *DefaultMessageHandler) {
+	removed := handler.unsubscribeByRequestID("session", 123, 999999)
+	testutils.AssertEqual(t, false, removed, "non-existent path hash")
 }

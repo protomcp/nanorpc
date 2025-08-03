@@ -149,31 +149,58 @@ func (*DefaultMessageHandler) handlePing(_ context.Context, session Session, req
 	return session.SendResponse(req, response)
 }
 
-// handleRequest processes TYPE_REQUEST messages
-func (h *DefaultMessageHandler) handleRequest(ctx context.Context, session Session, req *nanorpc.NanoRPCRequest) error {
-	// Extract path and hash from request
-	var path string
-	var pathHash uint32
+// tryHandleUnsubscribe checks if this is an unsubscribe request and handles it.
+// Returns (handled, error) where handled=true means the request was processed as an unsubscribe.
+func (h *DefaultMessageHandler) tryHandleUnsubscribe(session Session,
+	req *nanorpc.NanoRPCRequest, pathHash uint32) (bool, error) {
+	// Not an unsubscribe request if data is present
+	if len(req.Data) != 0 {
+		return false, nil
+	}
 
-	switch p := req.PathOneof.(type) {
-	case *nanorpc.NanoRPCRequest_Path:
-		path = p.Path
-		var err error
-		pathHash, err = h.hashCache.Hash(path) // Compute and cache the hash
+	// If pathHash is zero, try to resolve it from the request
+	if pathHash == 0 {
+		_, resolvedHash, err := h.hashCache.ResolvePath(req)
 		if err != nil {
-			// Hash collision on incoming request - return internal error
-			return sendErrorResponse(session, req,
+			// Hash collision - return error
+			return true, sendErrorResponse(session, req,
 				nanorpc.NanoRPCResponse_STATUS_INTERNAL_ERROR,
 				"path hash collision")
 		}
-	case *nanorpc.NanoRPCRequest_PathHash:
-		pathHash = p.PathHash
-		// Try to resolve hash to path. If the hash is unknown (not in cache),
-		// path remains empty and the request will return NOT_FOUND.
-		if resolvedPath, ok := h.hashCache.Path(pathHash); ok {
-			path = resolvedPath
-		}
-		// If we can't resolve the hash, path remains empty
+		pathHash = resolvedHash
+	}
+
+	// No valid path hash means nothing to unsubscribe
+	if pathHash == 0 {
+		return false, nil
+	}
+
+	// Remove the subscription identified by session/path/requestID
+	removed := h.unsubscribeByRequestID(session.ID(), req.RequestId, pathHash)
+	if !removed {
+		return false, nil
+	}
+
+	// Successfully unsubscribed, send OK response
+	return true, sendErrorResponse(session, req,
+		nanorpc.NanoRPCResponse_STATUS_OK, "")
+}
+
+// handleRequest processes TYPE_REQUEST messages
+func (h *DefaultMessageHandler) handleRequest(ctx context.Context, session Session, req *nanorpc.NanoRPCRequest) error {
+	// Extract path and hash from request
+	path, pathHash, err := h.hashCache.ResolvePath(req)
+	if err != nil {
+		// Hash collision on incoming request - return internal error
+		return sendErrorResponse(session, req,
+			nanorpc.NanoRPCResponse_STATUS_INTERNAL_ERROR,
+			"path hash collision")
+	}
+
+	// Check for unsubscribe request
+	handled, err := h.tryHandleUnsubscribe(session, req, pathHash)
+	if err != nil || handled {
+		return err
 	}
 
 	// Look up handler
