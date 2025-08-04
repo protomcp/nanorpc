@@ -67,10 +67,16 @@ func (h *DefaultMessageHandler) Subscribe(_ context.Context, session Session, re
 	}
 
 	// Resolve path from hash or string using existing logic
-	_, pathHash, err := h.resolvePath(req)
+	_, pathHash, err := h.hashCache.ResolvePath(req)
 	if err != nil {
 		return sendErrorResponse(session, req, nanorpc.NanoRPCResponse_STATUS_INTERNAL_ERROR,
 			"failed to resolve subscription path")
+	}
+
+	// Validate that we have a valid path
+	if pathHash == 0 {
+		return sendErrorResponse(session, req, nanorpc.NanoRPCResponse_STATUS_INTERNAL_ERROR,
+			"invalid subscription path")
 	}
 
 	// Create subscription
@@ -197,18 +203,32 @@ func (h *DefaultMessageHandler) RemoveSubscriptionsForSession(sessionID string) 
 	h.subscriptions.RemoveForSession(sessionID)
 }
 
-// resolvePath extracts path information from a request, handling both string and hash formats
-func (h *DefaultMessageHandler) resolvePath(req *nanorpc.NanoRPCRequest) (path string, pathHash uint32, err error) {
-	// Try to get string path first
-	if req, ok := h.hashCache.DehashRequest(req); ok {
-		if pathOneof := req.GetPath(); pathOneof != "" {
-			path = pathOneof
-			// Compute hash for the path
-			pathHash, err = h.hashCache.Hash(path)
-			return path, pathHash, err
-		}
+// unsubscribeByRequestID removes a specific subscription identified by
+// session ID, request ID, and path hash
+func (h *DefaultMessageHandler) unsubscribeByRequestID(sessionID string,
+	requestID int32, pathHash uint32) bool {
+	if h == nil || sessionID == "" || pathHash == 0 {
+		return false
 	}
 
-	// If we get here, we couldn't resolve the path
-	return "", 0, core.Wrap(core.ErrInvalid, "unable to resolve path from request")
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	subList := h.subscriptions[pathHash]
+	if subList == nil {
+		return false
+	}
+
+	// Remove the subscription with matching session and request ID
+	var removed bool
+	subList.DeleteMatchFn(func(sub *ActiveSubscription) bool {
+		match := sub.Session != nil &&
+			sub.Session.ID() == sessionID &&
+			sub.RequestID == requestID
+		if match {
+			removed = true
+		}
+		return match
+	})
+	return removed
 }

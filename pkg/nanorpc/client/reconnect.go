@@ -24,7 +24,7 @@ func (c *Client) preInit(cfg *reconnect.Config) error {
 //
 
 func (c *Client) onReconnectConnect(ctx context.Context, conn net.Conn) error {
-	c.LogDebug(conn.RemoteAddr(), "connected")
+	c.LogDebug(conn.RemoteAddr(), nil, "connected")
 
 	cs := newClientSession(ctx, c, c.queueSize, conn)
 	return c.setSession(cs)
@@ -55,7 +55,7 @@ func (c *Client) onReconnectDisconnect(ctx context.Context, conn net.Conn) error
 	fn := c.getOnDisconnect()
 
 	if fn == nil {
-		c.LogDebug(conn.RemoteAddr(), "disconnected")
+		c.LogDebug(conn.RemoteAddr(), nil, "disconnected")
 	}
 
 	if cs, _ := c.getSession(); cs != nil {
@@ -80,7 +80,7 @@ func (c *Client) onReconnectError(ctx context.Context, conn net.Conn, err error)
 		// conn is nil when connection failed
 		addr = conn.RemoteAddr()
 	}
-	c.LogError(addr, err, "error")
+	c.LogError(addr, err, nil, "error")
 
 	return err
 }

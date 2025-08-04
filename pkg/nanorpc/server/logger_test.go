@@ -53,11 +53,11 @@ func TestServerLogInfo(t *testing.T) {
 	s := &Server{logger: mockLog}
 
 	// LogInfo should succeed when threshold allows it
-	s.LogInfo("test info message")
+	s.LogInfo(nil, "test info message")
 
 	// Test that LogInfo is not called when threshold is too high
 	mockLog.Threshold = slog.Error
-	s.LogInfo("this should not log")
+	s.LogInfo(nil, "this should not log")
 
 	// No panic means test passed
 	testutils.AssertTrue(t, true, "LogInfo executed without panic")

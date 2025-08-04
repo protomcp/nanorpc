@@ -23,6 +23,11 @@ type Subscriber interface {
 	Subscribe(string, proto.Message, RequestCallback) (int32, error)
 }
 
+// Unsubscriber is a view of the [Client] that only allows [Client.Unsubscribe] calls
+type Unsubscriber interface {
+	Unsubscribe(string, int32, RequestCallback) error
+}
+
 // Ping sends a ping message to keep the connection alive.
 // Ping returns false if the [Client] isn't connected.
 func (c *Client) Ping() bool {
@@ -144,6 +149,55 @@ func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCal
 		return c.Subscribe(path, msg, cb)
 	}
 	return c.SubscribeByHash(hash, msg, cb)
+}
+
+// Unsubscribe sends an unsubscribe request for the given path and request ID.
+// According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
+// with empty data to the same path using the original subscription request ID.
+// The path will be converted to path_hash if [ClientOptions].AlwaysHashPaths was set.
+func (c *Client) Unsubscribe(path string, requestID int32, cb RequestCallback) error {
+	// assemble header
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		RequestId:   requestID,
+		PathOneof:   c.getPathOneOf(path),
+	}
+
+	_, err := c.enqueue(m, nil, cb)
+	return err
+}
+
+// UnsubscribeByHash sends an unsubscribe request using a given path_hash and request ID.
+// According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
+// with empty data to the path using the original subscription request ID.
+func (c *Client) UnsubscribeByHash(pathHash uint32, requestID int32, cb RequestCallback) error {
+	// assemble header
+	m := &nanorpc.NanoRPCRequest{
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		RequestId:   requestID,
+		PathOneof: &nanorpc.NanoRPCRequest_PathHash{
+			PathHash: pathHash,
+		},
+	}
+
+	_, err := c.enqueue(m, nil, cb)
+	return err
+}
+
+// UnsubscribeWithHash sends an unsubscribe request using the hash of the given path and request ID.
+// According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
+// with empty data to the path using the original subscription request ID.
+func (c *Client) UnsubscribeWithHash(path string, requestID int32, cb RequestCallback) error {
+	hash, err := c.hc.Hash(path)
+	if err != nil {
+		// Fall back to string path on hash collision
+		if logger, ok := c.getErrorLogger(err); ok {
+			logger.WithField(common.FieldPath, path).
+				Print("Falling back to string path to maintain compatibility")
+		}
+		return c.Unsubscribe(path, requestID, cb)
+	}
+	return c.UnsubscribeByHash(hash, requestID, cb)
 }
 
 func (c *Client) enqueue(m *nanorpc.NanoRPCRequest, msg proto.Message, cb RequestCallback) (int32, error) {

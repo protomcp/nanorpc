@@ -28,9 +28,12 @@ func (c *Client) WithDebug(addr net.Addr) (slog.Logger, bool) {
 }
 
 // LogDebug writes a log entry at debug-level.
-func (c *Client) LogDebug(addr net.Addr, msg string) {
+func (c *Client) LogDebug(addr net.Addr, fields slog.Fields, msg string, args ...any) {
 	if l, ok := c.WithDebug(addr); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -44,9 +47,12 @@ func (c *Client) WithInfo(addr net.Addr) (slog.Logger, bool) {
 }
 
 // LogInfo writes a log entry at info-level.
-func (c *Client) LogInfo(addr net.Addr, msg string) {
+func (c *Client) LogInfo(addr net.Addr, fields slog.Fields, msg string, args ...any) {
 	if l, ok := c.WithInfo(addr); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -61,9 +67,12 @@ func (c *Client) WithWarn(addr net.Addr, err error) (slog.Logger, bool) {
 }
 
 // LogWarn writes a log entry at warn-level.
-func (c *Client) LogWarn(addr net.Addr, err error, msg string) {
+func (c *Client) LogWarn(addr net.Addr, err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := c.WithWarn(addr, err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -87,9 +96,12 @@ func (c *Client) getErrorLogger(err error) (slog.Logger, bool) {
 }
 
 // LogError writes a log entry at error-level.
-func (c *Client) LogError(addr net.Addr, err error, msg string) {
+func (c *Client) LogError(addr net.Addr, err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := c.WithError(addr, err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -114,9 +126,12 @@ func (cs *Session) WithDebug() (slog.Logger, bool) {
 }
 
 // LogDebug writes a log entry at debug-level.
-func (cs *Session) LogDebug(msg string) {
+func (cs *Session) LogDebug(fields slog.Fields, msg string, args ...any) {
 	if l, ok := cs.WithDebug(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -130,9 +145,12 @@ func (cs *Session) WithInfo() (slog.Logger, bool) {
 }
 
 // LogInfo writes a log entry at info-level.
-func (cs *Session) LogInfo(msg string) {
+func (cs *Session) LogInfo(fields slog.Fields, msg string, args ...any) {
 	if l, ok := cs.WithInfo(); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -146,9 +164,12 @@ func (cs *Session) WithWarn(err error) (slog.Logger, bool) {
 }
 
 // LogWarn writes a log entry at warn-level.
-func (cs *Session) LogWarn(err error, msg string) {
+func (cs *Session) LogWarn(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := cs.WithWarn(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
 
@@ -162,8 +183,11 @@ func (cs *Session) WithError(err error) (slog.Logger, bool) {
 }
 
 // LogError writes a log entry at error-level.
-func (cs *Session) LogError(err error, msg string) {
+func (cs *Session) LogError(err error, fields slog.Fields, msg string, args ...any) {
 	if l, ok := cs.WithError(err); ok {
-		l.Print(msg)
+		if fields != nil {
+			l = l.WithFields(fields)
+		}
+		l.Printf(msg, args...)
 	}
 }
