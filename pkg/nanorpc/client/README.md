@@ -158,7 +158,7 @@ The package includes test utilities for writing unit tests:
 ```go
 import (
     "protomcp.org/nanorpc/pkg/nanorpc/client"
-    "protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
+    "protomcp.org/nanorpc/pkg/nanorpc/utils/testutils"
 )
 
 func TestMyClient(t *testing.T) {

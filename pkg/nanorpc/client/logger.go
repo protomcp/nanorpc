@@ -6,7 +6,7 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
 
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // getLogger returns the base logger for the client, creating one if needed
@@ -22,7 +22,7 @@ func (c *Client) getLogger() slog.Logger {
 func (c *Client) WithDebug(addr net.Addr) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if debug, ok := logger.Debug().WithEnabled(); ok {
-		return common.WithRemoteAddr(debug, addr), true
+		return utils.WithRemoteAddr(debug, addr), true
 	}
 	return nil, false
 }
@@ -41,7 +41,7 @@ func (c *Client) LogDebug(addr net.Addr, fields slog.Fields, msg string, args ..
 func (c *Client) WithInfo(addr net.Addr) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if info, ok := logger.Info().WithEnabled(); ok {
-		return common.WithRemoteAddr(info, addr), true
+		return utils.WithRemoteAddr(info, addr), true
 	}
 	return nil, false
 }
@@ -60,8 +60,8 @@ func (c *Client) LogInfo(addr net.Addr, fields slog.Fields, msg string, args ...
 func (c *Client) WithWarn(addr net.Addr, err error) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if warn, ok := logger.Warn().WithEnabled(); ok {
-		warn = common.WithError(warn, err)
-		return common.WithRemoteAddr(warn, addr), true
+		warn = utils.WithError(warn, err)
+		return utils.WithRemoteAddr(warn, addr), true
 	}
 	return nil, false
 }
@@ -80,8 +80,8 @@ func (c *Client) LogWarn(addr net.Addr, err error, fields slog.Fields, msg strin
 func (c *Client) WithError(addr net.Addr, err error) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		errorLog = common.WithError(errorLog, err)
-		return common.WithRemoteAddr(errorLog, addr), true
+		errorLog = utils.WithError(errorLog, err)
+		return utils.WithRemoteAddr(errorLog, addr), true
 	}
 	return nil, false
 }
@@ -90,7 +90,7 @@ func (c *Client) WithError(addr net.Addr, err error) (slog.Logger, bool) {
 func (c *Client) getErrorLogger(err error) (slog.Logger, bool) {
 	logger := c.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return common.WithError(errorLog, err), true
+		return utils.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -109,8 +109,8 @@ func (c *Client) LogError(addr net.Addr, err error, fields slog.Fields, msg stri
 func (cs *Session) getLogger() slog.Logger {
 	if cs.logger == nil {
 		// Fallback initialization if logger wasn't set during creation
-		logger := common.WithComponent(cs.c.getLogger(), common.ComponentSession)
-		logger = common.WithRemoteAddr(logger, cs.ra)
+		logger := utils.WithComponent(cs.c.getLogger(), utils.ComponentSession)
+		logger = utils.WithRemoteAddr(logger, cs.ra)
 		cs.logger = logger
 	}
 	return cs.logger
@@ -158,7 +158,7 @@ func (cs *Session) LogInfo(fields slog.Fields, msg string, args ...any) {
 func (cs *Session) WithWarn(err error) (slog.Logger, bool) {
 	logger := cs.getLogger()
 	if warn, ok := logger.Warn().WithEnabled(); ok {
-		return common.WithError(warn, err), true
+		return utils.WithError(warn, err), true
 	}
 	return nil, false
 }
@@ -177,7 +177,7 @@ func (cs *Session) LogWarn(err error, fields slog.Fields, msg string, args ...an
 func (cs *Session) WithError(err error) (slog.Logger, bool) {
 	logger := cs.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return common.WithError(errorLog, err), true
+		return utils.WithError(errorLog, err), true
 	}
 	return nil, false
 }

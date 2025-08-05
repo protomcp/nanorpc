@@ -11,7 +11,7 @@ import (
 	"darvaza.org/x/net/reconnect"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // Client is a reconnecting NanoRPC client.
@@ -99,7 +99,7 @@ func (c *Client) init(cfg *Config, rc *reconnect.Client) error {
 	// Set logger from config, add component field if provided
 	c.logger = cfg.Logger
 	if c.logger != nil {
-		c.logger = c.logger.WithField(common.FieldComponent, common.ComponentClient)
+		c.logger = c.logger.WithField(utils.FieldComponent, utils.ComponentClient)
 	}
 
 	return nil

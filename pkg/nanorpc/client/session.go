@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // clientRequest combines in a single object the fields needed for
@@ -258,8 +258,8 @@ func newClientSession(ctx context.Context, c *Client, queueSize uint, conn net.C
 	}
 
 	// Create session logger with fields added once
-	sessionLogger := common.WithComponent(c.getLogger(), common.ComponentSession)
-	sessionLogger = common.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
+	sessionLogger := utils.WithComponent(c.getLogger(), utils.ComponentSession)
+	sessionLogger = utils.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
 
 	cs := &Session{
 		c:      c,

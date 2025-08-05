@@ -1,5 +1,4 @@
-// Package common provides shared utilities for the nanorpc package.
-package common
+package utils
 
 // ClearSlice zeros all elements in a slice and returns an empty slice
 // that reuses the same underlying array. This prevents memory leaks

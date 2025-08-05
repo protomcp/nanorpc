@@ -5,7 +5,7 @@ import (
 
 	"darvaza.org/slog"
 
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // Server logging methods
@@ -52,7 +52,7 @@ func (s *Server) LogInfo(fields slog.Fields, msg string, args ...any) {
 func (s *Server) WithWarn(err error) (slog.Logger, bool) {
 	logger := s.getLogger()
 	if warn, ok := logger.Warn().WithEnabled(); ok {
-		return common.WithError(warn, err), true
+		return utils.WithError(warn, err), true
 	}
 	return nil, false
 }
@@ -71,7 +71,7 @@ func (s *Server) LogWarn(err error, fields slog.Fields, msg string, args ...any)
 func (s *Server) WithError(err error) (slog.Logger, bool) {
 	logger := s.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return common.WithError(errorLog, err), true
+		return utils.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -130,7 +130,7 @@ func (sm *DefaultSessionManager) LogInfo(fields slog.Fields, msg string, args ..
 func (sm *DefaultSessionManager) WithWarn(err error) (slog.Logger, bool) {
 	logger := sm.getLogger()
 	if warn, ok := logger.Warn().WithEnabled(); ok {
-		return common.WithError(warn, err), true
+		return utils.WithError(warn, err), true
 	}
 	return nil, false
 }
@@ -149,7 +149,7 @@ func (sm *DefaultSessionManager) LogWarn(err error, fields slog.Fields, msg stri
 func (sm *DefaultSessionManager) WithError(err error) (slog.Logger, bool) {
 	logger := sm.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return common.WithError(errorLog, err), true
+		return utils.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -208,7 +208,7 @@ func (s *DefaultSession) LogInfo(fields slog.Fields, msg string, args ...any) {
 func (s *DefaultSession) WithWarn(err error) (slog.Logger, bool) {
 	logger := s.getLogger()
 	if warn, ok := logger.Warn().WithEnabled(); ok {
-		return common.WithError(warn, err), true
+		return utils.WithError(warn, err), true
 	}
 	return nil, false
 }
@@ -227,7 +227,7 @@ func (s *DefaultSession) LogWarn(err error, fields slog.Fields, msg string, args
 func (s *DefaultSession) WithError(err error) (slog.Logger, bool) {
 	logger := s.getLogger()
 	if errorLog, ok := logger.Error().WithEnabled(); ok {
-		return common.WithError(errorLog, err), true
+		return utils.WithError(errorLog, err), true
 	}
 	return nil, false
 }
@@ -247,7 +247,7 @@ func (s *DefaultSession) LogError(err error, fields slog.Fields, msg string, arg
 // logAccept logs successful connection acceptance
 func (s *Server) logAccept(conn net.Conn) {
 	if l, ok := s.WithDebug(); ok {
-		l = common.WithConnAddrs(l, conn)
+		l = utils.WithConnAddrs(l, conn)
 		l.Print("connection accepted")
 	}
 }

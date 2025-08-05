@@ -7,8 +7,8 @@ import (
 	"darvaza.org/slog"
 
 	"darvaza.org/core"
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
-	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils/testutils"
 )
 
 // Test server default logger
@@ -77,7 +77,7 @@ func TestServerWithError(t *testing.T) {
 
 	// Check error field was added
 	if ml, ok := logger.(*testutils.MockFieldLogger); ok {
-		if err, ok := testutils.GetField[string, error](ml.Fields, common.FieldError); ok {
+		if err, ok := testutils.GetField[string, error](ml.Fields, utils.FieldError); ok {
 			core.AssertEqual(t, testErr, err, "should have error field")
 		} else {
 			t.Error("logger should have error field")
@@ -116,21 +116,21 @@ func TestSessionWithDebug(t *testing.T) {
 	// Check session fields are added
 	if ml, ok := logger.(*testutils.MockFieldLogger); ok {
 		// Check component field
-		if component, ok := testutils.GetField[string, string](ml.Fields, common.FieldComponent); ok {
-			core.AssertEqual(t, common.ComponentSession, component, "should have session component")
+		if component, ok := testutils.GetField[string, string](ml.Fields, utils.FieldComponent); ok {
+			core.AssertEqual(t, utils.ComponentSession, component, "should have session component")
 		} else {
 			t.Error("logger should have component field")
 		}
 
 		// Check session ID field
-		if sid, ok := testutils.GetField[string, string](ml.Fields, common.FieldSessionID); ok {
+		if sid, ok := testutils.GetField[string, string](ml.Fields, utils.FieldSessionID); ok {
 			core.AssertEqual(t, s.ID(), sid, "should have session ID")
 		} else {
 			t.Error("logger should have session_id field")
 		}
 
 		// Check remote address field
-		if addr, ok := testutils.GetField[string, string](ml.Fields, common.FieldRemoteAddr); ok {
+		if addr, ok := testutils.GetField[string, string](ml.Fields, utils.FieldRemoteAddr); ok {
 			core.AssertEqual(t, "127.0.0.1:12345", addr, "should have remote address")
 		} else {
 			t.Error("logger should have remote_addr field")
