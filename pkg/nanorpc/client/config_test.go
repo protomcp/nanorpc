@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"darvaza.org/core"
 	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/net/reconnect"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // ClientConfigTestCase represents a test case for client configuration
@@ -25,13 +25,13 @@ func (tc ClientConfigTestCase) GetName() string {
 func (tc ClientConfigTestCase) test(t *testing.T) {
 	t.Helper()
 	err := tc.config.SetDefaults()
-	testutils.AssertNoError(t, err, "SetDefaults failed")
+	core.AssertNoError(t, err, "SetDefaults failed")
 
 	// Verify all required fields are set
-	testutils.AssertNotNil(t, tc.config.Context, "Context should not be nil after SetDefaults")
-	testutils.AssertNotNil(t, tc.config.Logger, "Logger should not be nil after SetDefaults")
-	testutils.AssertNotNil(t, tc.config.HashCache, "nanorpc.HashCache should not be nil after SetDefaults")
-	testutils.AssertNotNil(t, tc.config.WaitReconnect, "WaitReconnect should not be nil after SetDefaults")
+	core.AssertNotNil(t, tc.config.Context, "Context should not be nil after SetDefaults")
+	core.AssertNotNil(t, tc.config.Logger, "Logger should not be nil after SetDefaults")
+	core.AssertNotNil(t, tc.config.HashCache, "nanorpc.HashCache should not be nil after SetDefaults")
+	core.AssertNotNil(t, tc.config.WaitReconnect, "WaitReconnect should not be nil after SetDefaults")
 }
 
 var clientConfigTestCases = []ClientConfigTestCase{
@@ -58,16 +58,16 @@ func TestClientConfig_SetDefaults(t *testing.T) {
 func TestClientConfig_DefaultValues(t *testing.T) {
 	cfg := &Config{}
 	err := cfg.SetDefaults()
-	testutils.AssertNoError(t, err, "SetDefaults failed")
+	core.AssertNoError(t, err, "SetDefaults failed")
 
 	// Check specific default values
-	testutils.AssertEqual(t, 2*time.Second, cfg.DialTimeout, "DialTimeout default mismatch")
-	testutils.AssertEqual(t, 2*time.Second, cfg.ReadTimeout, "ReadTimeout default mismatch")
-	testutils.AssertEqual(t, 2*time.Second, cfg.WriteTimeout, "WriteTimeout default mismatch")
-	testutils.AssertEqual(t, 10*time.Second, cfg.IdleTimeout, "IdleTimeout default mismatch")
-	testutils.AssertEqual(t, 5*time.Second, cfg.ReconnectDelay, "ReconnectDelay default mismatch")
-	testutils.AssertEqual(t, 5*time.Second, cfg.KeepAlive, "KeepAlive default mismatch")
-	testutils.AssertEqual(t, hashCache, cfg.HashCache, "nanorpc.HashCache should be global instance")
+	core.AssertEqual(t, 2*time.Second, cfg.DialTimeout, "DialTimeout default mismatch")
+	core.AssertEqual(t, 2*time.Second, cfg.ReadTimeout, "ReadTimeout default mismatch")
+	core.AssertEqual(t, 2*time.Second, cfg.WriteTimeout, "WriteTimeout default mismatch")
+	core.AssertEqual(t, 10*time.Second, cfg.IdleTimeout, "IdleTimeout default mismatch")
+	core.AssertEqual(t, 5*time.Second, cfg.ReconnectDelay, "ReconnectDelay default mismatch")
+	core.AssertEqual(t, 5*time.Second, cfg.KeepAlive, "KeepAlive default mismatch")
+	core.AssertEqual(t, hashCache, cfg.HashCache, "nanorpc.HashCache should be global instance")
 }
 
 // TestClientConfig_PreserveExisting tests that existing values are preserved
@@ -94,21 +94,21 @@ func TestClientConfig_PreserveExisting(t *testing.T) {
 	}
 
 	err := cfg.SetDefaults()
-	testutils.AssertNoError(t, err, "SetDefaults failed")
+	core.AssertNoError(t, err, "SetDefaults failed")
 
 	// Check that custom values are preserved
-	testutils.AssertEqual(t, customCtx, cfg.Context, "Context was not preserved")
-	testutils.AssertEqual(t, customLogger, cfg.Logger, "Logger was not preserved")
-	testutils.AssertEqual(t, customHashCache, cfg.HashCache, "nanorpc.HashCache was not preserved")
-	testutils.AssertNotNil(t, cfg.WaitReconnect, "WaitReconnect should not be nil")
-	testutils.AssertEqual(t, 3*time.Second, cfg.DialTimeout, "DialTimeout was not preserved")
-	testutils.AssertEqual(t, 4*time.Second, cfg.ReadTimeout, "ReadTimeout was not preserved")
-	testutils.AssertEqual(t, 5*time.Second, cfg.WriteTimeout, "WriteTimeout was not preserved")
-	testutils.AssertEqual(t, 15*time.Second, cfg.IdleTimeout, "IdleTimeout was not preserved")
-	testutils.AssertEqual(t, 2*time.Second, cfg.ReconnectDelay, "ReconnectDelay was not preserved")
-	testutils.AssertEqual(t, 8*time.Second, cfg.KeepAlive, "KeepAlive was not preserved")
-	testutils.AssertEqual(t, 100, cfg.QueueSize, "QueueSize was not preserved")
-	testutils.AssertTrue(t, cfg.AlwaysHashPaths, "AlwaysHashPaths was not preserved")
+	core.AssertEqual(t, customCtx, cfg.Context, "Context was not preserved")
+	core.AssertEqual(t, customLogger, cfg.Logger, "Logger was not preserved")
+	core.AssertEqual(t, customHashCache, cfg.HashCache, "nanorpc.HashCache was not preserved")
+	core.AssertNotNil(t, cfg.WaitReconnect, "WaitReconnect should not be nil")
+	core.AssertEqual(t, 3*time.Second, cfg.DialTimeout, "DialTimeout was not preserved")
+	core.AssertEqual(t, 4*time.Second, cfg.ReadTimeout, "ReadTimeout was not preserved")
+	core.AssertEqual(t, 5*time.Second, cfg.WriteTimeout, "WriteTimeout was not preserved")
+	core.AssertEqual(t, 15*time.Second, cfg.IdleTimeout, "IdleTimeout was not preserved")
+	core.AssertEqual(t, 2*time.Second, cfg.ReconnectDelay, "ReconnectDelay was not preserved")
+	core.AssertEqual(t, 8*time.Second, cfg.KeepAlive, "KeepAlive was not preserved")
+	core.AssertEqual(t, 100, cfg.QueueSize, "QueueSize was not preserved")
+	core.AssertTrue(t, cfg.AlwaysHashPaths, "AlwaysHashPaths was not preserved")
 }
 
 // ExportTestCase represents a test case for Export method
@@ -127,17 +127,17 @@ func (tc ExportTestCase) test(t *testing.T) {
 	result, err := tc.config.Export()
 
 	if tc.expectError {
-		testutils.AssertError(t, err, "Expected error")
-		testutils.AssertNil(t, result, "Expected nil result on error")
+		core.AssertError(t, err, "Expected error")
+		core.AssertNil(t, result, "Expected nil result on error")
 	} else {
-		testutils.AssertNoError(t, err, "Expected no error")
-		testutils.AssertNotNil(t, result, "Expected result")
+		core.AssertNoError(t, err, "Expected no error")
+		core.AssertNotNil(t, result, "Expected result")
 
 		// Verify result fields
-		testutils.AssertEqual(t, tc.config.Remote, result.Remote, "Remote mismatch")
-		testutils.AssertNotNil(t, result.Context, "Context should not be nil in result")
-		testutils.AssertNotNil(t, result.Logger, "Logger should not be nil in result")
-		testutils.AssertNotNil(t, result.WaitReconnect, "WaitReconnect should not be nil in result")
+		core.AssertEqual(t, tc.config.Remote, result.Remote, "Remote mismatch")
+		core.AssertNotNil(t, result.Context, "Context should not be nil in result")
+		core.AssertNotNil(t, result.Logger, "Logger should not be nil in result")
+		core.AssertNotNil(t, result.WaitReconnect, "WaitReconnect should not be nil in result")
 	}
 }
 
@@ -188,14 +188,14 @@ func TestClientConfig_getHashCache(t *testing.T) {
 	// Test with nil HashCache
 	cfg := &Config{}
 	hc := cfg.getHashCache()
-	testutils.AssertNotNil(t, hc, "getHashCache should not return nil")
-	testutils.AssertEqual(t, hashCache, hc, "Expected global hashCache")
+	core.AssertNotNil(t, hc, "getHashCache should not return nil")
+	core.AssertEqual(t, hashCache, hc, "Expected global hashCache")
 
 	// Test with custom HashCache
 	customHC := &nanorpc.HashCache{}
 	cfg.HashCache = customHC
 	hc = cfg.getHashCache()
-	testutils.AssertEqual(t, customHC, hc, "Expected custom nanorpc.HashCache")
+	core.AssertEqual(t, customHC, hc, "Expected custom nanorpc.HashCache")
 }
 
 // GetPathOneOfTestCase represents a test case for newGetPathOneOf
@@ -236,9 +236,11 @@ func testAlwaysHashPathsFalse(t *testing.T, hc *nanorpc.HashCache) {
 	getPathOneOf := cfg.newGetPathOneOf(hc)
 	result := getPathOneOf("/test/path")
 
-	pathOneof := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_Path](
+	pathOneof, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_Path](
 		t, result, "Expected *nanorpc.NanoRPCRequest_Path")
-	testutils.AssertEqual(t, "/test/path", pathOneof.Path, "Path mismatch")
+	if ok {
+		core.AssertEqual(t, "/test/path", pathOneof.Path, "Path mismatch")
+	}
 }
 
 // testAlwaysHashPathsTrue tests AlwaysHashPaths=true behaviour
@@ -250,15 +252,19 @@ func testAlwaysHashPathsTrue(t *testing.T, hc *nanorpc.HashCache) {
 	getPathOneOf := cfg.newGetPathOneOf(hc)
 	result := getPathOneOf("/test/path")
 
-	pathHashOneof := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result,
+	pathHashOneof, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result,
 		"Expected *nanorpc.NanoRPCRequest_PathHash")
-	testutils.AssertNotEqual(t, uint32(0), pathHashOneof.PathHash, "Expected non-zero hash")
+	if ok {
+		core.AssertNotEqual(t, uint32(0), pathHashOneof.PathHash, "Expected non-zero hash")
+	}
 
 	// Test consistency
 	result2 := getPathOneOf("/test/path")
-	pathHashOneof2 := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result2,
+	pathHashOneof2, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result2,
 		"Expected *nanorpc.NanoRPCRequest_PathHash")
-	testutils.AssertEqual(t, pathHashOneof.PathHash, pathHashOneof2.PathHash, "Hash should be consistent")
+	if ok {
+		core.AssertEqual(t, pathHashOneof.PathHash, pathHashOneof2.PathHash, "Hash should be consistent")
+	}
 }
 
 // testAlwaysHashPathsTrueNilCache tests AlwaysHashPaths=true with nil cache
@@ -271,9 +277,11 @@ func testAlwaysHashPathsTrueNilCache(t *testing.T, _ *nanorpc.HashCache) {
 	getPathOneOf := cfg.newGetPathOneOf(nil)
 	result := getPathOneOf("/test/path")
 
-	pathHashOneof := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result,
+	pathHashOneof, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, result,
 		"Expected *nanorpc.NanoRPCRequest_PathHash")
-	testutils.AssertNotEqual(t, uint32(0), pathHashOneof.PathHash, "Expected non-zero hash")
+	if ok {
+		core.AssertNotEqual(t, uint32(0), pathHashOneof.PathHash, "Expected non-zero hash")
+	}
 }
 
 func getPathOneOfTestCases(hc *nanorpc.HashCache) []GetPathOneOfTestCase {
@@ -320,19 +328,19 @@ func TestClientConfig_CallbacksPreserved(t *testing.T) {
 	cfg, onDisconnectCalled, onErrorCalled := createConfigWithCallbacks()
 
 	err := cfg.SetDefaults()
-	testutils.AssertNoError(t, err, "SetDefaults failed")
+	core.AssertNoError(t, err, "SetDefaults failed")
 
 	// Test that callbacks are preserved
-	testutils.AssertNotNil(t, cfg.OnConnect, "OnConnect callback should not be nil")
-	testutils.AssertNotNil(t, cfg.OnDisconnect, "OnDisconnect callback should not be nil")
-	testutils.AssertNotNil(t, cfg.OnError, "OnError callback should not be nil")
+	core.AssertNotNil(t, cfg.OnConnect, "OnConnect callback should not be nil")
+	core.AssertNotNil(t, cfg.OnDisconnect, "OnDisconnect callback should not be nil")
+	core.AssertNotNil(t, cfg.OnError, "OnError callback should not be nil")
 
 	// Test that they work (skip OnConnect as it needs WorkGroup interface)
 	err = cfg.OnDisconnect(context.Background())
-	testutils.AssertNoError(t, err, "OnDisconnect failed")
-	testutils.AssertTrue(t, *onDisconnectCalled, "OnDisconnect callback was not called")
+	core.AssertNoError(t, err, "OnDisconnect failed")
+	core.AssertTrue(t, *onDisconnectCalled, "OnDisconnect callback was not called")
 
 	err = cfg.OnError(context.Background(), context.Canceled)
-	testutils.AssertNoError(t, err, "OnError failed")
-	testutils.AssertTrue(t, *onErrorCalled, "OnError callback was not called")
+	core.AssertNoError(t, err, "OnError failed")
+	core.AssertTrue(t, *onErrorCalled, "OnError callback was not called")
 }

@@ -5,6 +5,8 @@ import (
 	"hash/fnv"
 	"strings"
 	"testing"
+
+	"darvaza.org/core"
 )
 
 // HashTestCase represents a test case for hash computation
@@ -23,18 +25,18 @@ func (tc HashTestCase) Test(t *testing.T) {
 
 	// Test first hash computation
 	hash1, err := hc.Hash(tc.path)
-	AssertNil(t, err, "Hash should not error for path %s", tc.path)
-	AssertNotEqual(t, uint32(0), hash1, "Hash should not be 0 for path %s", tc.path)
+	core.AssertNil(t, err, "Hash should not error for path %s", tc.path)
+	core.AssertNotEqual(t, uint32(0), hash1, "Hash should not be 0 for path %s", tc.path)
 
 	// Test cached hash retrieval (should be same)
 	hash2, err := hc.Hash(tc.path)
-	AssertNil(t, err, "Hash should not error on second call")
-	AssertEqual(t, hash1, hash2, "Hash should be consistent")
+	core.AssertNil(t, err, "Hash should not error on second call")
+	core.AssertEqual(t, hash1, hash2, "Hash should be consistent")
 
 	// Test reverse lookup
 	retrievedPath, ok := hc.Path(hash1)
-	AssertTrue(t, ok, "Should be able to retrieve path from hash")
-	AssertEqual(t, tc.path, retrievedPath, "Path mismatch")
+	core.AssertTrue(t, ok, "Should be able to retrieve path from hash")
+	core.AssertEqual(t, tc.path, retrievedPath, "Path mismatch")
 }
 
 var hashTestCases = []HashTestCase{
@@ -56,17 +58,17 @@ func TestHashCache_Path(t *testing.T) {
 
 	// Test unknown hash
 	path, ok := hc.Path(12345)
-	AssertFalse(t, ok, "Should not find path for unknown hash")
-	AssertEqual(t, "", path, "Should return empty path for unknown hash")
+	core.AssertFalse(t, ok, "Should not find path for unknown hash")
+	core.AssertEqual(t, "", path, "Should return empty path for unknown hash")
 
 	// Test known hash
 	originalPath := "/test/path"
 	hash, err := hc.Hash(originalPath)
-	AssertNil(t, err, "Hash should not error")
+	core.AssertNil(t, err, "Hash should not error")
 
 	retrievedPath, ok := hc.Path(hash)
-	AssertTrue(t, ok, "Should find path for known hash")
-	AssertEqual(t, originalPath, retrievedPath, "Path mismatch")
+	core.AssertTrue(t, ok, "Should find path for known hash")
+	core.AssertEqual(t, originalPath, retrievedPath, "Path mismatch")
 }
 
 // DehashRequestTestCase represents a test case for DehashRequest
@@ -85,23 +87,31 @@ func (tc DehashRequestTestCase) Test(t *testing.T) {
 	t.Helper()
 	hc := &HashCache{}
 
-	// Setup known hash if needed
-	if tc.expectOK && tc.request != nil {
-		if hashOneof, ok := tc.request.PathOneof.(*NanoRPCRequest_PathHash); ok {
-			// Make sure this hash is known
-			hash, err := hc.Hash(tc.expectPath)
-			AssertNil(t, err, "Hash should not error")
-			hashOneof.PathHash = hash
-		}
-	}
-
+	tc.setupKnownHash(hc)
 	result, ok := hc.DehashRequest(tc.request)
-	AssertEqual(t, tc.expectOK, ok, "DehashRequest ok result")
+	core.AssertEqual(t, tc.expectOK, ok, "DehashRequest ok result")
 
 	if tc.expectOK && tc.request != nil {
-		AssertNotNil(t, result, "Expected result to be non-nil")
-		pathOneof := AssertTypeIs[*NanoRPCRequest_Path](t, result.PathOneof, "PathOneof should be *NanoRPCRequest_Path")
-		AssertEqual(t, tc.expectPath, pathOneof.Path, "Path mismatch")
+		tc.verifyResult(t, result)
+	}
+}
+
+func (tc DehashRequestTestCase) setupKnownHash(hc *HashCache) {
+	if !tc.expectOK || tc.request == nil {
+		return
+	}
+	if hashOneof, ok := tc.request.PathOneof.(*NanoRPCRequest_PathHash); ok {
+		hash, _ := hc.Hash(tc.expectPath)
+		hashOneof.PathHash = hash
+	}
+}
+
+func (tc DehashRequestTestCase) verifyResult(t *testing.T, result *NanoRPCRequest) {
+	core.AssertNotNil(t, result, "Expected result to be non-nil")
+	pathOneof, ok := core.AssertTypeIs[*NanoRPCRequest_Path](t, result.PathOneof,
+		"PathOneof should be *NanoRPCRequest_Path")
+	if ok {
+		core.AssertEqual(t, tc.expectPath, pathOneof.Path, "Path mismatch")
 	}
 }
 
@@ -156,16 +166,16 @@ func TestHashCache_Consistency(t *testing.T) {
 	// Test hash function consistency (should match fnv.New32a)
 	testPath := "/test/consistency"
 	cacheHash, err := hc.Hash(testPath)
-	AssertNil(t, err, "Hash should not error")
+	core.AssertNil(t, err, "Hash should not error")
 
 	// Compute expected hash manually
 	h := fnv.New32a()
 	n, err := h.Write([]byte(testPath))
-	AssertNoError(t, err, "Failed to write to fnv hasher")
-	AssertEqual(t, len(testPath), n, "Expected to write all bytes")
+	core.AssertNoError(t, err, "Failed to write to fnv hasher")
+	core.AssertEqual(t, len(testPath), n, "Expected to write all bytes")
 	expectedHash := h.Sum32()
 
-	AssertEqual(t, expectedHash, cacheHash, "Hash should match fnv.New32a output")
+	core.AssertEqual(t, expectedHash, cacheHash, "Hash should match fnv.New32a output")
 }
 
 func TestHashCache_Concurrency(t *testing.T) {
@@ -184,11 +194,11 @@ func TestHashCache_Concurrency(t *testing.T) {
 	helper.AssertNoErrors()
 	results, _ := helper.GetResults()
 	expectedHash, ok := GetResult[uint32](results, 0)
-	AssertTrue(t, ok, "Failed to get first result as uint32")
+	core.AssertTrue(t, ok, "Failed to get first result as uint32")
 	for i := range results {
 		hash, ok := GetResult[uint32](results, i)
-		AssertTrue(t, ok, "Failed to get result %d as uint32", i)
-		AssertEqual(t, expectedHash, hash, "Hash mismatch at index %d", i)
+		core.AssertTrue(t, ok, "Failed to get result %d as uint32", i)
+		core.AssertEqual(t, expectedHash, hash, "Hash mismatch at index %d", i)
 	}
 }
 
@@ -207,7 +217,7 @@ func TestHashCache_DifferentPaths(t *testing.T) {
 	hashes := make(map[uint32]string)
 	for _, path := range paths {
 		hash, err := hc.Hash(path)
-		AssertNil(t, err, "Hash should not error for path %s", path)
+		core.AssertNil(t, err, "Hash should not error for path %s", path)
 		if existingPath, exists := hashes[hash]; exists {
 			t.Errorf("Hash collision: path %s and %s both have hash %d", path, existingPath, hash)
 		} else {
@@ -221,33 +231,33 @@ func TestHashCache_EdgeCases(t *testing.T) {
 
 	// Test empty path
 	emptyHash, err := hc.Hash("")
-	AssertNil(t, err, "Hash should not error for empty path")
-	AssertNotEqual(t, uint32(0), emptyHash, "Empty path should have non-zero hash")
+	core.AssertNil(t, err, "Hash should not error for empty path")
+	core.AssertNotEqual(t, uint32(0), emptyHash, "Empty path should have non-zero hash")
 
 	// Test very long path
 	longPath := "/very/long/path/that/goes/on/and/on/and/on/with/many/segments/to/test/handling/of/longer/paths"
 	longHash, err := hc.Hash(longPath)
-	AssertNil(t, err, "Hash should not error for long path")
-	AssertNotEqual(t, uint32(0), longHash, "Long path should have non-zero hash")
+	core.AssertNil(t, err, "Hash should not error for long path")
+	core.AssertNotEqual(t, uint32(0), longHash, "Long path should have non-zero hash")
 
 	// Test special characters
 	specialPath := "/path/with/unicode/characters"
 	specialHash, err := hc.Hash(specialPath)
-	AssertNil(t, err, "Hash should not error for special path")
-	AssertNotEqual(t, uint32(0), specialHash, "Special character path should have non-zero hash")
+	core.AssertNil(t, err, "Hash should not error for special path")
+	core.AssertNotEqual(t, uint32(0), specialHash, "Special character path should have non-zero hash")
 
 	// All should be retrievable
 	retrievedPath, ok := hc.Path(emptyHash)
-	AssertTrue(t, ok, "Empty path should be retrievable")
-	AssertEqual(t, "", retrievedPath, "Empty path retrieval failed")
+	core.AssertTrue(t, ok, "Empty path should be retrievable")
+	core.AssertEqual(t, "", retrievedPath, "Empty path retrieval failed")
 
 	retrievedPath, ok = hc.Path(longHash)
-	AssertTrue(t, ok, "Long path should be retrievable")
-	AssertEqual(t, longPath, retrievedPath, "Long path retrieval failed")
+	core.AssertTrue(t, ok, "Long path should be retrievable")
+	core.AssertEqual(t, longPath, retrievedPath, "Long path retrieval failed")
 
 	retrievedPath, ok = hc.Path(specialHash)
-	AssertTrue(t, ok, "Special character path should be retrievable")
-	AssertEqual(t, specialPath, retrievedPath, "Special character path retrieval failed")
+	core.AssertTrue(t, ok, "Special character path should be retrievable")
+	core.AssertEqual(t, specialPath, retrievedPath, "Special character path retrieval failed")
 }
 
 func TestHashCache_ResolvePath(t *testing.T) {
@@ -255,9 +265,9 @@ func TestHashCache_ResolvePath(t *testing.T) {
 
 	t.Run("nil_request", func(t *testing.T) {
 		path, hash, err := hc.ResolvePath(nil)
-		AssertNil(t, err, "ResolvePath should not error for nil request")
-		AssertEqual(t, "", path, "Path should be empty for nil request")
-		AssertEqual(t, uint32(0), hash, "Hash should be 0 for nil request")
+		core.AssertNil(t, err, "ResolvePath should not error for nil request")
+		core.AssertEqual(t, "", path, "Path should be empty for nil request")
+		core.AssertEqual(t, uint32(0), hash, "Hash should be 0 for nil request")
 	})
 
 	t.Run("string_path", func(t *testing.T) {
@@ -267,21 +277,21 @@ func TestHashCache_ResolvePath(t *testing.T) {
 		}
 
 		path, hash, err := hc.ResolvePath(req)
-		AssertNil(t, err, "ResolvePath should not error for string path")
-		AssertEqual(t, testPath, path, "Path should match input")
-		AssertNotEqual(t, uint32(0), hash, "Hash should not be 0")
+		core.AssertNil(t, err, "ResolvePath should not error for string path")
+		core.AssertEqual(t, testPath, path, "Path should match input")
+		core.AssertNotEqual(t, uint32(0), hash, "Hash should not be 0")
 
 		// Verify hash is cached
 		cachedPath, ok := hc.Path(hash)
-		AssertTrue(t, ok, "Hash should be cached")
-		AssertEqual(t, testPath, cachedPath, "Cached path should match")
+		core.AssertTrue(t, ok, "Hash should be cached")
+		core.AssertEqual(t, testPath, cachedPath, "Cached path should match")
 	})
 
 	t.Run("known_hash_path", func(t *testing.T) {
 		// First, cache a path
 		testPath := "/test/known/hash"
 		expectedHash, err := hc.Hash(testPath)
-		AssertNil(t, err, "Hash should not error")
+		core.AssertNil(t, err, "Hash should not error")
 
 		// Now resolve using hash
 		req := &NanoRPCRequest{
@@ -289,9 +299,9 @@ func TestHashCache_ResolvePath(t *testing.T) {
 		}
 
 		path, hash, err := hc.ResolvePath(req)
-		AssertNil(t, err, "ResolvePath should not error for known hash")
-		AssertEqual(t, testPath, path, "Path should be resolved from hash")
-		AssertEqual(t, expectedHash, hash, "Hash should match input")
+		core.AssertNil(t, err, "ResolvePath should not error for known hash")
+		core.AssertEqual(t, testPath, path, "Path should be resolved from hash")
+		core.AssertEqual(t, expectedHash, hash, "Hash should match input")
 	})
 
 	t.Run("unknown_hash_path", func(t *testing.T) {
@@ -301,9 +311,9 @@ func TestHashCache_ResolvePath(t *testing.T) {
 		}
 
 		path, hash, err := hc.ResolvePath(req)
-		AssertNil(t, err, "ResolvePath should not error for unknown hash")
-		AssertEqual(t, "", path, "Path should be empty for unknown hash")
-		AssertEqual(t, unknownHash, hash, "Hash should match input")
+		core.AssertNil(t, err, "ResolvePath should not error for unknown hash")
+		core.AssertEqual(t, "", path, "Path should be empty for unknown hash")
+		core.AssertEqual(t, unknownHash, hash, "Hash should match input")
 	})
 
 	t.Run("no_path_specified", func(t *testing.T) {
@@ -312,9 +322,9 @@ func TestHashCache_ResolvePath(t *testing.T) {
 		}
 
 		path, hash, err := hc.ResolvePath(req)
-		AssertNil(t, err, "ResolvePath should not error when no path specified")
-		AssertEqual(t, "", path, "Path should be empty")
-		AssertEqual(t, uint32(0), hash, "Hash should be 0")
+		core.AssertNil(t, err, "ResolvePath should not error when no path specified")
+		core.AssertEqual(t, "", path, "Path should be empty")
+		core.AssertEqual(t, uint32(0), hash, "Hash should be 0")
 	})
 
 	t.Run("empty_string_path", func(t *testing.T) {
@@ -323,16 +333,16 @@ func TestHashCache_ResolvePath(t *testing.T) {
 		}
 
 		path, hash, err := hc.ResolvePath(req)
-		AssertNil(t, err, "ResolvePath should not error for empty string")
-		AssertEqual(t, "", path, "Path should be empty")
+		core.AssertNil(t, err, "ResolvePath should not error for empty string")
+		core.AssertEqual(t, "", path, "Path should be empty")
 
 		// Verify the actual behaviour of AsPathOneOfString for empty strings
 		if _, ok := AsPathOneOfString(req.PathOneof); ok {
 			// If AsPathOneOfString returns true, hash should be computed
-			AssertNotEqual(t, uint32(0), hash, "Hash should be computed for empty string")
+			core.AssertNotEqual(t, uint32(0), hash, "Hash should be computed for empty string")
 		} else {
 			// If AsPathOneOfString returns false, hash should be 0
-			AssertEqual(t, uint32(0), hash, "Hash should be 0 when AsPathOneOfString returns false")
+			core.AssertEqual(t, uint32(0), hash, "Hash should be 0 when AsPathOneOfString returns false")
 		}
 	})
 }
@@ -343,7 +353,7 @@ func setupCollisionScenario(t *testing.T, hc *HashCache, path1, path2 string) {
 
 	// First, cache path1 to get its hash
 	cachedHash, err := hc.Hash(path1)
-	AssertNil(t, err, "Hash should not error for first path")
+	core.AssertNil(t, err, "Hash should not error for first path")
 
 	// Simulate the state where path2 would hash to the same value as path1
 	// by manually setting up the collision condition
@@ -366,13 +376,13 @@ func testHashMethodCollision(t *testing.T, path1, path2 string) {
 
 	// Now when we try to hash path1, it should detect the collision
 	_, err := hc.Hash(path1)
-	AssertNotNil(t, err, "Hash should error when collision detected")
-	AssertTrue(t, errors.Is(err, ErrHashCollision), "Error should be ErrHashCollision")
+	core.AssertNotNil(t, err, "Hash should error when collision detected")
+	core.AssertTrue(t, errors.Is(err, ErrHashCollision), "Error should be ErrHashCollision")
 
 	// Verify error message contains both conflicting paths
 	errMsg := err.Error()
-	AssertTrue(t, strings.Contains(errMsg, path1), "Error should mention path1: %s", errMsg)
-	AssertTrue(t, strings.Contains(errMsg, path2), "Error should mention path2: %s", errMsg)
+	core.AssertTrue(t, strings.Contains(errMsg, path1), "Error should mention path1: %s", errMsg)
+	core.AssertTrue(t, strings.Contains(errMsg, path2), "Error should mention path2: %s", errMsg)
 }
 
 // testResolvePathCollision tests collision detection in ResolvePath method
@@ -387,8 +397,8 @@ func testResolvePathCollision(t *testing.T, path1, path2 string) {
 		PathOneof: GetPathOneOfString(path1),
 	}
 	_, _, err := hc.ResolvePath(req)
-	AssertNotNil(t, err, "ResolvePath should error on collision")
-	AssertTrue(t, errors.Is(err, ErrHashCollision), "ResolvePath error should be ErrHashCollision")
+	core.AssertNotNil(t, err, "ResolvePath should error on collision")
+	core.AssertTrue(t, errors.Is(err, ErrHashCollision), "ResolvePath error should be ErrHashCollision")
 }
 
 func TestHashCache_CollisionDetection(t *testing.T) {
