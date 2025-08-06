@@ -1,5 +1,5 @@
 .PHONY: all clean generate fmt tidy check-grammar check-spelling check-shell check-jq
-.PHONY: coverage codecov
+.PHONY: coverage codecov clean-coverage race
 .PHONY: FORCE
 
 GO ?= go
@@ -18,10 +18,10 @@ COVERAGE_DIR ?= $(TMPDIR)/coverage
 
 # Dynamic version selection based on Go version
 # Format: $(TOOLSDIR)/get_version.sh <go_version> <tool_version1> <tool_version2> ..
-GOLANGCI_LINT_VERSION ?= $(shell $(TOOLSDIR)/get_version.sh 1.23 v1.64)
+GOLANGCI_LINT_VERSION ?= $(shell $(TOOLSDIR)/get_version.sh 1.23 v2.3.0)
 REVIVE_VERSION ?= $(shell $(TOOLSDIR)/get_version.sh 1.23 v1.7)
 
-GOLANGCI_LINT_URL ?= github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+GOLANGCI_LINT_URL ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 GOLANGCI_LINT ?= $(GO) run $(GOLANGCI_LINT_URL)
 
 REVIVE_CONF ?= $(TOOLSDIR)/revive.toml
@@ -155,16 +155,11 @@ tidy: fmt $(TIDY_SPELLING) $(TIDY_SHELL)
 generate: ; $(info $(M) running go:generate…)
 	$Q git grep -l '^//go:generate' | sort -uV | xargs -r -n1 $(GO) generate $(GOGENERATE_FLAGS)
 
-# Run tests with coverage for all modules
-# This target runs 'go test -coverprofile' for each module and merges
-# the results into a single coverage file
-coverage: $(TMPDIR)/index ; $(info $(M) running coverage tests…)
-	$Q $(TOOLSDIR)/make_coverage.sh $(TMPDIR)/index $(COVERAGE_DIR)
 
-# Generate Codecov configuration files
-# This target prepares codecov.yml and codecov.txt files needed for
-# uploading coverage data to Codecov with proper module flags
-codecov: coverage ; $(info $(M) preparing codecov data)
+# Generate Codecov upload script
+# This target prepares codecov.sh script for uploading coverage
+# data to Codecov with proper module flags
+codecov: $(COVERAGE_DIR)/coverage.out ; $(info $(M) preparing codecov data)
 	$Q $(TOOLSDIR)/make_codecov.sh $(TMPDIR)/index $(COVERAGE_DIR)
 
 check-jq: FORCE
