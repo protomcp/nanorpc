@@ -67,17 +67,13 @@ func TestDefaultSession_Close(t *testing.T) {
 
 // mockConn implements net.Conn for testing
 type mockConn struct {
-	// Connection addresses
+	closeErr   error
 	remoteAddr string
 	localAddr  string
-
-	// Read/write data buffers
-	data      []byte
-	writeData []byte
-
-	// State tracking
-	readPos int
-	closed  bool
+	data       []byte
+	writeData  []byte
+	readPos    int
+	closed     bool
 }
 
 func (m *mockConn) Read(b []byte) (int, error) {
@@ -100,7 +96,7 @@ func (m *mockConn) Write(b []byte) (int, error) {
 
 func (m *mockConn) Close() error {
 	m.closed = true
-	return nil
+	return m.closeErr
 }
 
 func (m *mockConn) LocalAddr() net.Addr {

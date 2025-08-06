@@ -250,3 +250,156 @@ func TestSessionLogMethods(t *testing.T) {
 	// Verify no panic
 	core.AssertNotNil(t, cs, "session should not be nil")
 }
+
+// Test missing Client logging methods
+
+func TestClientLogDebug(_ *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Debug
+	c := newTestClient(mockLog)
+	addr := newTestAddr("127.0.0.1:8080")
+
+	// Test LogDebug with and without fields
+	c.LogDebug(addr, nil, "debug message")
+	c.LogDebug(addr, map[string]any{"key": "value"}, "debug message with fields")
+
+	// Test when debug is disabled
+	mockLog.Threshold = slog.Info
+	c.LogDebug(addr, nil, "should not log")
+}
+
+func TestClientLogInfo(_ *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Info
+	c := newTestClient(mockLog)
+	addr := newTestAddr("127.0.0.1:8080")
+
+	// Test LogInfo with and without fields
+	c.LogInfo(addr, nil, "info message")
+	c.LogInfo(addr, map[string]any{"key": "value"}, "info message with fields")
+
+	// Test when info is disabled
+	mockLog.Threshold = slog.Error
+	c.LogInfo(addr, nil, "should not log")
+}
+
+func TestClientWithWarn(t *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Warn
+	c := newTestClient(mockLog)
+	addr := newTestAddr("127.0.0.1:8080")
+	testErr := core.ErrInvalid
+
+	logger, ok := c.WithWarn(addr, testErr)
+	core.AssertTrue(t, ok, "WithWarn should return true when warn enabled")
+	core.AssertNotNil(t, logger, "WithWarn should return a logger")
+
+	// Check fields are added
+	ml, ok := core.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	if !ok {
+		return
+	}
+	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+		core.AssertEqual(t, testErr, err, "should have error field")
+	} else {
+		t.Error("logger should have error field")
+	}
+	if addrVal, ok := testutils.GetField[string, string](ml.Fields, "remote_addr"); ok {
+		core.AssertEqual(t, "127.0.0.1:8080", addrVal, "should have remote address field")
+	} else {
+		t.Error("logger should have remote_addr field")
+	}
+}
+
+func TestClientLogWarn(_ *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Warn
+	c := newTestClient(mockLog)
+	addr := newTestAddr("127.0.0.1:8080")
+	testErr := core.ErrInvalid
+
+	// Test LogWarn with and without fields
+	c.LogWarn(addr, testErr, nil, "warn message")
+	c.LogWarn(addr, testErr, map[string]any{"key": "value"}, "warn message with fields")
+
+	// Test when warn is disabled
+	mockLog.Threshold = slog.Error
+	c.LogWarn(addr, testErr, nil, "should not log")
+}
+
+// Test Session WithWarn and LogWarn methods
+
+func TestSessionWithWarn(t *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Warn
+	c := newTestClient(mockLog)
+	cs := newTestSession(c, "127.0.0.1:8080")
+	testErr := core.ErrInvalid
+
+	logger, ok := cs.WithWarn(testErr)
+	core.AssertTrue(t, ok, "WithWarn should return true when warn enabled")
+	core.AssertNotNil(t, logger, "WithWarn should return a logger")
+
+	// Check error field is added
+	ml, ok := core.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	if !ok {
+		return
+	}
+	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+		core.AssertEqual(t, testErr, err, "should have error field")
+	} else {
+		t.Error("logger should have error field")
+	}
+}
+
+func TestSessionLogWarn(_ *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Warn
+	c := newTestClient(mockLog)
+	cs := newTestSession(c, "127.0.0.1:8080")
+	testErr := core.ErrInvalid
+
+	// Test LogWarn with and without fields
+	cs.LogWarn(testErr, nil, "warn message")
+	cs.LogWarn(testErr, map[string]any{"key": "value"}, "warn message with fields")
+
+	// Test when warn is disabled
+	mockLog.Threshold = slog.Error
+	cs.LogWarn(testErr, nil, "should not log")
+}
+
+// Test Session WithInfo method which was missing
+func TestSessionWithInfo(t *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Info
+	c := newTestClient(mockLog)
+	cs := newTestSession(c, "127.0.0.1:8080")
+
+	logger, ok := cs.WithInfo()
+	core.AssertTrue(t, ok, "WithInfo should return true when info enabled")
+	core.AssertNotNil(t, logger, "WithInfo should return a logger")
+}
+
+// Test Session WithError method which was missing
+func TestSessionWithError(t *testing.T) {
+	mockLog := testutils.NewMockFieldLogger()
+	mockLog.Threshold = slog.Error
+	c := newTestClient(mockLog)
+	cs := newTestSession(c, "127.0.0.1:8080")
+	testErr := core.ErrInvalid
+
+	logger, ok := cs.WithError(testErr)
+	core.AssertTrue(t, ok, "WithError should return true when error enabled")
+	core.AssertNotNil(t, logger, "WithError should return a logger")
+
+	// Check error field is added
+	ml, ok := core.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	if !ok {
+		return
+	}
+	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+		core.AssertEqual(t, testErr, err, "should have error field")
+	} else {
+		t.Error("logger should have error field")
+	}
+}

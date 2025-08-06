@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"darvaza.org/core"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -14,7 +15,9 @@ type protocolRequestTypeTestCase struct {
 
 func (tc protocolRequestTypeTestCase) test(t *testing.T) {
 	req := &NanoRPCRequest{RequestType: tc.value}
-	AssertEqual(t, tc.value, req.RequestType, "Request type mismatch")
+	if !core.AssertEqual(t, tc.value, req.RequestType, "Request type") {
+		t.FailNow()
+	}
 }
 
 func newProtocolRequestTypeTestCase(name string, value NanoRPCRequest_Type) protocolRequestTypeTestCase {
@@ -22,7 +25,7 @@ func newProtocolRequestTypeTestCase(name string, value NanoRPCRequest_Type) prot
 }
 
 func protocolRequestTypeTestCases() []protocolRequestTypeTestCase {
-	return S(
+	return core.S(
 		newProtocolRequestTypeTestCase("TYPE_UNSPECIFIED", NanoRPCRequest_TYPE_UNSPECIFIED),
 		newProtocolRequestTypeTestCase("TYPE_PING", NanoRPCRequest_TYPE_PING),
 		newProtocolRequestTypeTestCase("TYPE_REQUEST", NanoRPCRequest_TYPE_REQUEST),
@@ -35,7 +38,7 @@ func newResponseTypeTestCase(name string, value NanoRPCResponse_Type) responseTy
 }
 
 func responseTypeTestCases() []responseTypeTestCase {
-	return S(
+	return core.S(
 		newResponseTypeTestCase("TYPE_UNSPECIFIED", NanoRPCResponse_TYPE_UNSPECIFIED),
 		newResponseTypeTestCase("TYPE_PONG", NanoRPCResponse_TYPE_PONG),
 		newResponseTypeTestCase("TYPE_RESPONSE", NanoRPCResponse_TYPE_RESPONSE),
@@ -60,7 +63,9 @@ type responseTypeTestCase struct {
 
 func (tc responseTypeTestCase) test(t *testing.T) {
 	res := &NanoRPCResponse{ResponseType: tc.value}
-	AssertEqual(t, tc.value, res.ResponseType, "Response type mismatch")
+	if !core.AssertEqual(t, tc.value, res.ResponseType, "Response type") {
+		t.FailNow()
+	}
 }
 
 type statusCodeTestCase struct {
@@ -90,7 +95,7 @@ func newStatusCodeTestCase(name string, value NanoRPCResponse_Status, isError bo
 }
 
 func statusCodeTestCases() []statusCodeTestCase {
-	return S(
+	return core.S(
 		newStatusCodeTestCase("STATUS_UNSPECIFIED", NanoRPCResponse_STATUS_UNSPECIFIED, true),
 		newStatusCodeTestCase("STATUS_OK", NanoRPCResponse_STATUS_OK, false),
 		newStatusCodeTestCase("STATUS_NOT_FOUND", NanoRPCResponse_STATUS_NOT_FOUND, true),
@@ -147,7 +152,7 @@ func newExtendedRequestTestCase(name string, request *NanoRPCRequest) extendedRe
 }
 
 func extendedRequestTestCases() []extendedRequestTestCase {
-	return S(
+	return core.S(
 		newExtendedRequestTestCase("ping_request", &NanoRPCRequest{
 			RequestId:   123,
 			RequestType: NanoRPCRequest_TYPE_PING,
@@ -231,7 +236,7 @@ func newResponseTestCase(name string, response *NanoRPCResponse) responseTestCas
 }
 
 func responseTestCases() []responseTestCase {
-	return S(
+	return core.S(
 		newResponseTestCase("pong_response", &NanoRPCResponse{
 			RequestId:      123,
 			ResponseType:   NanoRPCResponse_TYPE_PONG,
@@ -273,20 +278,34 @@ func TestSplitMessage(t *testing.T) {
 
 	// Encode it
 	encoded, err := EncodeRequest(req, nil)
-	AssertNoError(t, err, "Failed to encode request")
+	if !core.AssertNoError(t, err, "encode request") {
+		t.FailNow()
+	}
 
 	// Test Split function
 	advance, msg, err := Split(encoded, true)
-	AssertNoError(t, err, "Split failed")
-	AssertEqual(t, len(encoded), advance, "Split advance mismatch")
-	AssertTrue(t, bytes.Equal(msg, encoded), "Split message mismatch: expected %v, got %v", encoded, msg)
+	if !core.AssertNoError(t, err, "Split") {
+		t.FailNow()
+	}
+	if !core.AssertEqual(t, len(encoded), advance, "Split advance") {
+		t.FailNow()
+	}
+	if !core.AssertTrue(t, bytes.Equal(msg, encoded), "Split message") {
+		t.FailNow()
+	}
 
 	// Test partial data (should return 0, nil, nil when atEOF=false)
 	partialData := encoded[:len(encoded)/2]
 	advance, msg, err = Split(partialData, false)
-	AssertNoError(t, err, "Split should not error on partial data when atEOF=false")
-	AssertEqual(t, 0, advance, "Split should return 0 advance for partial data")
-	AssertEqual(t, 0, len(msg), "Split should return empty/nil message for partial data")
+	if !core.AssertNoError(t, err, "Split partial") {
+		t.FailNow()
+	}
+	if !core.AssertEqual(t, 0, advance, "Split advance partial") {
+		t.FailNow()
+	}
+	if !core.AssertEqual(t, 0, len(msg), "Split message partial") {
+		t.FailNow()
+	}
 }
 
 type errorHandlingTestCase struct {
@@ -297,7 +316,9 @@ type errorHandlingTestCase struct {
 
 func (tc errorHandlingTestCase) test(t *testing.T) {
 	err := ResponseAsError(tc.response)
-	AssertTrue(t, tc.checkFn(err), "Error check failed for %s: got %v", tc.name, err)
+	if !core.AssertTrue(t, tc.checkFn(err), "Error check") {
+		t.FailNow()
+	}
 }
 
 func newErrorHandlingTestCase(name string, response *NanoRPCResponse, checkFn func(error) bool) errorHandlingTestCase {
@@ -309,7 +330,7 @@ func newErrorHandlingTestCase(name string, response *NanoRPCResponse, checkFn fu
 }
 
 func errorHandlingTestCases() []errorHandlingTestCase {
-	return S(
+	return core.S(
 		newErrorHandlingTestCase("nil response", nil, IsNoResponse),
 		newErrorHandlingTestCase("not found", &NanoRPCResponse{
 			ResponseStatus: NanoRPCResponse_STATUS_NOT_FOUND,
