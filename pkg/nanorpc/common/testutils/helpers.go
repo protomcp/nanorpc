@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"darvaza.org/core"
 )
 
 // GetField retrieves a typed value from a map[K]any
@@ -39,7 +41,7 @@ func (h *ConcurrentTestHelper) Run() []error {
 	errors := make([]error, h.NumGoroutines)
 	var wg sync.WaitGroup
 
-	for i := 0; i < h.NumGoroutines; i++ {
+	for i := range h.NumGoroutines {
 		wg.Add(1)
 		go h.runWorker(ctx, i, &wg, errors)
 	}
@@ -107,15 +109,17 @@ func waitForConditionLoop(condition func() bool, timeout time.Duration, interval
 	}
 }
 
-// MustWaitForCondition is like WaitForCondition but fails the test if condition doesn't become true.
-func MustWaitForCondition(t T, condition func() bool, timeout time.Duration, name string, args ...any) {
+// AssertWaitForCondition is like WaitForCondition but fails the test if condition doesn't become true.
+func AssertWaitForCondition(t core.T, condition func() bool, timeout time.Duration, name string, args ...any) bool {
 	t.Helper()
-	if !WaitForCondition(condition, timeout, 0) {
+	ok := WaitForCondition(condition, timeout, 0)
+	if !ok {
 		msg := fmt.Sprintf("condition did not become true within %v", timeout)
 		if name != "" {
 			prefix := fmt.Sprintf(name, args...)
 			msg = fmt.Sprintf("%s: %s", prefix, msg)
 		}
-		t.Fatal(msg)
+		t.Error(msg)
 	}
+	return ok
 }

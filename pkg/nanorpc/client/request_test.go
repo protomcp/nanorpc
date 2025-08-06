@@ -3,8 +3,9 @@ package client
 import (
 	"testing"
 
+	"darvaza.org/core"
+
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 type requestTypeTestCase struct {
@@ -24,7 +25,7 @@ func (tc requestTypeTestCase) test(t *testing.T) {
 	}
 
 	// Verify the request type matches expectation
-	testutils.AssertEqual(t, tc.expectedType, req.RequestType, "RequestType mismatch")
+	core.AssertEqual(t, tc.expectedType, req.RequestType, "RequestType mismatch")
 }
 
 func newRequestTypeTestCase(name string, requestType, expectedType nanorpc.NanoRPCRequest_Type) requestTypeTestCase {
@@ -36,7 +37,7 @@ func newRequestTypeTestCase(name string, requestType, expectedType nanorpc.NanoR
 }
 
 func subscriptionRequestTypeTestCases() []requestTypeTestCase {
-	return testutils.S(
+	return core.S(
 		newRequestTypeTestCase("Subscribe_uses_TYPE_SUBSCRIBE",
 			nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE),
 		newRequestTypeTestCase("Request_uses_TYPE_REQUEST",
@@ -66,7 +67,7 @@ func TestRequestConstruction(t *testing.T) {
 		},
 	}
 
-	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE, subscribeReq.RequestType,
+	core.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE, subscribeReq.RequestType,
 		"Subscribe request should use TYPE_SUBSCRIBE")
 
 	// Test Request construction (like what Request() method does)
@@ -77,7 +78,7 @@ func TestRequestConstruction(t *testing.T) {
 		},
 	}
 
-	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_REQUEST, requestReq.RequestType,
+	core.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_REQUEST, requestReq.RequestType,
 		"Request should use TYPE_REQUEST")
 
 	// Test Ping construction (like what Ping() method does)
@@ -85,7 +86,7 @@ func TestRequestConstruction(t *testing.T) {
 		RequestType: nanorpc.NanoRPCRequest_TYPE_PING,
 	}
 
-	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_PING, pingReq.RequestType,
+	core.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_PING, pingReq.RequestType,
 		"Ping request should use TYPE_PING")
 
 	// Test Unsubscribe construction (like what Unsubscribe() method does)
@@ -98,11 +99,11 @@ func TestRequestConstruction(t *testing.T) {
 		// Data is nil for unsubscribe (empty data indicates unsubscribe)
 	}
 
-	testutils.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_REQUEST, unsubscribeReq.RequestType,
+	core.AssertEqual(t, nanorpc.NanoRPCRequest_TYPE_REQUEST, unsubscribeReq.RequestType,
 		"Unsubscribe request should use TYPE_REQUEST")
-	testutils.AssertEqual(t, int32(42), unsubscribeReq.RequestId,
+	core.AssertEqual(t, int32(42), unsubscribeReq.RequestId,
 		"Unsubscribe request should preserve original request ID")
-	testutils.AssertNil(t, unsubscribeReq.Data,
+	core.AssertNil(t, unsubscribeReq.Data,
 		"Unsubscribe request should have empty data")
 }
 
@@ -116,9 +117,11 @@ func TestPathOneofTypes(t *testing.T) {
 		},
 	}
 
-	pathOneof := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_Path](t, pathReq.PathOneof,
+	pathOneof, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_Path](t, pathReq.PathOneof,
 		"Expected *nanorpc.NanoRPCRequest_Path")
-	testutils.AssertEqual(t, "/events", pathOneof.Path, "Path mismatch")
+	if ok {
+		core.AssertEqual(t, "/events", pathOneof.Path, "Path mismatch")
+	}
 
 	// Test hash path
 	hashReq := &nanorpc.NanoRPCRequest{
@@ -128,9 +131,11 @@ func TestPathOneofTypes(t *testing.T) {
 		},
 	}
 
-	hashOneof := testutils.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, hashReq.PathOneof,
+	hashOneof, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, hashReq.PathOneof,
 		"Expected *nanorpc.NanoRPCRequest_PathHash")
-	testutils.AssertEqual(t, uint32(0x12345678), hashOneof.PathHash, "Hash mismatch")
+	if ok {
+		core.AssertEqual(t, uint32(0x12345678), hashOneof.PathHash, "Hash mismatch")
+	}
 }
 
 type stringRepresentationTestCase struct {
@@ -139,7 +144,7 @@ type stringRepresentationTestCase struct {
 }
 
 func (tc stringRepresentationTestCase) test(t *testing.T) {
-	testutils.AssertNotEqual(t, "", tc.value.String(), "%s should have a string representation", tc.name)
+	core.AssertNotEqual(t, "", tc.value.String(), "%s should have a string representation", tc.name)
 }
 
 func newStringRepresentationTestCase(name string, value interface{ String() string }) stringRepresentationTestCase {
@@ -147,7 +152,7 @@ func newStringRepresentationTestCase(name string, value interface{ String() stri
 }
 
 func requestTypeStringTestCases() []stringRepresentationTestCase {
-	return testutils.S(
+	return core.S(
 		newStringRepresentationTestCase("TYPE_UNSPECIFIED", nanorpc.NanoRPCRequest_TYPE_UNSPECIFIED),
 		newStringRepresentationTestCase("TYPE_PING", nanorpc.NanoRPCRequest_TYPE_PING),
 		newStringRepresentationTestCase("TYPE_REQUEST", nanorpc.NanoRPCRequest_TYPE_REQUEST),
@@ -156,7 +161,7 @@ func requestTypeStringTestCases() []stringRepresentationTestCase {
 }
 
 func responseTypeStringTestCases() []stringRepresentationTestCase {
-	return testutils.S(
+	return core.S(
 		newStringRepresentationTestCase("TYPE_UNSPECIFIED", nanorpc.NanoRPCResponse_TYPE_UNSPECIFIED),
 		newStringRepresentationTestCase("TYPE_PONG", nanorpc.NanoRPCResponse_TYPE_PONG),
 		newStringRepresentationTestCase("TYPE_RESPONSE", nanorpc.NanoRPCResponse_TYPE_RESPONSE),

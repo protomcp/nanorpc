@@ -31,7 +31,7 @@ func newTestAddr(addr string) mockAddr {
 func TestClientDefaultLogger(t *testing.T) {
 	c := &Client{}
 	logger := c.getLogger()
-	testutils.AssertNotNil(t, logger, "default logger should not be nil")
+	core.AssertNotNil(t, logger, "default logger should not be nil")
 
 	// Verify it doesn't panic
 	logger.Info().Print("test message")
@@ -42,7 +42,7 @@ func TestClientCustomLogger(t *testing.T) {
 	c := newTestClient(customLogger)
 	logger := c.getLogger()
 
-	testutils.AssertEqual[slog.Logger](t, customLogger, logger, "should return custom logger")
+	core.AssertEqual[slog.Logger](t, customLogger, logger, "should return custom logger")
 }
 
 type clientWithMethodTestCase struct {
@@ -59,14 +59,17 @@ func (tc *clientWithMethodTestCase) test(t *testing.T) {
 	addr := newTestAddr(tc.address)
 
 	logger, ok := tc.method(c, addr)
-	testutils.AssertTrue(t, ok, tc.name+" should return true")
-	testutils.AssertNotNil(t, logger, tc.name+" should return a logger")
+	core.AssertTrue(t, ok, tc.name+" should return true")
+	core.AssertNotNil(t, logger, tc.name+" should return a logger")
 
 	// Check expected field
-	ml := testutils.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	ml, ok := core.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	if !ok {
+		return
+	}
 	val, ok := testutils.GetField[string, any](ml.Fields, tc.expectField)
-	testutils.AssertTrue(t, ok, "logger should have %s field", tc.expectField)
-	testutils.AssertEqual(t, tc.expectValue, val, "should have "+tc.expectField+" field")
+	core.AssertTrue(t, ok, "logger should have %s field", tc.expectField)
+	core.AssertEqual(t, tc.expectValue, val, "should have "+tc.expectField+" field")
 }
 
 func TestClientWithMethods(t *testing.T) {
@@ -99,18 +102,21 @@ func TestClientWithError(t *testing.T) {
 	testErr := core.ErrInvalid
 
 	logger, ok := c.WithError(addr, testErr)
-	testutils.AssertTrue(t, ok, "WithError should return true")
-	testutils.AssertNotNil(t, logger, "error logger should not be nil")
+	core.AssertTrue(t, ok, "WithError should return true")
+	core.AssertNotNil(t, logger, "error logger should not be nil")
 
 	// Check fields
-	ml := testutils.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	ml, ok := core.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	if !ok {
+		return
+	}
 	if addr, ok := testutils.GetField[string, string](ml.Fields, "remote_addr"); ok {
-		testutils.AssertEqual(t, "10.0.0.1:443", addr, "should have remote address")
+		core.AssertEqual(t, "10.0.0.1:443", addr, "should have remote address")
 	} else {
 		t.Error("logger should have remote_addr field")
 	}
 	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
-		testutils.AssertEqual(t, testErr, err, "should have error field")
+		core.AssertEqual(t, testErr, err, "should have error field")
 	} else {
 		t.Error("logger should have error field")
 	}
@@ -122,13 +128,16 @@ func TestClientGetErrorLogger(t *testing.T) {
 	testErr := core.ErrNilReceiver
 
 	logger, ok := c.getErrorLogger(testErr)
-	testutils.AssertTrue(t, ok, "getErrorLogger should return true")
-	testutils.AssertNotNil(t, logger, "error logger should not be nil")
+	core.AssertTrue(t, ok, "getErrorLogger should return true")
+	core.AssertNotNil(t, logger, "error logger should not be nil")
 
 	// Check error field
-	ml := testutils.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	ml, ok := core.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	if !ok {
+		return
+	}
 	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
-		testutils.AssertEqual(t, testErr, err, "should have error field")
+		core.AssertEqual(t, testErr, err, "should have error field")
 	} else {
 		t.Error("logger should have error field")
 	}
@@ -149,9 +158,9 @@ func (tc *thresholdTestCase) test(t *testing.T) {
 
 	_, ok := tc.method(c, addr)
 	if tc.expected {
-		testutils.AssertTrue(t, ok, tc.name+" should be enabled")
+		core.AssertTrue(t, ok, tc.name+" should be enabled")
 	} else {
-		testutils.AssertFalse(t, ok, tc.name+" should be disabled")
+		core.AssertFalse(t, ok, tc.name+" should be disabled")
 	}
 }
 
@@ -198,16 +207,19 @@ func TestSessionGetLogger(t *testing.T) {
 	cs := newTestSession(c, "10.0.0.1:8080")
 
 	logger := cs.getLogger()
-	testutils.AssertNotNil(t, logger, "session logger should not be nil")
+	core.AssertNotNil(t, logger, "session logger should not be nil")
 
 	// Check fields
-	ml := testutils.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	ml, ok := core.AssertTypeIs[*testutils.MockFieldLogger](t, logger, "expected MockFieldLogger")
+	if !ok {
+		return
+	}
 	component, ok := testutils.GetField[string, string](ml.Fields, "component")
-	testutils.AssertTrue(t, ok, "logger should have component field")
-	testutils.AssertEqual(t, "session", component, "should have session component")
+	core.AssertTrue(t, ok, "logger should have component field")
+	core.AssertEqual(t, "session", component, "should have session component")
 	addr, ok := testutils.GetField[string, string](ml.Fields, "remote_addr")
-	testutils.AssertTrue(t, ok, "logger should have remote_addr field")
-	testutils.AssertEqual(t, "10.0.0.1:8080", addr, "should have remote address field")
+	core.AssertTrue(t, ok, "logger should have remote_addr field")
+	core.AssertEqual(t, "10.0.0.1:8080", addr, "should have remote address field")
 }
 
 func TestSessionWithDebug(t *testing.T) {
@@ -216,8 +228,8 @@ func TestSessionWithDebug(t *testing.T) {
 	cs := newTestSession(c, "192.168.1.100:9000")
 
 	logger, ok := cs.WithDebug()
-	testutils.AssertTrue(t, ok, "WithDebug should return true for debug level")
-	testutils.AssertNotNil(t, logger, "debug logger should not be nil")
+	core.AssertTrue(t, ok, "WithDebug should return true for debug level")
+	core.AssertNotNil(t, logger, "debug logger should not be nil")
 }
 
 func TestSessionLogMethods(t *testing.T) {
@@ -236,5 +248,5 @@ func TestSessionLogMethods(t *testing.T) {
 	cs.LogError(testErr, nil, "error message")
 
 	// Verify no panic
-	testutils.AssertNotNil(t, cs, "session should not be nil")
+	core.AssertNotNil(t, cs, "session should not be nil")
 }

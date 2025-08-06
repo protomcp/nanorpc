@@ -6,28 +6,29 @@ import (
 	"testing"
 	"time"
 
+	"darvaza.org/core"
 	"protomcp.org/nanorpc/pkg/nanorpc"
 	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
 )
 
 // Test helpers and factories
 
-func registerTestHandler(t testutils.T, handler *DefaultMessageHandler, path string, response []byte) {
+func registerTestHandler(t core.T, handler *DefaultMessageHandler, path string, response []byte) {
 	t.Helper()
 	err := handler.RegisterHandlerFunc(path, func(_ context.Context, req *RequestContext) error {
 		return req.SendOK(response)
 	})
-	testutils.AssertNoError(t, err, "register handler for %s", path)
+	core.AssertNoError(t, err, "register handler for %s", path)
 }
 
-func verifyResponse(t testutils.T, resp *nanorpc.NanoRPCResponse,
+func verifyResponse(t core.T, resp *nanorpc.NanoRPCResponse,
 	expectStatus nanorpc.NanoRPCResponse_Status, expectData string) {
 	t.Helper()
-	testutils.AssertNotNil(t, resp, "response")
-	testutils.AssertEqual(t, expectStatus, resp.ResponseStatus, "response status")
+	core.AssertNotNil(t, resp, "response")
+	core.AssertEqual(t, expectStatus, resp.ResponseStatus, "response status")
 
 	if expectData != "" {
-		testutils.AssertEqual(t, expectData, string(resp.Data), "response data")
+		core.AssertEqual(t, expectData, string(resp.Data), "response data")
 	}
 }
 
@@ -42,18 +43,18 @@ func TestDefaultMessageHandler_HandlePing(t *testing.T) {
 	}
 
 	err := handler.HandleMessage(context.Background(), session, req)
-	testutils.AssertNoError(t, err, "handle ping")
+	core.AssertNoError(t, err, "handle ping")
 
 	// Verify response was written
-	testutils.AssertTrue(t, len(conn.WriteData) > 0, "response data written")
+	core.AssertTrue(t, len(conn.WriteData) > 0, "response data written")
 
 	// Decode and verify the response
 	response, _, err := nanorpc.DecodeResponse(conn.WriteData)
-	testutils.AssertNoError(t, err, "decode response")
+	core.AssertNoError(t, err, "decode response")
 
-	testutils.AssertEqual(t, nanorpc.NanoRPCResponse_TYPE_PONG, response.ResponseType, "response type")
-	testutils.AssertEqual(t, 123, response.RequestId, "request ID")
-	testutils.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, response.ResponseStatus, "response status")
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_TYPE_PONG, response.ResponseType, "response type")
+	core.AssertEqual(t, 123, response.RequestId, "request ID")
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, response.ResponseStatus, "response status")
 }
 
 func TestDefaultMessageHandler_HandleUnsupportedType(t *testing.T) {
@@ -100,7 +101,7 @@ func (tc *hashCacheTestCase) test(t *testing.T) {
 	var pathOneof any
 	if tc.useHash {
 		hash, err := hashCache.Hash(tc.requestPath)
-		testutils.AssertNoError(t, err, "hash path")
+		core.AssertNoError(t, err, "hash path")
 		pathOneof = hash
 	} else {
 		pathOneof = tc.requestPath
@@ -109,7 +110,7 @@ func (tc *hashCacheTestCase) test(t *testing.T) {
 
 	// Execute
 	err := handler.HandleMessage(context.Background(), session, req)
-	testutils.AssertNoError(t, err, "handle message")
+	core.AssertNoError(t, err, "handle message")
 
 	// Verify
 	expectedStatus := nanorpc.NanoRPCResponse_STATUS_OK
@@ -270,14 +271,14 @@ func (tc *pathResolutionTestCase) test(t *testing.T) {
 		err := handler.RegisterHandlerFunc(path, func(_ context.Context, req *RequestContext) error {
 			return req.SendOK([]byte(req.Path))
 		})
-		testutils.AssertNoError(t, err, "register handler for %s", path)
+		core.AssertNoError(t, err, "register handler for %s", path)
 	}
 
 	// Execute
 	session := newTestSession("", 0)
 	req := newTestRequest(400, tc.requestHash)
 	err := handler.HandleMessage(context.Background(), session, req)
-	testutils.AssertNoError(t, err, "handle message")
+	core.AssertNoError(t, err, "handle message")
 
 	// Verify
 	if tc.expectFound {
@@ -340,7 +341,7 @@ func TestDefaultMessageHandler_HashCollision(t *testing.T) {
 	err := handler.RegisterHandlerFunc(path1, func(_ context.Context, req *RequestContext) error {
 		return req.SendOK([]byte("duplicate"))
 	})
-	testutils.AssertError(t, err, "registering duplicate path should fail")
+	core.AssertError(t, err, "registering duplicate path should fail")
 
 	// Verify hash-based request still works
 	session := newTestSession("", 0)
@@ -348,7 +349,7 @@ func TestDefaultMessageHandler_HashCollision(t *testing.T) {
 	req := newTestRequest(100, hash1)
 
 	err = handler.HandleMessage(context.Background(), session, req)
-	testutils.AssertNoError(t, err, "handle request")
+	core.AssertNoError(t, err, "handle request")
 
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "path1")
 }
@@ -366,7 +367,7 @@ func newUnsubscribeRequest(requestID int32) *nanorpc.NanoRPCRequest {
 	}
 }
 
-func countSubscriptions(t testutils.T, handler *DefaultMessageHandler, pathHash uint32) int {
+func countSubscriptions(t core.T, handler *DefaultMessageHandler, pathHash uint32) int {
 	t.Helper()
 	handler.mu.RLock()
 	defer handler.mu.RUnlock()
@@ -388,17 +389,17 @@ func testUnsubscribeRemovesSubscription(t *testing.T) {
 	// Subscribe first
 	subReq := newTestSubscribeRequest(42, testPath, []byte("filter-data"))
 	err := handler.HandleMessage(context.Background(), session, subReq)
-	testutils.AssertNoError(t, err, "subscribe")
-	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash),
+	core.AssertNoError(t, err, "subscribe")
+	core.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash),
 		"subscription count after subscribe")
 
 	// Unsubscribe using the same request ID as the subscription
 	unsubscribeReq := newUnsubscribeRequest(42)
 	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
-	testutils.AssertNoError(t, err, "unsubscribe")
+	core.AssertNoError(t, err, "unsubscribe")
 
 	// Verify removed
-	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash),
+	core.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash),
 		"subscription count after unsubscribe")
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "")
 }
@@ -411,7 +412,7 @@ func testUnsubscribeWithoutSubscription(t *testing.T) {
 	// Unsubscribe without subscribing first
 	unsubscribeReq := newUnsubscribeRequest(44)
 	err := handler.HandleMessage(context.Background(), session, unsubscribeReq)
-	testutils.AssertNoError(t, err, "unsubscribe without subscription")
+	core.AssertNoError(t, err, "unsubscribe without subscription")
 
 	// Should get NOT_FOUND since no handler registered
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_NOT_FOUND, "")
@@ -430,20 +431,20 @@ func testUnsubscribeIsSessionSpecific(t *testing.T) {
 	subscribeReq2 := newTestSubscribeRequest(52, testPath, []byte("filter-2"))
 
 	err := handler.HandleMessage(context.Background(), session1, subscribeReq1)
-	testutils.AssertNoError(t, err, "session1 subscribe")
+	core.AssertNoError(t, err, "session1 subscribe")
 	err = handler.HandleMessage(context.Background(), session2, subscribeReq2)
-	testutils.AssertNoError(t, err, "session2 subscribe")
+	core.AssertNoError(t, err, "session2 subscribe")
 
-	testutils.AssertEqual(t, 2, countSubscriptions(t, handler, pathHash),
+	core.AssertEqual(t, 2, countSubscriptions(t, handler, pathHash),
 		"subscription count after both subscribe")
 
 	// Session1 unsubscribes its subscription (request ID 42)
 	unsubscribeReq := newUnsubscribeRequest(42)
 	err = handler.HandleMessage(context.Background(), session1, unsubscribeReq)
-	testutils.AssertNoError(t, err, "session1 unsubscribe")
+	core.AssertNoError(t, err, "session1 unsubscribe")
 
 	// Only session2's subscription should remain
-	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash),
+	core.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash),
 		"subscription count after session1 unsubscribe")
 }
 
@@ -472,8 +473,8 @@ func testUnsubscribeWithHashBasedRequest(t *testing.T) {
 	// Subscribe first using string path
 	subReq := newTestSubscribeRequest(100, testPath, []byte("hash-filter"))
 	err := handler.HandleMessage(context.Background(), session, subReq)
-	testutils.AssertNoError(t, err, "subscribe")
-	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription added")
+	core.AssertNoError(t, err, "subscribe")
+	core.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription added")
 
 	// Unsubscribe using hash-based request
 	unsubscribeReq := &nanorpc.NanoRPCRequest{
@@ -483,10 +484,10 @@ func testUnsubscribeWithHashBasedRequest(t *testing.T) {
 		Data:        []byte{}, // Empty data = unsubscribe
 	}
 	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
-	testutils.AssertNoError(t, err, "unsubscribe")
+	core.AssertNoError(t, err, "unsubscribe")
 
 	// Verify subscription removed
-	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash), "subscription removed")
+	core.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash), "subscription removed")
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "")
 }
 
@@ -501,15 +502,15 @@ func testUnsubscribeNonExistentSubscription(t *testing.T) {
 	err := handler.RegisterHandlerFunc(testPath, func(_ context.Context, reqCtx *RequestContext) error {
 		return reqCtx.SendOK(nil)
 	})
-	testutils.AssertNoError(t, err, "register handler")
+	core.AssertNoError(t, err, "register handler")
 
 	// Try to unsubscribe non-existent subscription
 	unsubscribeReq := newUnsubscribeRequest(200)
 	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
-	testutils.AssertNoError(t, err, "unsubscribe")
+	core.AssertNoError(t, err, "unsubscribe")
 
 	// Should succeed with OK status (normal request handling)
-	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash), "no subscriptions")
+	core.AssertEqual(t, 0, countSubscriptions(t, handler, pathHash), "no subscriptions")
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_OK, "")
 }
 
@@ -523,16 +524,16 @@ func testUnsubscribeWithMismatchedRequestID(t *testing.T) {
 	// Subscribe with request ID 300
 	subReq := newTestSubscribeRequest(300, testPath, []byte("mismatch-filter"))
 	err := handler.HandleMessage(context.Background(), session, subReq)
-	testutils.AssertNoError(t, err, "subscribe")
-	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription added")
+	core.AssertNoError(t, err, "subscribe")
+	core.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription added")
 
 	// Try to unsubscribe with different request ID (no handler registered)
 	unsubscribeReq := newUnsubscribeRequest(301)
 	err = handler.HandleMessage(context.Background(), session, unsubscribeReq)
-	testutils.AssertNoError(t, err, "unsubscribe")
+	core.AssertNoError(t, err, "unsubscribe")
 
 	// Original subscription should remain (request ID mismatch)
-	testutils.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription remains")
+	core.AssertEqual(t, 1, countSubscriptions(t, handler, pathHash), "subscription remains")
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_NOT_FOUND, "")
 }
 
@@ -549,10 +550,10 @@ func testUnsubscribeWithZeroPathHash(t *testing.T) {
 		Data:        []byte{}, // Empty data = unsubscribe
 	}
 	err := handler.HandleMessage(context.Background(), session, unsubscribeReq)
-	testutils.AssertNoError(t, err, "unsubscribe")
+	core.AssertNoError(t, err, "unsubscribe")
 
 	// Should return NOT_FOUND (no handler for empty path)
-	testutils.AssertEqual(t, 0, countSubscriptions(t, handler, 0), "no subscriptions")
+	core.AssertEqual(t, 0, countSubscriptions(t, handler, 0), "no subscriptions")
 	verifyResponse(t, session.lastResponse, nanorpc.NanoRPCResponse_STATUS_NOT_FOUND, "")
 }
 
@@ -582,7 +583,7 @@ func setupConcurrentTestHandler(t *testing.T) (*DefaultMessageHandler, uint32) {
 	err := handler.RegisterHandlerFunc(testPath, func(_ context.Context, reqCtx *RequestContext) error {
 		return reqCtx.SendOK(nil)
 	})
-	testutils.AssertNoError(t, err, "register handler")
+	core.AssertNoError(t, err, "register handler")
 
 	return handler, pathHash
 }
@@ -602,12 +603,12 @@ func runConcurrentSubscriptions(t *testing.T, handler *DefaultMessageHandler, pa
 
 	subscribeErrors := subscribeHelper.Run()
 	for i, err := range subscribeErrors {
-		testutils.AssertNoError(t, err, fmt.Sprintf("subscribe goroutine %d failed", i))
+		core.AssertNoError(t, err, fmt.Sprintf("subscribe goroutine %d failed", i))
 	}
 
 	// Verify all subscriptions were created
 	expectedSubscriptions := numGoroutines * numSubscriptionsPerGoroutine
-	testutils.AssertEqual(t, expectedSubscriptions, countSubscriptions(t, handler, pathHash),
+	core.AssertEqual(t, expectedSubscriptions, countSubscriptions(t, handler, pathHash),
 		"all subscriptions created")
 }
 
@@ -626,11 +627,11 @@ func runConcurrentUnsubscribeOperations(t *testing.T, handler *DefaultMessageHan
 
 	unsubscribeErrors := unsubscribeHelper.Run()
 	for i, err := range unsubscribeErrors {
-		testutils.AssertNoError(t, err, fmt.Sprintf("unsubscribe goroutine %d failed", i))
+		core.AssertNoError(t, err, fmt.Sprintf("unsubscribe goroutine %d failed", i))
 	}
 
 	// Verify all subscriptions were removed
-	testutils.MustWaitForCondition(t,
+	testutils.AssertWaitForCondition(t,
 		func() bool { return countSubscriptions(t, handler, pathHash) == 0 },
 		5*time.Second, "all subscriptions removed")
 }
@@ -683,20 +684,20 @@ func TestUnsubscribeByRequestIDEdgeCases(t *testing.T) {
 func testUnsubscribeByRequestIDNilHandler(t *testing.T) {
 	var nilHandler *DefaultMessageHandler
 	removed := nilHandler.unsubscribeByRequestID("session", 123, 456)
-	testutils.AssertEqual(t, false, removed, "nil handler")
+	core.AssertEqual(t, false, removed, "nil handler")
 }
 
 func testUnsubscribeByRequestIDEmptySession(t *testing.T, handler *DefaultMessageHandler) {
 	removed := handler.unsubscribeByRequestID("", 123, 456)
-	testutils.AssertEqual(t, false, removed, "empty session ID")
+	core.AssertEqual(t, false, removed, "empty session ID")
 }
 
 func testUnsubscribeByRequestIDZeroHash(t *testing.T, handler *DefaultMessageHandler) {
 	removed := handler.unsubscribeByRequestID("session", 123, 0)
-	testutils.AssertEqual(t, false, removed, "zero path hash")
+	core.AssertEqual(t, false, removed, "zero path hash")
 }
 
 func testUnsubscribeByRequestIDNonExistentHash(t *testing.T, handler *DefaultMessageHandler) {
 	removed := handler.unsubscribeByRequestID("session", 123, 999999)
-	testutils.AssertEqual(t, false, removed, "non-existent path hash")
+	core.AssertEqual(t, false, removed, "non-existent path hash")
 }
