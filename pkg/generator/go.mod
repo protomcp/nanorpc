@@ -2,6 +2,13 @@ module protomcp.org/nanorpc/pkg/generator
 
 go 1.23.0
 
-require github.com/amery/protogen v0.3.11
+require (
+	darvaza.org/core v0.18.0
+	github.com/amery/protogen v0.3.11
+)
 
-require google.golang.org/protobuf v1.36.6 // indirect
+require (
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
+)
