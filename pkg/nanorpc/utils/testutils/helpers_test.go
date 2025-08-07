@@ -21,6 +21,8 @@ var _ core.TestCase = waitForConditionLoopTestCase{}
 var _ core.TestCase = assertWaitForConditionErrorMessageTestCase{}
 var _ core.TestCase = assertWaitForConditionEmptyNameTestCase{}
 var _ core.TestCase = assertFieldTypeIsTestCase{}
+var _ core.TestCase = assertFieldTestCase{}
+var _ core.TestCase = assertNotFieldTestCase{}
 
 // getFieldTestCase tests GetField function
 // Fields ordered for memory efficiency (large to small)
@@ -665,4 +667,142 @@ func assertFieldTypeIsTestCases() []assertFieldTypeIsTestCase {
 
 func TestAssertFieldTypeIs(t *testing.T) {
 	core.RunTestCases(t, assertFieldTypeIsTestCases())
+}
+
+// assertFieldTestCase tests AssertField function
+// Fields ordered for memory efficiency (large to small)
+type assertFieldTestCase struct {
+	// 16+ bytes (map, interface)
+	input    map[string]any
+	expected any
+	// 16 bytes (string headers)
+	name     string
+	field    string
+	testName string
+	// 1 byte (bool)
+	wantOK bool
+}
+
+func (tc assertFieldTestCase) Name() string {
+	return tc.testName
+}
+
+func (tc assertFieldTestCase) Test(t *testing.T) {
+	t.Helper()
+
+	mock := &core.MockT{}
+	result, ok := AssertField(mock, tc.input, tc.field, tc.name)
+
+	core.AssertEqual(t, tc.wantOK, ok, "field assertion")
+
+	if tc.wantOK {
+		core.AssertFalse(t, mock.HasErrors(), "should not have errors on success")
+		core.AssertEqual(t, tc.expected, result, "field value")
+	} else {
+		core.AssertTrue(t, mock.HasErrors(), "should have errors on failure")
+		if len(mock.Errors) > 0 {
+			errorMsg := mock.Errors[0]
+			core.AssertContains(t, errorMsg, "not found", "missing field error")
+		}
+	}
+}
+
+// Factory function for assertFieldTestCase
+//
+//revive:disable-next-line:argument-limit
+func newAssertFieldTestCase(testName, field string, input map[string]any,
+	expected any, wantOK bool) assertFieldTestCase {
+	return assertFieldTestCase{
+		testName: testName,
+		name:     "field",
+		field:    field,
+		input:    input,
+		expected: expected,
+		wantOK:   wantOK,
+	}
+}
+
+func assertFieldTestCases() []assertFieldTestCase {
+	return []assertFieldTestCase{
+		newAssertFieldTestCase("field exists", "name",
+			map[string]any{"name": "test"}, "test", true),
+		newAssertFieldTestCase("field missing", "missing",
+			map[string]any{"other": "value"}, nil, false),
+		newAssertFieldTestCase("nil map", "key", nil, nil, false),
+		newAssertFieldTestCase("empty map", "key",
+			map[string]any{}, nil, false),
+		newAssertFieldTestCase("nil value exists", "nil_key",
+			map[string]any{"nil_key": nil}, nil, true),
+	}
+}
+
+func TestAssertField(t *testing.T) {
+	core.RunTestCases(t, assertFieldTestCases())
+}
+
+// assertNotFieldTestCase tests AssertNotField function
+// Fields ordered for memory efficiency (large to small)
+type assertNotFieldTestCase struct {
+	// 16+ bytes (map)
+	input map[string]any
+	// 16 bytes (string headers)
+	name     string
+	field    string
+	testName string
+	// 1 byte (bool)
+	wantOK bool
+}
+
+func (tc assertNotFieldTestCase) Name() string {
+	return tc.testName
+}
+
+func (tc assertNotFieldTestCase) Test(t *testing.T) {
+	t.Helper()
+
+	mock := &core.MockT{}
+	ok := AssertNotField(mock, tc.input, tc.field, tc.name)
+
+	core.AssertEqual(t, tc.wantOK, ok, "not field assertion")
+
+	if tc.wantOK {
+		core.AssertFalse(t, mock.HasErrors(), "should not have errors on success")
+	} else {
+		core.AssertTrue(t, mock.HasErrors(), "should have errors on failure")
+		if len(mock.Errors) > 0 {
+			errorMsg := mock.Errors[0]
+			core.AssertContains(t, errorMsg, "should not exist", "field exists error")
+			core.AssertContains(t, errorMsg, "got", "error shows value")
+		}
+	}
+}
+
+// Factory function for assertNotFieldTestCase
+func newAssertNotFieldTestCase(testName, field string, input map[string]any,
+	wantOK bool) assertNotFieldTestCase {
+	return assertNotFieldTestCase{
+		testName: testName,
+		name:     "field",
+		field:    field,
+		input:    input,
+		wantOK:   wantOK,
+	}
+}
+
+func assertNotFieldTestCases() []assertNotFieldTestCase {
+	return []assertNotFieldTestCase{
+		newAssertNotFieldTestCase("field does not exist", "missing",
+			map[string]any{"other": "value"}, true),
+		newAssertNotFieldTestCase("nil map", "key", nil, true),
+		newAssertNotFieldTestCase("empty map", "key",
+			map[string]any{}, true),
+		newAssertNotFieldTestCase("field exists", "name",
+			map[string]any{"name": "test"}, false),
+		newAssertNotFieldTestCase("nil value exists", "nil_key",
+			map[string]any{"nil_key": nil}, false),
+	}
+}
+
+func TestAssertNotField(t *testing.T) {
+	core.RunTestCases(t, assertNotFieldTestCases())
 }
