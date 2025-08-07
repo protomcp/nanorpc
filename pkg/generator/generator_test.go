@@ -28,14 +28,14 @@ func (tc newGeneratorTestCase) Test(t *testing.T) {
 	gen, err := NewGenerator(tc.plugin)
 
 	if tc.wantErr {
-		core.AssertError(t, err, "expected error")
-		core.AssertNil(t, gen, "expected nil generator")
+		core.AssertError(t, err, "error")
+		core.AssertNil(t, gen, "generator")
 		return
 	}
 
 	core.AssertNoError(t, err, "unexpected error")
-	core.AssertNotNil(t, gen, "expected non-nil generator")
-	core.AssertEqual(t, tc.plugin, gen.p, "plugin mismatch")
+	core.AssertNotNil(t, gen, "generator")
+	core.AssertEqual(t, tc.plugin, gen.p, "plugin")
 	core.AssertNil(t, gen.t, "template should be nil initially")
 }
 
@@ -80,7 +80,7 @@ func (tc withTemplatesTestCase) Test(t *testing.T) {
 	// Skip actual filesystem operation and just check the error condition
 	if gen.t != nil {
 		// Generator already has templates
-		core.AssertTrue(t, tc.wantErr, "expected error for generator with existing templates")
+		core.AssertTrue(t, tc.wantErr, "generator error")
 		return
 	}
 
