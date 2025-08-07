@@ -82,11 +82,9 @@ func (tc statusCodeTestCase) test(t *testing.T) {
 
 	err := ResponseAsError(res)
 	if tc.isError {
-		if err == nil {
-			t.Errorf("Expected error for status %v", tc.value)
-		}
-	} else if err != nil {
-		t.Errorf("Expected no error for status %v, got: %v", tc.value, err)
+		core.AssertError(t, err, "error")
+	} else {
+		core.AssertNoError(t, err, "no error")
 	}
 }
 
