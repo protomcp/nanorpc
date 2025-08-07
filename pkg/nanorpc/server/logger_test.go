@@ -15,7 +15,7 @@ import (
 func TestServerDefaultLogger(t *testing.T) {
 	s := &Server{}
 	logger := s.getLogger()
-	core.AssertNotNil(t, logger, "default logger should not be nil")
+	core.AssertNotNil(t, logger, "logger")
 
 	// Verify it doesn't panic
 	logger.Info().Print("test message")
@@ -27,7 +27,7 @@ func TestServerCustomLogger(t *testing.T) {
 	s := &Server{logger: customLogger}
 	logger := s.getLogger()
 
-	core.AssertEqual[slog.Logger](t, customLogger, logger, "should return custom logger")
+	core.AssertEqual[slog.Logger](t, customLogger, logger, "logger")
 }
 
 // Test Server.WithDebug
@@ -42,7 +42,7 @@ func TestServerWithDebug(t *testing.T) {
 
 	// Verify the logger has the correct level
 	if ml, ok := logger.(*testutils.MockFieldLogger); ok {
-		core.AssertEqual(t, slog.Debug, ml.CurrentLevel, "should have Debug level")
+		core.AssertEqual(t, slog.Debug, ml.CurrentLevel, "level")
 	}
 }
 
@@ -61,7 +61,7 @@ func TestServerLogInfo(t *testing.T) {
 	s.LogInfo(nil, "this should not log")
 
 	// No panic means test passed
-	core.AssertTrue(t, true, "LogInfo executed without panic")
+	core.AssertTrue(t, true, "LogInfo no panic")
 }
 
 // Test Server.WithError
@@ -72,13 +72,13 @@ func TestServerWithError(t *testing.T) {
 	testErr := errors.New("test error")
 
 	logger, ok := s.WithError(testErr)
-	core.AssertTrue(t, ok, "WithError should return true when error enabled")
-	core.AssertNotNil(t, logger, "WithError should return a logger")
+	core.AssertTrue(t, ok, "WithError ok")
+	core.AssertNotNil(t, logger, "WithError logger")
 
 	// Check error field was added
 	if ml, ok := logger.(*testutils.MockFieldLogger); ok {
 		if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, utils.FieldError, "error field"); ok {
-			core.AssertEqual(t, testErr, err, "should have error field")
+			core.AssertEqual(t, testErr, err, "error field")
 		}
 	}
 }
@@ -90,8 +90,8 @@ func TestSessionManagerWithInfo(t *testing.T) {
 	sm := &DefaultSessionManager{logger: mockLog}
 
 	logger, ok := sm.WithInfo()
-	core.AssertTrue(t, ok, "WithInfo should return true when info enabled")
-	core.AssertNotNil(t, logger, "WithInfo should return a logger")
+	core.AssertTrue(t, ok, "WithInfo ok")
+	core.AssertNotNil(t, logger, "WithInfo logger")
 }
 
 // Test Session logging with fields
@@ -108,26 +108,26 @@ func TestSessionWithDebug(t *testing.T) {
 	s := NewDefaultSession(mockConn, nil, mockLog)
 
 	logger, ok := s.WithDebug()
-	core.AssertTrue(t, ok, "WithDebug should return true when debug enabled")
-	core.AssertNotNil(t, logger, "WithDebug should return a logger")
+	core.AssertTrue(t, ok, "WithDebug ok")
+	core.AssertNotNil(t, logger, "WithDebug logger")
 
 	// Check session fields are added
 	if ml, ok := logger.(*testutils.MockFieldLogger); ok {
 		// Check component field
 		if component, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields,
 			utils.FieldComponent, "component field"); ok {
-			core.AssertEqual(t, utils.ComponentSession, component, "should have session component")
+			core.AssertEqual(t, utils.ComponentSession, component, "component")
 		}
 
 		// Check session ID field
 		if sid, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, utils.FieldSessionID, "session_id field"); ok {
-			core.AssertEqual(t, s.ID(), sid, "should have session ID")
+			core.AssertEqual(t, s.ID(), sid, "session_id")
 		}
 
 		// Check remote address field
 		if addr, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields,
 			utils.FieldRemoteAddr, "remote_addr field"); ok {
-			core.AssertEqual(t, "127.0.0.1:12345", addr, "should have remote address")
+			core.AssertEqual(t, "127.0.0.1:12345", addr, "remote_addr")
 		}
 	}
 }
@@ -152,8 +152,8 @@ func TestServerLogAccept(t *testing.T) {
 	s.logAccept(conn)
 
 	// Verify the method handles the connection properly
-	core.AssertEqual(t, "127.0.0.1:8080", conn.LocalAddr().String(), "local address should match")
-	core.AssertEqual(t, "192.168.1.1:12345", conn.RemoteAddr().String(), "remote address should match")
+	core.AssertEqual(t, "127.0.0.1:8080", conn.LocalAddr().String(), "local addr")
+	core.AssertEqual(t, "192.168.1.1:12345", conn.RemoteAddr().String(), "remote addr")
 }
 
 // Test additional Server logging methods
@@ -178,8 +178,8 @@ func TestServerWithWarn(t *testing.T) {
 	testErr := errors.New("test warning")
 
 	logger, ok := s.WithWarn(testErr)
-	core.AssertTrue(t, ok, "WithWarn should return true when warn enabled")
-	core.AssertNotNil(t, logger, "WithWarn should return a logger")
+	core.AssertTrue(t, ok, "WithWarn ok")
+	core.AssertNotNil(t, logger, "WithWarn logger")
 }
 
 func TestServerLogWarn(_ *testing.T) {
@@ -213,8 +213,8 @@ func TestSessionManagerWithDebug(t *testing.T) {
 	sm := &DefaultSessionManager{logger: mockLog}
 
 	logger, ok := sm.WithDebug()
-	core.AssertTrue(t, ok, "WithDebug should return true when debug enabled")
-	core.AssertNotNil(t, logger, "WithDebug should return a logger")
+	core.AssertTrue(t, ok, "WithDebug ok")
+	core.AssertNotNil(t, logger, "WithDebug logger")
 }
 
 func TestSessionManagerLogDebug(_ *testing.T) {
@@ -237,8 +237,8 @@ func TestSessionManagerWithWarn(t *testing.T) {
 	testErr := errors.New("test warning")
 
 	logger, ok := sm.WithWarn(testErr)
-	core.AssertTrue(t, ok, "WithWarn should return true when warn enabled")
-	core.AssertNotNil(t, logger, "WithWarn should return a logger")
+	core.AssertTrue(t, ok, "WithWarn ok")
+	core.AssertNotNil(t, logger, "WithWarn logger")
 }
 
 func TestSessionManagerLogWarn(_ *testing.T) {
@@ -262,8 +262,8 @@ func TestSessionManagerWithError(t *testing.T) {
 	testErr := errors.New("test error")
 
 	logger, ok := sm.WithError(testErr)
-	core.AssertTrue(t, ok, "WithError should return true when error enabled")
-	core.AssertNotNil(t, logger, "WithError should return a logger")
+	core.AssertTrue(t, ok, "WithError ok")
+	core.AssertNotNil(t, logger, "WithError logger")
 }
 
 func TestSessionManagerLogError(_ *testing.T) {
@@ -284,8 +284,8 @@ func TestSessionWithInfo(t *testing.T) {
 	s := NewDefaultSession(mockConn, nil, mockLog)
 
 	logger, ok := s.WithInfo()
-	core.AssertTrue(t, ok, "WithInfo should return true when info enabled")
-	core.AssertNotNil(t, logger, "WithInfo should return a logger")
+	core.AssertTrue(t, ok, "WithInfo ok")
+	core.AssertNotNil(t, logger, "WithInfo logger")
 }
 
 func TestSessionLogDebug(_ *testing.T) {
@@ -324,8 +324,8 @@ func TestSessionWithWarn(t *testing.T) {
 	testErr := errors.New("test warning")
 
 	logger, ok := s.WithWarn(testErr)
-	core.AssertTrue(t, ok, "WithWarn should return true when warn enabled")
-	core.AssertNotNil(t, logger, "WithWarn should return a logger")
+	core.AssertTrue(t, ok, "WithWarn ok")
+	core.AssertNotNil(t, logger, "WithWarn logger")
 }
 
 func TestSessionLogWarn(_ *testing.T) {
@@ -351,8 +351,8 @@ func TestSessionWithError(t *testing.T) {
 	testErr := errors.New("test error")
 
 	logger, ok := s.WithError(testErr)
-	core.AssertTrue(t, ok, "WithError should return true when error enabled")
-	core.AssertNotNil(t, logger, "WithError should return a logger")
+	core.AssertTrue(t, ok, "WithError ok")
+	core.AssertNotNil(t, logger, "WithError logger")
 }
 
 func TestSessionLogError(_ *testing.T) {

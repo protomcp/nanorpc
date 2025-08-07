@@ -64,7 +64,7 @@ func TestSubscriptionMapOperations(t *testing.T) {
 	sm := make(SubscriptionMap)
 
 	// Test empty map
-	core.AssertNil(t, sm.GetSubscribers(123), "empty map should return nil")
+	core.AssertNil(t, sm.GetSubscribers(123), "subscribers")
 
 	// Create test subscriptions
 	sub1 := newTestSubscription(sessionID1, 1, 123)
@@ -74,31 +74,31 @@ func TestSubscriptionMapOperations(t *testing.T) {
 	// Test AddSubscription
 	sm.AddSubscription(123, sub1)
 	subList := sm.GetSubscribers(123)
-	core.AssertNotNil(t, subList, "subscription list should exist")
-	core.AssertEqual(t, 1, subList.Len(), "should have one subscription")
+	core.AssertNotNil(t, subList, "subscription list")
+	core.AssertEqual(t, 1, subList.Len(), "subscription count")
 
 	// Add second subscription to same path
 	sm.AddSubscription(123, sub2)
 	subList = sm.GetSubscribers(123)
-	core.AssertEqual(t, 2, subList.Len(), "should have two subscriptions")
+	core.AssertEqual(t, 2, subList.Len(), "subscription count")
 
 	// Add subscription to different path
 	sm.AddSubscription(456, sub3)
 	subList456 := sm.GetSubscribers(456)
-	core.AssertNotNil(t, subList456, "subscription list for 456 should exist")
-	core.AssertEqual(t, 1, subList456.Len(), "should have one subscription for path 456")
+	core.AssertNotNil(t, subList456, "subscription list")
+	core.AssertEqual(t, 1, subList456.Len(), "subscription count")
 
 	// Verify original path still has two subscriptions
 	subList = sm.GetSubscribers(123)
-	core.AssertEqual(t, 2, subList.Len(), "path 123 should still have two subscriptions")
+	core.AssertEqual(t, 2, subList.Len(), "subscription count")
 
 	// Test RemoveForSession - remove session1
 	sm.RemoveForSession(sessionID1)
 
 	// Path 123 should now have only one subscription (session2)
 	subList = sm.GetSubscribers(123)
-	core.AssertNotNil(t, subList, "subscription list should still exist")
-	core.AssertEqual(t, 1, subList.Len(), "should have one subscription after removal")
+	core.AssertNotNil(t, subList, "subscription list")
+	core.AssertEqual(t, 1, subList.Len(), "subscription count")
 
 	// Verify it's session2's subscription
 	var foundSession2 bool
@@ -108,18 +108,18 @@ func TestSubscriptionMapOperations(t *testing.T) {
 		}
 		return true
 	})
-	core.AssertTrue(t, foundSession2, "should find session2's subscription")
+	core.AssertTrue(t, foundSession2, "session2 found")
 
 	// Path 456 should be removed entirely (it only had session1's subscription)
 	subList456 = sm.GetSubscribers(456)
-	core.AssertNil(t, subList456, "path 456 should be removed entirely")
+	core.AssertNil(t, subList456, "path removed")
 
 	// Remove session2
 	sm.RemoveForSession(sessionID2)
 
 	// Path 123 should now be removed entirely
 	subList = sm.GetSubscribers(123)
-	core.AssertNil(t, subList, "path 123 should be removed entirely")
+	core.AssertNil(t, subList, "path removed")
 
 	// Test RemoveForSession with non-existent session (should not panic)
 	sm.RemoveForSession("non-existent")
@@ -139,18 +139,18 @@ func TestActiveSubscriptionFieldAlignment(t *testing.T) {
 	pathHashOffset := unsafe.Offsetof(sub.PathHash)
 
 	// Session and CreatedAt should be 8-byte aligned
-	core.AssertEqual(t, uintptr(0), sessionOffset%8, "Session should be 8-byte aligned")
-	core.AssertEqual(t, uintptr(0), createdAtOffset%8, "CreatedAt should be 8-byte aligned")
-	core.AssertEqual(t, uintptr(0), filterOffset%8, "Filter should be 8-byte aligned")
+	core.AssertEqual(t, uintptr(0), sessionOffset%8, "Session alignment")
+	core.AssertEqual(t, uintptr(0), createdAtOffset%8, "CreatedAt alignment")
+	core.AssertEqual(t, uintptr(0), filterOffset%8, "Filter alignment")
 
 	// RequestID and PathHash should be 4-byte aligned
-	core.AssertEqual(t, uintptr(0), requestIDOffset%4, "RequestID should be 4-byte aligned")
-	core.AssertEqual(t, uintptr(0), pathHashOffset%4, "PathHash should be 4-byte aligned")
+	core.AssertEqual(t, uintptr(0), requestIDOffset%4, "RequestID alignment")
+	core.AssertEqual(t, uintptr(0), pathHashOffset%4, "PathHash alignment")
 
 	// Verify the order is optimal (8-byte fields first)
-	core.AssertTrue(t, sessionOffset < requestIDOffset, "8-byte fields should come before 4-byte fields")
-	core.AssertTrue(t, createdAtOffset < requestIDOffset, "8-byte fields should come before 4-byte fields")
-	core.AssertTrue(t, filterOffset < requestIDOffset, "8-byte fields should come before 4-byte fields")
+	core.AssertTrue(t, sessionOffset < requestIDOffset, "field ordering")
+	core.AssertTrue(t, createdAtOffset < requestIDOffset, "field ordering")
+	core.AssertTrue(t, filterOffset < requestIDOffset, "field ordering")
 }
 
 // subscribeTestCase represents a test case for the Subscribe method
@@ -172,18 +172,18 @@ func (tc *subscribeTestCase) test(t *testing.T) {
 	err := handler.Subscribe(context.Background(), session, tc.request)
 
 	if tc.expectError {
-		core.AssertError(t, err, "expected error")
+		core.AssertError(t, err, "error")
 		return
 	}
 
-	core.AssertNoError(t, err, "unexpected error")
+	core.AssertNoError(t, err, "error")
 
 	// Verify response
 	response := session.GetLastResponse()
-	core.AssertNotNil(t, response, "response should be sent")
-	core.AssertEqual(t, tc.request.RequestId, response.RequestId, "response request ID mismatch")
-	core.AssertEqual(t, nanorpc.NanoRPCResponse_TYPE_RESPONSE, response.ResponseType, "response type mismatch")
-	core.AssertEqual(t, tc.expectedStatus, response.ResponseStatus, "response status mismatch")
+	core.AssertNotNil(t, response, "response")
+	core.AssertEqual(t, tc.request.RequestId, response.RequestId, "request ID")
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_TYPE_RESPONSE, response.ResponseType, "response type")
+	core.AssertEqual(t, tc.expectedStatus, response.ResponseStatus, "response status")
 
 	// Run additional verifications
 	if tc.verifyFunc != nil {
@@ -203,11 +203,11 @@ func testSuccessfulSubscriptionWithStringPath() subscribeTestCase {
 		verifyFunc: func(t *testing.T, h *DefaultMessageHandler, s *mockSession) {
 			// Verify subscription was added
 			pathHash, err := h.hashCache.Hash("/test/path")
-			core.AssertNoError(t, err, "hash computation failed")
+			core.AssertNoError(t, err, "hash error")
 
 			subList := h.subscriptions.GetSubscribers(pathHash)
-			core.AssertNotNil(t, subList, "subscription list should exist")
-			core.AssertEqual(t, 1, subList.Len(), "should have one subscription")
+			core.AssertNotNil(t, subList, "subscription list")
+			core.AssertEqual(t, 1, subList.Len(), "subscription count")
 
 			// Verify subscription details
 			var foundSub *ActiveSubscription
@@ -215,11 +215,11 @@ func testSuccessfulSubscriptionWithStringPath() subscribeTestCase {
 				foundSub = sub
 				return true
 			})
-			core.AssertNotNil(t, foundSub, "subscription not found")
-			core.AssertEqual(t, s.ID(), foundSub.Session.ID(), "session ID mismatch")
-			core.AssertEqual(t, int32(123), foundSub.RequestID, "request ID mismatch")
-			core.AssertEqual(t, pathHash, foundSub.PathHash, "path hash mismatch")
-			core.AssertEqual(t, "filter-data", string(foundSub.Filter), "filter mismatch")
+			core.AssertNotNil(t, foundSub, "subscription")
+			core.AssertEqual(t, s.ID(), foundSub.Session.ID(), "session ID")
+			core.AssertEqual(t, int32(123), foundSub.RequestID, "request ID")
+			core.AssertEqual(t, pathHash, foundSub.PathHash, "path hash")
+			core.AssertEqual(t, "filter-data", string(foundSub.Filter), "filter")
 		},
 	}
 }
@@ -241,8 +241,8 @@ func testSuccessfulSubscriptionWithHashPath() subscribeTestCase {
 		expectedStatus: nanorpc.NanoRPCResponse_STATUS_OK,
 		verifyFunc: func(t *testing.T, h *DefaultMessageHandler, _ *mockSession) {
 			subList := h.subscriptions.GetSubscribers(pathHash)
-			core.AssertNotNil(t, subList, "subscription list should exist")
-			core.AssertEqual(t, 1, subList.Len(), "should have one subscription")
+			core.AssertNotNil(t, subList, "subscription list")
+			core.AssertEqual(t, 1, subList.Len(), "subscription count")
 
 			// Verify subscription details
 			var foundSub *ActiveSubscription
@@ -250,9 +250,9 @@ func testSuccessfulSubscriptionWithHashPath() subscribeTestCase {
 				foundSub = sub
 				return true
 			})
-			core.AssertNotNil(t, foundSub, "subscription not found")
-			core.AssertEqual(t, pathHash, foundSub.PathHash, "path hash mismatch")
-			core.AssertEqual(t, "filter-data-2", string(foundSub.Filter), "filter mismatch")
+			core.AssertNotNil(t, foundSub, "subscription")
+			core.AssertEqual(t, pathHash, foundSub.PathHash, "path hash")
+			core.AssertEqual(t, "filter-data-2", string(foundSub.Filter), "filter")
 		},
 	}
 }
@@ -302,29 +302,29 @@ func TestPublishByHashNoSubscribers(t *testing.T) {
 
 	// Test publishing to path with no subscribers
 	err := handler.PublishByHash(12345, []byte("test-data"))
-	core.AssertNoError(t, err, "publish to empty path should succeed")
+	core.AssertNoError(t, err, "publish error")
 
 	// Test nil handler
 	err = (*DefaultMessageHandler)(nil).PublishByHash(12345, []byte("test-data"))
-	core.AssertError(t, err, "nil handler should return error")
+	core.AssertError(t, err, "nil handler error")
 }
 
 // Helper function to verify update details
 func verifyUpdateDetails(t *testing.T, updates []pendingUpdate) {
 	for i, update := range updates {
-		core.AssertNotNil(t, update.session, "session should not be nil")
-		core.AssertNotNil(t, update.message, "message should not be nil")
+		core.AssertNotNil(t, update.session, "session")
+		core.AssertNotNil(t, update.message, "message")
 		core.AssertEqual(t, nanorpc.NanoRPCResponse_TYPE_UPDATE, update.message.ResponseType,
-			"should be TYPE_UPDATE")
+			"response type")
 		core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, update.message.ResponseStatus,
-			"should be STATUS_OK")
-		core.AssertEqual(t, "update-data", string(update.message.Data), "data should match")
+			"response status")
+		core.AssertEqual(t, "update-data", string(update.message.Data), "data")
 
 		// Check request ID matches subscription
 		if update.session.ID() == sessionID1 {
-			core.AssertEqual(t, int32(100), update.message.RequestId, "request ID should match session1")
+			core.AssertEqual(t, int32(100), update.message.RequestId, "request ID")
 		} else if update.session.ID() == sessionID2 {
-			core.AssertEqual(t, int32(200), update.message.RequestId, "request ID should match session2")
+			core.AssertEqual(t, int32(200), update.message.RequestId, "request ID")
 		} else {
 			t.Errorf("unexpected session ID: %s", update.session.ID())
 		}
@@ -337,7 +337,7 @@ func TestCollectPendingUpdates(t *testing.T) {
 
 	t.Run("NoSubscribers", func(t *testing.T) {
 		updates := handler.collectPendingUpdates(12345, []byte("test-data"))
-		core.AssertEqual(t, 0, len(updates), "should return no updates for empty path")
+		core.AssertEqual(t, 0, len(updates), "update count")
 	})
 
 	t.Run("WithSubscribers", func(t *testing.T) {
@@ -350,12 +350,12 @@ func TestCollectPendingUpdates(t *testing.T) {
 
 		// Verify both subscriptions were added
 		subList := handler.subscriptions.GetSubscribers(12345)
-		core.AssertEqual(t, 2, subList.Len(), "should have two subscriptions in the list")
+		core.AssertEqual(t, 2, subList.Len(), "subscription count")
 
 		// Test collecting updates
 		testData := []byte("update-data")
 		updates := handler.collectPendingUpdates(12345, testData)
-		core.AssertEqual(t, 2, len(updates), "should return two updates")
+		core.AssertEqual(t, 2, len(updates), "update count")
 
 		// Verify update details
 		verifyUpdateDetails(t, updates)
@@ -375,7 +375,7 @@ func TestCollectPendingUpdates(t *testing.T) {
 
 		// Should still return only 2 updates (skipping nil session)
 		updates := handler.collectPendingUpdates(12345, []byte("update-data"))
-		core.AssertEqual(t, 2, len(updates), "should skip subscription with nil session")
+		core.AssertEqual(t, 2, len(updates), "update count")
 	})
 }
 
@@ -392,16 +392,16 @@ func TestRemoveSubscriptionsForSession(t *testing.T) {
 	handler.subscriptions.AddSubscription(456, sub3)
 
 	// Verify initial state
-	core.AssertEqual(t, 2, handler.subscriptions.GetSubscribers(123).Len(), "path 123 should have 2 subscriptions")
-	core.AssertEqual(t, 1, handler.subscriptions.GetSubscribers(456).Len(), "path 456 should have 1 subscription")
+	core.AssertEqual(t, 2, handler.subscriptions.GetSubscribers(123).Len(), "subscription count")
+	core.AssertEqual(t, 1, handler.subscriptions.GetSubscribers(456).Len(), "subscription count")
 
 	// Remove session1's subscriptions
 	handler.RemoveSubscriptionsForSession(sessionID1)
 
 	// Path 123 should have only session2's subscription
 	subList123 := handler.subscriptions.GetSubscribers(123)
-	core.AssertNotNil(t, subList123, "path 123 should still exist")
-	core.AssertEqual(t, 1, subList123.Len(), "path 123 should have 1 subscription")
+	core.AssertNotNil(t, subList123, "subscription list")
+	core.AssertEqual(t, 1, subList123.Len(), "subscription count")
 
 	var foundSession2 bool
 	subList123.ForEach(func(sub *ActiveSubscription) bool {
@@ -410,11 +410,11 @@ func TestRemoveSubscriptionsForSession(t *testing.T) {
 		}
 		return true
 	})
-	core.AssertTrue(t, foundSession2, "should find session2's subscription")
+	core.AssertTrue(t, foundSession2, "session2 found")
 
 	// Path 456 should be removed entirely
 	subList456 := handler.subscriptions.GetSubscribers(456)
-	core.AssertNil(t, subList456, "path 456 should be removed")
+	core.AssertNil(t, subList456, "path removed")
 
 	// Test with nil handler (should not panic)
 	(*DefaultMessageHandler)(nil).RemoveSubscriptionsForSession("test")
@@ -433,7 +433,7 @@ func startPublishWorkers(t *testing.T, wg *sync.WaitGroup, handler *DefaultMessa
 			for range numOps {
 				data := []byte("test-data")
 				err := handler.PublishByHash(pathHash, data)
-				core.AssertNoError(t, err, "concurrent publish should succeed")
+				core.AssertNoError(t, err, "publish error")
 			}
 		}()
 	}
@@ -454,7 +454,7 @@ func startSubscribeWorkers(t *testing.T, wg *sync.WaitGroup, handler *DefaultMes
 				session := newTestSession(concurrentSessionID, uint16(workerID))
 				req := newTestSubscribeRequest(int32(workerID*1000+j), testPath, nil)
 				err := handler.Subscribe(context.Background(), session, req)
-				core.AssertNoError(t, err, "concurrent subscribe should succeed")
+				core.AssertNoError(t, err, "subscribe error")
 			}
 		}(i)
 	}
@@ -466,13 +466,13 @@ func TestPublishByHashLockSafety(t *testing.T) {
 	// Register a test path and get its hash
 	testPath := "/test/concurrent/path"
 	pathHash, err := handler.hashCache.Hash(testPath)
-	core.AssertNoError(t, err, "hash computation should succeed")
+	core.AssertNoError(t, err, "hash error")
 
 	// Add initial subscription using Subscribe method with string path
 	session := newTestSession("", 0)
 	req := newTestSubscribeRequest(123, testPath, []byte("filter"))
 	err = handler.Subscribe(context.Background(), session, req)
-	core.AssertNoError(t, err, "initial subscribe should succeed")
+	core.AssertNoError(t, err, "subscribe error")
 
 	// Test concurrent operations
 	var wg sync.WaitGroup
@@ -486,13 +486,13 @@ func TestPublishByHashLockSafety(t *testing.T) {
 
 	// Verify results
 	subList := handler.subscriptions.GetSubscribers(pathHash)
-	core.AssertNotNil(t, subList, "subscription list should exist after concurrent operations")
-	core.AssertTrue(t, subList.Len() >= 1, "should have at least the original subscription")
+	core.AssertNotNil(t, subList, "subscription list")
+	core.AssertTrue(t, subList.Len() >= 1, "subscription count")
 
 	// Verify updates were received
 	responses := session.GetAllResponses()
 	core.AssertTrue(t, len(responses) > 0,
-		"session should have received at least some responses")
+		"response count")
 
 	// Count TYPE_UPDATE messages (skip the initial TYPE_RESPONSE from Subscribe)
 	updateCount := 0
@@ -500,8 +500,8 @@ func TestPublishByHashLockSafety(t *testing.T) {
 		if resp.ResponseType == nanorpc.NanoRPCResponse_TYPE_UPDATE {
 			updateCount++
 			core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, resp.ResponseStatus,
-				"all updates should be STATUS_OK")
+				"response status")
 		}
 	}
-	core.AssertTrue(t, updateCount > 0, "should have received at least one TYPE_UPDATE message")
+	core.AssertTrue(t, updateCount > 0, "update count")
 }

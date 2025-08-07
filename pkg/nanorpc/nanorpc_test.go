@@ -105,7 +105,7 @@ func (tc decodeResponseDataTestCase) Test(t *testing.T) {
 	result, hasData, err := DecodeResponseData(tc.response, out)
 
 	if tc.wantErr {
-		core.AssertError(t, err, "expected error")
+		core.AssertError(t, err, "error")
 		return
 	}
 
