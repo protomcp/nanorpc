@@ -8,7 +8,7 @@ set -eu
 # list of directories with go.mod
 MODULES=$(find ./* -name go.mod | sed -e 's;^\./;;' | tr '\n' '\0' | xargs -n1 -0r dirname)
 # shellcheck disable=2178 # space delimited list of grouping prefixes
-GROUPS=pkg
+GROUPS="handlers"
 
 mod() {
 	local d="${1:-.}"
@@ -51,7 +51,7 @@ gen_index() {
 }
 
 ROOT_MODULE=$(mod)
-# shellcheck disable=2086 # word splitting intended
+# shellcheck disable=SC2086 # word splitting intended
 INDEX=$(gen_index $MODULES)
 
 echo "$INDEX" | while IFS=: read -r name dir mod; do

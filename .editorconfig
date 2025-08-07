@@ -1,27 +1,22 @@
-# editorconfig.org
+# http://editorconfig.org
+
 root = true
 
 [*]
+charset = utf-8
+end_of_line = lf
 indent_style = tab
 indent_size = 8
-end_of_line = lf
-charset = utf-8
-trim_trailing_whitespace = true
 insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 80
 
 [*.go]
-indent_style = tab
 indent_size = 4
 
-[.vscode/*.json]
-indent_style = tab
-indent_size = 4
-
-[*.md]
-indent_style = space
-indent_size = 4
-trim_trailing_whitespace = false
-
-[*.{proto,yaml,yml}]
+[*.{json,yaml,yml,md}]
 indent_style = space
 indent_size = 2
+
+[{go.mod,go.sum}]
+max_line_length = off

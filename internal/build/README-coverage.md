@@ -1,6 +1,6 @@
 # Coverage Testing for Monorepo
 
-This document explains the coverage testing setup for the core monorepo.
+This document explains the coverage testing setup for monorepos.
 
 ## Overview
 
@@ -29,12 +29,14 @@ module_name:directory:go_module_path
 This script:
 
 - Reads the module index.
-- Runs `go test -coverprofile -coverpkg=./... ./...` for each module, using
-  `go -C` to change directory (requires Go 1.23+). This recursively tests and
-  instruments all packages for coverage, including those without test files.
+- Runs `go test -coverprofile -coverpkg=./... ./...` for each module using
+  `go -C` to change directory (requires Go 1.23+). This tests all packages
+  recursively and instruments all packages for coverage, not just those with
+  test files.
 - Shows progress with module name and directory.
-- Merges all coverage files into a single `coverage.out`.
-- Optionally generates an HTML report.
+- Generates individual coverage files with pattern `coverage_${name}.prof`.
+- Creates multiple output formats: `.prof`, `.func`, `.html`, and `.stdout`.
+- Uses atomic coverage mode for accurate concurrent testing results.
 
 Environment variables:
 
@@ -44,16 +46,7 @@ Environment variables:
 
 ### 3. Codecov Script (`make_codecov.sh`)
 
-This script generates two files for Codecov integration:
-
-#### `codecov.yml`
-
-Configuration file that:
-
-- Defines flags for each module.
-- Sets up path mappings so coverage is attributed correctly.
-- Configures PR comment behaviour.
-- Sets coverage targets and thresholds.
+This script generates the upload script for Codecov integration:
 
 #### `codecov.sh`
 
@@ -88,7 +81,8 @@ COVERAGE_HTML=true make coverage
 
 The GitHub workflow:
 
-1. Runs `make codecov` which runs coverage and generates Codecov files.
+1. Runs `make clean-coverage codecov` to ensure clean state and generate
+   coverage.
 2. Executes `.tmp/coverage/codecov.sh` to upload coverage files.
 3. Each module's coverage is uploaded with its specific flag.
 
@@ -145,8 +139,9 @@ go -C <module_dir> test -v
 
 ### Coverage merge issues
 
-The coverage files are merged using simple concatenation. If you need more
-advanced merging, consider using external tools.
+The coverage files are merged using the `merge_coverage.sh` helper script.
+This properly handles coverage profile headers and data sections. For
+debugging, check individual module coverage files in `.tmp/coverage/`.
 
 ### Slow uploads
 
