@@ -1,5 +1,4 @@
-// Package common provides shared constants and types used by both client and server.
-package common
+package utils
 
 import (
 	"net"

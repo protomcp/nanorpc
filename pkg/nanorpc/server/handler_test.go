@@ -8,7 +8,7 @@ import (
 
 	"darvaza.org/core"
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils/testutils"
 )
 
 // Test helpers and factories

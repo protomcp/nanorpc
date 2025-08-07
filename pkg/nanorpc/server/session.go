@@ -14,7 +14,7 @@ import (
 	"darvaza.org/slog/handlers/discard"
 	"github.com/rs/xid"
 
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
 )
@@ -35,9 +35,9 @@ func NewDefaultSession(conn net.Conn, handler MessageHandler, logger slog.Logger
 	// Add session-specific fields to logger using common helpers
 	var sessionLogger slog.Logger
 	if logger != nil {
-		sessionLogger = common.WithComponent(logger, common.ComponentSession)
-		sessionLogger = common.WithSessionID(sessionLogger, sessionID)
-		sessionLogger = common.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
+		sessionLogger = utils.WithComponent(logger, utils.ComponentSession)
+		sessionLogger = utils.WithSessionID(sessionLogger, sessionID)
+		sessionLogger = utils.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
 	}
 
 	return &DefaultSession{
@@ -122,7 +122,7 @@ func (s *DefaultSession) decodeAndHandle(ctx context.Context, data []byte) error
 	req, _, err := nanorpc.DecodeRequest(data)
 	if err != nil {
 		s.getLogger().Error().
-			WithField(common.FieldError, err).
+			WithField(utils.FieldError, err).
 			WithField("data_length", len(data)).
 			WithField("data_preview", hexDump(data, 32)).
 			Print("Failed to decode request")
@@ -131,8 +131,8 @@ func (s *DefaultSession) decodeAndHandle(ctx context.Context, data []byte) error
 
 	if err := s.handler.HandleMessage(ctx, s, req); err != nil {
 		s.getLogger().Error().
-			WithField(common.FieldRequestID, req.GetRequestId()).
-			WithField(common.FieldError, err).
+			WithField(utils.FieldRequestID, req.GetRequestId()).
+			WithField(utils.FieldError, err).
 			Print("Handler error")
 		return nil // Continue on handler errors
 	}

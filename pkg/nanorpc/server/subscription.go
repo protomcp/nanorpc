@@ -9,7 +9,7 @@ import (
 	"darvaza.org/x/container/list"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // SubscriptionMap manages subscriptions organized by path hash
@@ -135,8 +135,8 @@ func (h *DefaultMessageHandler) PublishByHash(pathHash uint32, data []byte) erro
 		if err := update.session.SendResponse(nil, update.message); err != nil {
 			// Report error via callback
 			fields := slog.Fields{
-				common.FieldPathHash:  pathHash,
-				common.FieldSessionID: update.session.ID(),
+				utils.FieldPathHash:  pathHash,
+				utils.FieldSessionID: update.session.ID(),
 			}
 			h.onError(err, update.session, fields, "failed to send subscription update")
 			if firstErr == nil {

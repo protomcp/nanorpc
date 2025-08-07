@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"protomcp.org/nanorpc/pkg/nanorpc/common/testutils"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils/testutils"
 )
 
 func testWithValidConn(t *testing.T, client *Client, testErr error) {

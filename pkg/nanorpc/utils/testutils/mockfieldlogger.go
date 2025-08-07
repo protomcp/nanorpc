@@ -1,4 +1,3 @@
-// Package testutils provides testing utilities for nanorpc.
 package testutils
 
 import (

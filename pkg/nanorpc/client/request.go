@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // SubscribeCallback is a function given to [Subscribe] to be called on every update
@@ -103,7 +103,7 @@ func (c *Client) RequestWithHash(path string, msg proto.Message, cb RequestCallb
 	if err != nil {
 		// Fall back to string path on hash collision
 		if logger, ok := c.getErrorLogger(err); ok {
-			logger.WithField(common.FieldPath, path).
+			logger.WithField(utils.FieldPath, path).
 				Print("Falling back to string path to maintain compatibility")
 		}
 		return c.Request(path, msg, cb)
@@ -143,7 +143,7 @@ func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCal
 	if err != nil {
 		// Fall back to string path on hash collision
 		if logger, ok := c.getErrorLogger(err); ok {
-			logger.WithField(common.FieldPath, path).
+			logger.WithField(utils.FieldPath, path).
 				Print("Falling back to string path to maintain compatibility")
 		}
 		return c.Subscribe(path, msg, cb)
@@ -192,7 +192,7 @@ func (c *Client) UnsubscribeWithHash(path string, requestID int32, cb RequestCal
 	if err != nil {
 		// Fall back to string path on hash collision
 		if logger, ok := c.getErrorLogger(err); ok {
-			logger.WithField(common.FieldPath, path).
+			logger.WithField(utils.FieldPath, path).
 				Print("Falling back to string path to maintain compatibility")
 		}
 		return c.Unsubscribe(path, requestID, cb)

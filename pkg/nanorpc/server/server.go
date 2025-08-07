@@ -10,7 +10,7 @@ import (
 	"darvaza.org/slog/handlers/discard"
 	"darvaza.org/x/sync/workgroup"
 
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // Server represents a decoupled NanoRPC server
@@ -27,7 +27,7 @@ type Server struct {
 func NewServer(listener Listener, sessionManager SessionManager,
 	messageHandler MessageHandler, logger slog.Logger) *Server {
 	// Add server component field to logger using common helper
-	logger = common.WithComponent(logger, common.ComponentServer)
+	logger = utils.WithComponent(logger, utils.ComponentServer)
 
 	return &Server{
 		listener:       listener,
@@ -64,7 +64,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	s.wg.OnCancel = s.onGroupCancel
 
 	if l, ok := s.WithInfo(); ok {
-		l = common.WithLocalAddr(l, s.listener.Addr())
+		l = utils.WithLocalAddr(l, s.listener.Addr())
 		l.Print("Server started")
 	}
 
@@ -178,7 +178,7 @@ func (s *Server) catchAcceptError(_ context.Context, err error) error {
 	// Check for expected shutdown error
 	if s.isExpectedAcceptError(err) {
 		if l, ok := s.WithDebug(); ok {
-			l = common.WithError(l, err)
+			l = utils.WithError(l, err)
 			l.Print("Accept loop stopped due to closed listener")
 		}
 		return nil
@@ -197,7 +197,7 @@ func (*Server) isExpectedAcceptError(err error) bool {
 func (s *Server) catchSessionError(_ context.Context, err error, sessionID string) error {
 	if err != nil && err != context.Canceled {
 		if l, ok := s.WithError(err); ok {
-			l = common.WithSessionID(l, sessionID)
+			l = utils.WithSessionID(l, sessionID)
 			l.Print("Session error")
 		}
 	}

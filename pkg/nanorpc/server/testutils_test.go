@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // mockSession implements Session interface for testing
@@ -90,7 +90,7 @@ func (m *mockSession) GetAllResponses() []*nanorpc.NanoRPCResponse {
 func (m *mockSession) ClearResponses() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.responses = common.ClearSlice(m.responses)
+	m.responses = utils.ClearSlice(m.responses)
 	m.lastResponse = nil
 	m.lastData = nil
 }

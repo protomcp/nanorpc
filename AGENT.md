@@ -144,7 +144,7 @@ protocol specification.
 
 **Test Infrastructure**:
 
-- Common test utilities in `pkg/nanorpc/common/testutils/`
+- Common test utilities in `pkg/nanorpc/utils/testutils/`
 - Server-specific mocks in `pkg/nanorpc/server/testutils_test.go`
 - Client-specific mocks in `pkg/nanorpc/client/testutils_test.go`
 
@@ -351,7 +351,7 @@ err := core.Catch(func() error {
 ### Structured Logging
 
 Use darvaza.org/slog with proper patterns. For standardized field names,
-refer to `pkg/nanorpc/common/fields.go` which defines constants for field
+refer to `pkg/nanorpc/utils/fields.go` which defines constants for field
 names and helper functions for safe field addition:
 
 ```go
@@ -365,17 +365,17 @@ if logger, ok := logger.Debug().WithEnabled(); ok {
 }
 
 // Request-scoped logging using standard field names
-logger := baseLogger.WithField(common.FieldRequestID, req.RequestId)
+logger := baseLogger.WithField(utils.FieldRequestID, req.RequestId)
 logger.Info().Print("processing request")
 
 // Component logging using standard constants
-logger := common.WithComponent(baseLogger, common.ComponentServer)
+logger := utils.WithComponent(baseLogger, utils.ComponentServer)
 
 // Enhanced helper methods with structured fields
 server.LogInfo(slog.Fields{"port": 8080}, "server started on port %d", 8080)
-client.LogError(addr, err, slog.Fields{common.FieldAttempt: 3},
+client.LogError(addr, err, slog.Fields{utils.FieldAttempt: 3},
     "connection failed after %d attempts", 3)
-session.LogDebug(slog.Fields{common.FieldRequestID: reqID},
+session.LogDebug(slog.Fields{utils.FieldRequestID: reqID},
     "processing request %s", reqID)
 ```
 

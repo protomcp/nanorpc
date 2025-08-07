@@ -12,17 +12,22 @@ import (
 	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
+// Compile-time verification that test case types implement TestCase interface
+var _ core.TestCase = ClientConfigTestCase{}
+var _ core.TestCase = ExportTestCase{}
+var _ core.TestCase = GetPathOneOfTestCase{}
+
 // ClientConfigTestCase represents a test case for client configuration
 type ClientConfigTestCase struct {
 	config *Config
 	name   string
 }
 
-func (tc ClientConfigTestCase) GetName() string {
+func (tc ClientConfigTestCase) Name() string {
 	return tc.name
 }
 
-func (tc ClientConfigTestCase) test(t *testing.T) {
+func (tc ClientConfigTestCase) Test(t *testing.T) {
 	t.Helper()
 	err := tc.config.SetDefaults()
 	core.AssertNoError(t, err, "SetDefaults failed")
@@ -34,24 +39,25 @@ func (tc ClientConfigTestCase) test(t *testing.T) {
 	core.AssertNotNil(t, tc.config.WaitReconnect, "WaitReconnect should not be nil after SetDefaults")
 }
 
-var clientConfigTestCases = []ClientConfigTestCase{
-	{
-		name:   "empty_config",
-		config: &Config{},
-	},
-	{
-		name: "partial_config",
-		config: &Config{
+func newClientConfigTestCase(name string, config *Config) ClientConfigTestCase {
+	return ClientConfigTestCase{
+		name:   name,
+		config: config,
+	}
+}
+
+func clientConfigTestCases() []ClientConfigTestCase {
+	return []ClientConfigTestCase{
+		newClientConfigTestCase("empty_config", &Config{}),
+		newClientConfigTestCase("partial_config", &Config{
 			Remote:      "localhost:8080",
 			DialTimeout: 1 * time.Second,
-		},
-	},
+		}),
+	}
 }
 
 func TestClientConfig_SetDefaults(t *testing.T) {
-	for _, tc := range clientConfigTestCases {
-		t.Run(tc.name, tc.test)
-	}
+	core.RunTestCases(t, clientConfigTestCases())
 }
 
 // TestClientConfig_DefaultValues tests that default values are set correctly
@@ -118,11 +124,11 @@ type ExportTestCase struct {
 	expectError bool
 }
 
-func (tc ExportTestCase) GetName() string {
+func (tc ExportTestCase) Name() string {
 	return tc.name
 }
 
-func (tc ExportTestCase) test(t *testing.T) {
+func (tc ExportTestCase) Test(t *testing.T) {
 	t.Helper()
 	result, err := tc.config.Export()
 
@@ -141,46 +147,26 @@ func (tc ExportTestCase) test(t *testing.T) {
 	}
 }
 
-var exportTestCases = []ExportTestCase{
-	{
-		name:        "missing_remote",
-		config:      &Config{},
-		expectError: true,
-	},
-	{
-		name: "no_port",
-		config: &Config{
-			Remote: "localhost",
-		},
-		expectError: true,
-	},
-	{
-		name: "port_zero",
-		config: &Config{
-			Remote: "localhost:0",
-		},
-		expectError: true,
-	},
-	{
-		name: "valid_config",
-		config: &Config{
-			Remote: "localhost:8080",
-		},
-		expectError: false,
-	},
-	{
-		name: "ipv6_config",
-		config: &Config{
-			Remote: "[::1]:8080",
-		},
-		expectError: false,
-	},
+func newExportTestCase(name string, config *Config, expectError bool) ExportTestCase {
+	return ExportTestCase{
+		name:        name,
+		config:      config,
+		expectError: expectError,
+	}
+}
+
+func exportTestCases() []ExportTestCase {
+	return []ExportTestCase{
+		newExportTestCase("missing_remote", &Config{}, true),
+		newExportTestCase("no_port", &Config{Remote: "localhost"}, true),
+		newExportTestCase("port_zero", &Config{Remote: "localhost:0"}, true),
+		newExportTestCase("valid_config", &Config{Remote: "localhost:8080"}, false),
+		newExportTestCase("ipv6_config", &Config{Remote: "[::1]:8080"}, false),
+	}
 }
 
 func TestClientConfig_Export(t *testing.T) {
-	for _, tc := range exportTestCases {
-		t.Run(tc.name, tc.test)
-	}
+	core.RunTestCases(t, exportTestCases())
 }
 
 // TestClientConfig_getHashCache tests the getHashCache method
@@ -205,11 +191,11 @@ type GetPathOneOfTestCase struct {
 	name     string
 }
 
-func (tc GetPathOneOfTestCase) GetName() string {
+func (tc GetPathOneOfTestCase) Name() string {
 	return tc.name
 }
 
-func (tc GetPathOneOfTestCase) test(t *testing.T) {
+func (tc GetPathOneOfTestCase) Test(t *testing.T) {
 	t.Helper()
 	tc.testFunc(t, tc.hc)
 }
@@ -295,9 +281,7 @@ func getPathOneOfTestCases(hc *nanorpc.HashCache) []GetPathOneOfTestCase {
 // TestClientConfig_newGetPathOneOf tests the newGetPathOneOf method
 func TestClientConfig_newGetPathOneOf(t *testing.T) {
 	hc := &nanorpc.HashCache{}
-	for _, tc := range getPathOneOfTestCases(hc) {
-		t.Run(tc.name, tc.test)
-	}
+	core.RunTestCases(t, getPathOneOfTestCases(hc))
 }
 
 // createConfigWithCallbacks creates a test config with callback tracking

@@ -8,7 +8,7 @@ import (
 	"darvaza.org/slog"
 	"darvaza.org/slog/handlers/discard"
 
-	"protomcp.org/nanorpc/pkg/nanorpc/common"
+	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
 // DefaultSessionManager implements SessionManager interface
@@ -22,7 +22,7 @@ type DefaultSessionManager struct {
 // NewDefaultSessionManager creates a new session manager
 func NewDefaultSessionManager(handler MessageHandler, logger slog.Logger) *DefaultSessionManager {
 	// Add session manager component field to logger using common helper
-	logger = common.WithComponent(logger, common.ComponentSessionManager)
+	logger = utils.WithComponent(logger, utils.ComponentSessionManager)
 
 	return &DefaultSessionManager{
 		sessions: make(map[string]Session),
@@ -49,9 +49,9 @@ func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
 	sessionID := session.ID()
 
 	// Create session logger with all relevant fields using common helpers
-	sessionLogger := common.WithSessionID(sm.getLogger(), sessionID)
-	sessionLogger = common.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
-	sessionLogger = common.WithComponent(sessionLogger, common.ComponentSession)
+	sessionLogger := utils.WithSessionID(sm.getLogger(), sessionID)
+	sessionLogger = utils.WithRemoteAddr(sessionLogger, conn.RemoteAddr())
+	sessionLogger = utils.WithComponent(sessionLogger, utils.ComponentSession)
 
 	// Update session with the logger
 	session.logger = sessionLogger
@@ -62,8 +62,8 @@ func (sm *DefaultSessionManager) AddSession(conn net.Conn) Session {
 
 	// Log session creation using common helpers
 	if l, ok := sm.WithInfo(); ok {
-		l = common.WithSessionID(l, sessionID)
-		l = common.WithRemoteAddr(l, conn.RemoteAddr())
+		l = utils.WithSessionID(l, sessionID)
+		l = utils.WithRemoteAddr(l, conn.RemoteAddr())
 		l.Print("Session created")
 	}
 
@@ -83,7 +83,7 @@ func (sm *DefaultSessionManager) RemoveSession(sessionID string) {
 
 	// Log session removal using common helpers
 	if l, ok := sm.WithInfo(); ok {
-		l = common.WithSessionID(l, sessionID)
+		l = utils.WithSessionID(l, sessionID)
 		l.Print("Session removed")
 	}
 }
@@ -110,7 +110,7 @@ func (sm *DefaultSessionManager) Shutdown(_ context.Context) error {
 	for _, session := range sessions {
 		if err := session.Close(); err != nil {
 			if l, ok := sm.WithError(err); ok {
-				l = common.WithSessionID(l, session.ID())
+				l = utils.WithSessionID(l, session.ID())
 				l.Print("Failed to close session")
 			}
 		}
