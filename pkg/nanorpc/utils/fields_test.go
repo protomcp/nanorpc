@@ -28,10 +28,8 @@ func TestWithRemoteAddr(t *testing.T) {
 	core.AssertNotNil(t, result, "should return a logger")
 
 	if ml, ok := result.(*testutils.MockFieldLogger); ok {
-		if remoteAddr, ok := testutils.GetField[string, string](ml.Fields, FieldRemoteAddr); ok {
+		if remoteAddr, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, FieldRemoteAddr, "remote_addr"); ok {
 			core.AssertEqual(t, "127.0.0.1:8080", remoteAddr, "should have remote address")
-		} else {
-			t.Error("logger should have remote_addr field")
 		}
 	}
 
@@ -52,10 +50,8 @@ func TestWithLocalAddr(t *testing.T) {
 	core.AssertNotNil(t, result, "should return a logger")
 
 	if ml, ok := result.(*testutils.MockFieldLogger); ok {
-		if localAddr, ok := testutils.GetField[string, string](ml.Fields, FieldLocalAddr); ok {
+		if localAddr, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, FieldLocalAddr, "local_addr"); ok {
 			core.AssertEqual(t, "192.168.1.1:9090", localAddr, "should have local address")
-		} else {
-			t.Error("logger should have local_addr field")
 		}
 	}
 }
@@ -74,17 +70,13 @@ func TestWithConnAddrs(t *testing.T) {
 
 	if ml, ok := result.(*testutils.MockFieldLogger); ok {
 		// Check remote address
-		if remoteAddr, ok := testutils.GetField[string, string](ml.Fields, FieldRemoteAddr); ok {
+		if remoteAddr, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, FieldRemoteAddr, "remote_addr"); ok {
 			core.AssertEqual(t, "192.168.1.1:9090", remoteAddr, "should have remote address")
-		} else {
-			t.Error("logger should have remote_addr field")
 		}
 
 		// Check local address
-		if localAddr, ok := testutils.GetField[string, string](ml.Fields, FieldLocalAddr); ok {
+		if localAddr, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, FieldLocalAddr, "local_addr"); ok {
 			core.AssertEqual(t, "127.0.0.1:8080", localAddr, "should have local address")
-		} else {
-			t.Error("logger should have local_addr field")
 		}
 	}
 
@@ -101,10 +93,8 @@ func TestWithComponent(t *testing.T) {
 	core.AssertNotNil(t, result, "should return a logger")
 
 	if ml, ok := result.(*testutils.MockFieldLogger); ok {
-		if comp, ok := testutils.GetField[string, string](ml.Fields, FieldComponent); ok {
+		if comp, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, FieldComponent, "component"); ok {
 			core.AssertEqual(t, ComponentServer, comp, "should have component field")
-		} else {
-			t.Error("logger should have component field")
 		}
 	}
 
@@ -121,10 +111,8 @@ func TestWithSessionID(t *testing.T) {
 	core.AssertNotNil(t, result, "should return a logger")
 
 	if ml, ok := result.(*testutils.MockFieldLogger); ok {
-		if sid, ok := testutils.GetField[string, string](ml.Fields, FieldSessionID); ok {
+		if sid, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, FieldSessionID, "session_id"); ok {
 			core.AssertEqual(t, "session-123", sid, "should have session ID")
-		} else {
-			t.Error("logger should have session_id field")
 		}
 	}
 }
@@ -137,10 +125,8 @@ func TestWithError(t *testing.T) {
 	core.AssertNotNil(t, result, "should return a logger")
 
 	if ml, ok := result.(*testutils.MockFieldLogger); ok {
-		if err, ok := testutils.GetField[string, error](ml.Fields, FieldError); ok {
+		if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, FieldError, "error"); ok {
 			core.AssertEqual(t, testErr, err, "should have error field")
-		} else {
-			t.Error("logger should have error field")
 		}
 	}
 

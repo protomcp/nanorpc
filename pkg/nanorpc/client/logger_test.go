@@ -110,15 +110,11 @@ func TestClientWithError(t *testing.T) {
 	if !ok {
 		return
 	}
-	if addr, ok := testutils.GetField[string, string](ml.Fields, "remote_addr"); ok {
+	if addr, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, "remote_addr", "remote_addr"); ok {
 		core.AssertEqual(t, "10.0.0.1:443", addr, "should have remote address")
-	} else {
-		t.Error("logger should have remote_addr field")
 	}
-	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+	if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, "error", "error"); ok {
 		core.AssertEqual(t, testErr, err, "should have error field")
-	} else {
-		t.Error("logger should have error field")
 	}
 }
 
@@ -136,10 +132,8 @@ func TestClientGetErrorLogger(t *testing.T) {
 	if !ok {
 		return
 	}
-	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+	if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, "error", "error"); ok {
 		core.AssertEqual(t, testErr, err, "should have error field")
-	} else {
-		t.Error("logger should have error field")
 	}
 }
 
@@ -299,15 +293,11 @@ func TestClientWithWarn(t *testing.T) {
 	if !ok {
 		return
 	}
-	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+	if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, "error", "error"); ok {
 		core.AssertEqual(t, testErr, err, "should have error field")
-	} else {
-		t.Error("logger should have error field")
 	}
-	if addrVal, ok := testutils.GetField[string, string](ml.Fields, "remote_addr"); ok {
+	if addrVal, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, "remote_addr", "remote_addr"); ok {
 		core.AssertEqual(t, "127.0.0.1:8080", addrVal, "should have remote address field")
-	} else {
-		t.Error("logger should have remote_addr field")
 	}
 }
 
@@ -345,10 +335,8 @@ func TestSessionWithWarn(t *testing.T) {
 	if !ok {
 		return
 	}
-	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+	if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, "error", "error"); ok {
 		core.AssertEqual(t, testErr, err, "should have error field")
-	} else {
-		t.Error("logger should have error field")
 	}
 }
 
@@ -397,9 +385,7 @@ func TestSessionWithError(t *testing.T) {
 	if !ok {
 		return
 	}
-	if err, ok := testutils.GetField[string, error](ml.Fields, "error"); ok {
+	if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, "error", "error"); ok {
 		core.AssertEqual(t, testErr, err, "should have error field")
-	} else {
-		t.Error("logger should have error field")
 	}
 }

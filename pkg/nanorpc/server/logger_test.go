@@ -77,10 +77,8 @@ func TestServerWithError(t *testing.T) {
 
 	// Check error field was added
 	if ml, ok := logger.(*testutils.MockFieldLogger); ok {
-		if err, ok := testutils.GetField[string, error](ml.Fields, utils.FieldError); ok {
+		if err, ok := testutils.AssertFieldTypeIs[error](t, ml.Fields, utils.FieldError, "error field"); ok {
 			core.AssertEqual(t, testErr, err, "should have error field")
-		} else {
-			t.Error("logger should have error field")
 		}
 	}
 }
@@ -116,24 +114,20 @@ func TestSessionWithDebug(t *testing.T) {
 	// Check session fields are added
 	if ml, ok := logger.(*testutils.MockFieldLogger); ok {
 		// Check component field
-		if component, ok := testutils.GetField[string, string](ml.Fields, utils.FieldComponent); ok {
+		if component, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields,
+			utils.FieldComponent, "component field"); ok {
 			core.AssertEqual(t, utils.ComponentSession, component, "should have session component")
-		} else {
-			t.Error("logger should have component field")
 		}
 
 		// Check session ID field
-		if sid, ok := testutils.GetField[string, string](ml.Fields, utils.FieldSessionID); ok {
+		if sid, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields, utils.FieldSessionID, "session_id field"); ok {
 			core.AssertEqual(t, s.ID(), sid, "should have session ID")
-		} else {
-			t.Error("logger should have session_id field")
 		}
 
 		// Check remote address field
-		if addr, ok := testutils.GetField[string, string](ml.Fields, utils.FieldRemoteAddr); ok {
+		if addr, ok := testutils.AssertFieldTypeIs[string](t, ml.Fields,
+			utils.FieldRemoteAddr, "remote_addr field"); ok {
 			core.AssertEqual(t, "127.0.0.1:12345", addr, "should have remote address")
-		} else {
-			t.Error("logger should have remote_addr field")
 		}
 	}
 }
