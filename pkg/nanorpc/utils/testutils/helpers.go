@@ -123,3 +123,33 @@ func AssertWaitForCondition(t core.T, condition func() bool, timeout time.Durati
 	}
 	return ok
 }
+
+// AssertFieldTypeIs asserts that a field in a map has the expected type.
+func AssertFieldTypeIs[T any](t core.T, m map[string]any, field, name string, args ...any) (T, bool) {
+	t.Helper()
+	vi, ok := m[field]
+	if !ok {
+		var zero T
+		doError(t, name, args, "field %q not found", field)
+		return zero, false
+	}
+
+	v, ok := vi.(T)
+	if !ok {
+		doError(t, name, args, "field %q type %T, expected %T", field, vi, v)
+	}
+
+	return v, ok
+}
+
+func doError(t core.T, prefixFormat string, prefixArgs []any, messageFormat string, messageArgs ...any) {
+	var prefix, msg string
+	if prefixFormat != "" {
+		prefix = fmt.Sprintf(prefixFormat, prefixArgs...)
+	}
+	msg = fmt.Sprintf(messageFormat, messageArgs...)
+	if prefix != "" {
+		msg = prefix + ": " + msg
+	}
+	t.Error(msg)
+}

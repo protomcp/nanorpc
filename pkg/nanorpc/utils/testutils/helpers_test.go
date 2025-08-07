@@ -20,6 +20,7 @@ var _ core.TestCase = concurrentTestHelperSetDefaultsTestCase{}
 var _ core.TestCase = waitForConditionLoopTestCase{}
 var _ core.TestCase = assertWaitForConditionErrorMessageTestCase{}
 var _ core.TestCase = assertWaitForConditionEmptyNameTestCase{}
+var _ core.TestCase = assertFieldTypeIsTestCase{}
 
 // getFieldTestCase tests GetField function
 // Fields ordered for memory efficiency (large to small)
@@ -518,4 +519,150 @@ func TestAssertWaitForConditionEmptyName(t *testing.T) {
 	}
 
 	core.RunTestCases(t, testCases)
+}
+
+// assertFieldTypeIsTestCase tests AssertFieldTypeIs function
+// Fields ordered for memory efficiency (large to small)
+type assertFieldTypeIsTestCase struct {
+	// 16+ bytes (map, interface)
+	input    map[string]any
+	expected any
+	// 16 bytes (string headers)
+	name     string
+	field    string
+	testName string
+	// 1 byte (bool)
+	wantOK bool
+}
+
+func (tc assertFieldTypeIsTestCase) Name() string {
+	return tc.testName
+}
+
+func (tc assertFieldTypeIsTestCase) Test(t *testing.T) {
+	t.Helper()
+
+	mock := &core.MockT{}
+	result, ok := AssertFieldTypeIs[string](mock, tc.input, tc.field, tc.name)
+
+	core.AssertEqual(t, tc.wantOK, ok, "field type assertion")
+
+	if tc.wantOK {
+		tc.validateSuccessCase(t, mock, result)
+	} else {
+		tc.validateFailureCase(t, mock)
+	}
+}
+
+func (tc assertFieldTypeIsTestCase) validateSuccessCase(t *testing.T, mock *core.MockT, result string) {
+	t.Helper()
+	core.AssertFalse(t, mock.HasErrors(), "should not have errors on success")
+	if expectedStr, ok := tc.expected.(string); ok {
+		core.AssertEqual(t, expectedStr, result, "field value")
+	}
+}
+
+func (tc assertFieldTypeIsTestCase) validateFailureCase(t *testing.T, mock *core.MockT) {
+	t.Helper()
+	core.AssertTrue(t, mock.HasErrors(), "should have errors on failure")
+	tc.validateErrorMessage(t, mock)
+}
+
+func (tc assertFieldTypeIsTestCase) validateErrorMessage(t *testing.T, mock *core.MockT) {
+	t.Helper()
+	if len(mock.Errors) == 0 || tc.field == "" || tc.input == nil {
+		return
+	}
+
+	errorMsg := mock.Errors[0]
+	if _, exists := tc.input[tc.field]; !exists {
+		core.AssertContains(t, errorMsg, "not found", "missing field error")
+	} else {
+		core.AssertContains(t, errorMsg, "type", "type mismatch error")
+	}
+}
+
+// Factory function for assertFieldTypeIsTestCase
+//
+//revive:disable-next-line:argument-limit
+func newAssertFieldTypeIsTestCase(testName, name, field string, input map[string]any,
+	expected any, wantOK bool) assertFieldTypeIsTestCase {
+	return assertFieldTypeIsTestCase{
+		testName: testName,
+		name:     name,
+		field:    field,
+		input:    input,
+		expected: expected,
+		wantOK:   wantOK,
+	}
+}
+
+// Convenience factory for successful string field assertions
+func newAssertFieldTypeIsTestCaseSuccess(testName, field, expectedValue string) assertFieldTypeIsTestCase {
+	return newAssertFieldTypeIsTestCase(
+		testName,
+		"field",
+		field,
+		map[string]any{field: expectedValue},
+		expectedValue,
+		true,
+	)
+}
+
+// Convenience factory for missing field assertions
+func newAssertFieldTypeIsTestCaseMissing(testName, field string) assertFieldTypeIsTestCase {
+	return newAssertFieldTypeIsTestCase(
+		testName,
+		"field",
+		field,
+		map[string]any{"other": "value"},
+		"",
+		false,
+	)
+}
+
+// Convenience factory for type mismatch assertions
+func newAssertFieldTypeIsTestCaseTypeMismatch(testName, field string, wrongTypeValue any) assertFieldTypeIsTestCase {
+	return newAssertFieldTypeIsTestCase(
+		testName,
+		"field",
+		field,
+		map[string]any{field: wrongTypeValue},
+		"",
+		false,
+	)
+}
+
+func assertFieldTypeIsTestCases() []assertFieldTypeIsTestCase {
+	return []assertFieldTypeIsTestCase{
+		// Successful cases
+		newAssertFieldTypeIsTestCaseSuccess("string field exists", "name", "test"),
+		newAssertFieldTypeIsTestCaseSuccess("empty string field", "empty", ""),
+		newAssertFieldTypeIsTestCase("string with custom name", "test field", "value",
+			map[string]any{"value": "hello"}, "hello", true),
+
+		// Missing field cases
+		newAssertFieldTypeIsTestCaseMissing("missing field", "missing"),
+		newAssertFieldTypeIsTestCase("nil map", "field", "key",
+			nil, "", false),
+		newAssertFieldTypeIsTestCase("empty map", "field", "key",
+			map[string]any{}, "", false),
+
+		// Type mismatch cases
+		newAssertFieldTypeIsTestCaseTypeMismatch("int instead of string", "age", 25),
+		newAssertFieldTypeIsTestCaseTypeMismatch("bool instead of string", "flag", true),
+		newAssertFieldTypeIsTestCaseTypeMismatch("float instead of string", "price", 19.99),
+		newAssertFieldTypeIsTestCaseTypeMismatch("slice instead of string", "list", []string{"a", "b"}),
+		newAssertFieldTypeIsTestCaseTypeMismatch("map instead of string", "nested", map[string]int{"key": 1}),
+
+		// Special cases
+		newAssertFieldTypeIsTestCase("nil value in map", "field", "nil_key",
+			map[string]any{"nil_key": nil}, "", false),
+		newAssertFieldTypeIsTestCase("interface{} conversion", "field", "interface",
+			map[string]any{"interface": "string_value"}, "string_value", true),
+	}
+}
+
+func TestAssertFieldTypeIs(t *testing.T) {
+	core.RunTestCases(t, assertFieldTypeIsTestCases())
 }
