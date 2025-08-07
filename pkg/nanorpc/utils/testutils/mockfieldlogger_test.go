@@ -3,6 +3,7 @@ package testutils
 import (
 	"testing"
 
+	"darvaza.org/core"
 	"darvaza.org/slog"
 )
 
@@ -22,18 +23,12 @@ func newMockFieldLoggerWithFields(fields map[string]any) *MockFieldLogger {
 
 func TestNewMockFieldLogger(t *testing.T) {
 	logger := NewMockFieldLogger()
-	if logger == nil {
-		t.Fatal("NewMockFieldLogger returned nil")
+	if !core.AssertNotNil(t, logger, "logger") {
+		t.FailNow()
 	}
-	if logger.Fields == nil {
-		t.Error("Fields map should be initialized")
-	}
-	if logger.CurrentLevel != slog.UndefinedLevel {
-		t.Error("CurrentLevel should be UndefinedLevel by default")
-	}
-	if logger.Threshold != slog.Debug {
-		t.Error("Threshold should be Debug (accept all) by default")
-	}
+	core.AssertNotNil(t, logger.Fields, "fields map")
+	core.AssertEqual(t, slog.UndefinedLevel, logger.CurrentLevel, "current level")
+	core.AssertEqual(t, slog.Debug, logger.Threshold, "threshold")
 }
 
 type withFieldTestCase struct {
@@ -56,8 +51,8 @@ func (tc *withFieldTestCase) test(t *testing.T) {
 	}
 
 	// Check the expected field
-	if ml.Fields[tc.expectKey] != tc.expectVal {
-		t.Errorf("expected field %s=%v, got %v", tc.expectKey, tc.expectVal, ml.Fields[tc.expectKey])
+	if fieldValue, ok := AssertFieldTypeIs[any](t, ml.Fields, tc.expectKey, "field"); ok {
+		core.AssertEqual(t, tc.expectVal, fieldValue, "field value")
 	}
 }
 
@@ -89,9 +84,7 @@ func TestMockFieldLoggerWithField(t *testing.T) {
 	t.Run("original not modified", func(t *testing.T) {
 		logger := NewMockFieldLogger()
 		_ = logger.WithField("key1", testValue1)
-		if logger.Fields["key1"] != nil {
-			t.Error("Original logger should not be modified")
-		}
+		AssertNotField(t, logger.Fields, "key1", "key1")
 	})
 }
 
@@ -106,14 +99,14 @@ func TestMockFieldLoggerWithFields(t *testing.T) {
 	}
 	logger2 := logger.WithFields(fields)
 	if ml, ok := logger2.(*MockFieldLogger); ok {
-		if ml.Fields["field1"] != testValue1 {
-			t.Error("field1 should be added")
+		if field1Value, ok := AssertFieldTypeIs[string](t, ml.Fields, "field1", "field1"); ok {
+			core.AssertEqual(t, testValue1, field1Value, "field1 value")
 		}
-		if ml.Fields["field2"] != 42 {
-			t.Error("field2 should be added")
+		if field2Value, ok := AssertFieldTypeIs[int](t, ml.Fields, "field2", "field2"); ok {
+			core.AssertEqual(t, 42, field2Value, "field2 value")
 		}
-		if !ml.Fields["field3"].(bool) {
-			t.Error("field3 should be added")
+		if field3Value, ok := AssertFieldTypeIs[bool](t, ml.Fields, "field3", "field3"); ok {
+			core.AssertTrue(t, field3Value, "field3 value")
 		}
 	}
 }

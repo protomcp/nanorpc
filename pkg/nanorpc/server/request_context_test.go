@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"darvaza.org/core"
 	"google.golang.org/protobuf/proto"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
@@ -66,12 +67,8 @@ func (tc *sendOKTestCase) test(t *testing.T) {
 func verifyOKResponse(t *testing.T, rc *RequestContext, expectedData []byte) {
 	t.Helper()
 	session := getSessionFromContext(t, rc)
-	if session.lastResponse.ResponseStatus != nanorpc.NanoRPCResponse_STATUS_OK {
-		t.Errorf("expected STATUS_OK, got %v", session.lastResponse.ResponseStatus)
-	}
-	if string(session.lastResponse.Data) != string(expectedData) {
-		t.Errorf("expected data %q, got %q", expectedData, session.lastResponse.Data)
-	}
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, session.lastResponse.ResponseStatus, "status")
+	core.AssertEqual(t, string(expectedData), string(session.lastResponse.Data), "data")
 }
 
 // getSessionFromContext safely extracts the mock session from RequestContext
@@ -160,12 +157,8 @@ func verifyErrorResponse(t *testing.T, rc *RequestContext,
 		expectedStatus = nanorpc.NanoRPCResponse_STATUS_INTERNAL_ERROR
 	}
 
-	if session.lastResponse.ResponseStatus != expectedStatus {
-		t.Errorf("expected status %v, got %v", expectedStatus, session.lastResponse.ResponseStatus)
-	}
-	if session.lastResponse.ResponseMessage != expectedMessage {
-		t.Errorf("expected message %q, got %q", expectedMessage, session.lastResponse.ResponseMessage)
-	}
+	core.AssertEqual(t, expectedStatus, session.lastResponse.ResponseStatus, "status")
+	core.AssertEqual(t, expectedMessage, session.lastResponse.ResponseMessage, "message")
 }
 
 // TestRequestContext_SendError tests the SendError method
@@ -238,17 +231,13 @@ func (tc *specificErrorTestCase) test(t *testing.T) {
 	if !ok {
 		t.Fatal("expected Session to be *mockSession")
 	}
-	if session.lastResponse.ResponseStatus != tc.expectedStatus {
-		t.Errorf("expected status %v, got %v", tc.expectedStatus, session.lastResponse.ResponseStatus)
-	}
+	core.AssertEqual(t, tc.expectedStatus, session.lastResponse.ResponseStatus, "status")
 
 	expectedMessage := tc.message
 	if expectedMessage == "" && tc.defaultMessage != "" {
 		expectedMessage = tc.defaultMessage
 	}
-	if session.lastResponse.ResponseMessage != expectedMessage {
-		t.Errorf("expected message %q, got %q", expectedMessage, session.lastResponse.ResponseMessage)
-	}
+	core.AssertEqual(t, expectedMessage, session.lastResponse.ResponseMessage, "message")
 }
 
 // TestRequestContext_SpecificErrors tests specific error helper methods
@@ -357,9 +346,7 @@ func (tc *sendJSONTestCase) test(t *testing.T) {
 func verifyJSONResponse(t *testing.T, tc *sendJSONTestCase) {
 	t.Helper()
 	session := getSessionFromContext(t, tc.rc)
-	if session.lastResponse.ResponseStatus != nanorpc.NanoRPCResponse_STATUS_OK {
-		t.Errorf("expected STATUS_OK, got %v", session.lastResponse.ResponseStatus)
-	}
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, session.lastResponse.ResponseStatus, "status")
 
 	if tc.checkStruct {
 		verifyJSONData(t, session.lastResponse.Data, tc.value)
@@ -456,15 +443,11 @@ func (tc *sendProtobufTestCase) test(t *testing.T) {
 func verifyProtobufResponse(t *testing.T, rc *RequestContext) {
 	t.Helper()
 	session := getSessionFromContext(t, rc)
-	if session.lastResponse.ResponseStatus != nanorpc.NanoRPCResponse_STATUS_OK {
-		t.Errorf("expected STATUS_OK, got %v", session.lastResponse.ResponseStatus)
-	}
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, session.lastResponse.ResponseStatus, "status")
 
 	// Verify protobuf data can be unmarshaled
 	var decoded nanorpc.NanoRPCRequest
-	if err := proto.Unmarshal(session.lastResponse.Data, &decoded); err != nil {
-		t.Errorf("failed to unmarshal response data: %v", err)
-	}
+	core.AssertNoError(t, proto.Unmarshal(session.lastResponse.Data, &decoded), "unmarshal")
 }
 
 // TestRequestContext_SendProtobuf tests the SendProtobuf method

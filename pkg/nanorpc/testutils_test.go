@@ -144,7 +144,7 @@ func (h *EncodeDecodeTestHelper) assertPathEqual(expected, actual isNanoRPCReque
 
 func (h *EncodeDecodeTestHelper) assertPathOneofNotNil(expected, actual isNanoRPCRequest_PathOneof) {
 	h.t.Helper()
-	if !core.AssertNotNil(h.t, expected, "expected PathOneof") {
+	if !core.AssertNotNil(h.t, expected, "PathOneof") {
 		h.t.FailNow()
 	}
 	if !core.AssertNotNil(h.t, actual, "actual PathOneof") {

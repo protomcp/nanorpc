@@ -18,22 +18,22 @@ func TestMockConn_Read(t *testing.T) {
 	buf := make([]byte, 5)
 	n, err := conn.Read(buf)
 	core.AssertNoError(t, err, "Read should not fail")
-	core.AssertEqual(t, 5, n, "should read 5 bytes")
-	core.AssertEqual(t, "hello", string(buf), "should read correct data")
+	core.AssertEqual(t, 5, n, "bytes read")
+	core.AssertEqual(t, "hello", string(buf), "data")
 	core.AssertEqual(t, 5, conn.ReadPos, "ReadPos should advance")
 
 	// Test reading remaining data
 	buf = make([]byte, 10)
 	n, err = conn.Read(buf)
 	core.AssertNoError(t, err, "Read should not fail")
-	core.AssertEqual(t, 6, n, "should read remaining 6 bytes")
-	core.AssertEqual(t, " world", string(buf[:n]), "should read remaining data")
+	core.AssertEqual(t, 6, n, "remaining bytes")
+	core.AssertEqual(t, " world", string(buf[:n]), "remaining data")
 	core.AssertEqual(t, 11, conn.ReadPos, "ReadPos should be at end")
 
 	// Test EOF behaviour
 	n, err = conn.Read(buf)
 	core.AssertNoError(t, err, "Read at EOF should not error")
-	core.AssertEqual(t, 0, n, "should read 0 bytes at EOF")
+	core.AssertEqual(t, 0, n, "EOF bytes")
 }
 
 // TestMockConn_ReadClosed tests reading from closed connection
@@ -45,9 +45,9 @@ func TestMockConn_ReadClosed(t *testing.T) {
 
 	buf := make([]byte, 4)
 	n, err := conn.Read(buf)
-	core.AssertEqual(t, 0, n, "should read 0 bytes from closed conn")
-	core.AssertError(t, err, "should return error for closed conn")
-	core.AssertEqual(t, net.ErrClosed, err, "should return net.ErrClosed")
+	core.AssertEqual(t, 0, n, "closed conn bytes")
+	core.AssertError(t, err, "closed conn error")
+	core.AssertEqual(t, net.ErrClosed, err, "error type")
 }
 
 // TestMockConn_Write tests the Write method
@@ -58,14 +58,14 @@ func TestMockConn_Write(t *testing.T) {
 	data1 := []byte("hello")
 	n, err := conn.Write(data1)
 	core.AssertNoError(t, err, "Write should not fail")
-	core.AssertEqual(t, 5, n, "should write 5 bytes")
+	core.AssertEqual(t, 5, n, "bytes written")
 	core.AssertSliceEqual(t, []byte("hello"), conn.WriteData, "WriteData should contain written data")
 
 	// Test second write (should append)
 	data2 := []byte(" world")
 	n, err = conn.Write(data2)
 	core.AssertNoError(t, err, "Write should not fail")
-	core.AssertEqual(t, 6, n, "should write 6 bytes")
+	core.AssertEqual(t, 6, n, "bytes written")
 	core.AssertSliceEqual(t, []byte("hello world"), conn.WriteData, "WriteData should contain all written data")
 }
 
@@ -77,9 +77,9 @@ func TestMockConn_WriteClosed(t *testing.T) {
 
 	data := []byte("test")
 	n, err := conn.Write(data)
-	core.AssertEqual(t, 0, n, "should write 0 bytes to closed conn")
-	core.AssertError(t, err, "should return error for closed conn")
-	core.AssertEqual(t, net.ErrClosed, err, "should return net.ErrClosed")
+	core.AssertEqual(t, 0, n, "closed conn bytes")
+	core.AssertError(t, err, "closed conn error")
+	core.AssertEqual(t, net.ErrClosed, err, "error type")
 }
 
 // TestMockConn_Close tests the Close method
@@ -156,7 +156,7 @@ func TestMockConn_ReadWriteIntegration(t *testing.T) {
 	writeData := []byte("integration test data")
 	n, err := conn.Write(writeData)
 	core.AssertNoError(t, err, "Write should not fail")
-	core.AssertEqual(t, len(writeData), n, "should write all data")
+	core.AssertEqual(t, len(writeData), n, "all data written")
 
 	// Verify written data is in WriteData buffer
 	core.AssertSliceEqual(t, writeData, conn.WriteData, "WriteData should contain written data")
@@ -169,8 +169,8 @@ func TestMockConn_ReadWriteIntegration(t *testing.T) {
 	readBuf := make([]byte, 14)
 	n, err = conn.Read(readBuf)
 	core.AssertNoError(t, err, "Read should not fail")
-	core.AssertEqual(t, 14, n, "should read 14 bytes")
-	core.AssertEqual(t, "read test data", string(readBuf), "should read correct data")
+	core.AssertEqual(t, 14, n, "bytes read")
+	core.AssertEqual(t, "read test data", string(readBuf), "data")
 
 	// Verify read and write operations are independent
 	core.AssertSliceEqual(t, writeData, conn.WriteData, "WriteData should be unchanged by read")

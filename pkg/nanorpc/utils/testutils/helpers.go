@@ -123,3 +123,53 @@ func AssertWaitForCondition(t core.T, condition func() bool, timeout time.Durati
 	}
 	return ok
 }
+
+// AssertField asserts that a field exists in a map.
+func AssertField(t core.T, m map[string]any, field, name string, args ...any) (any, bool) {
+	t.Helper()
+	v, ok := m[field]
+	if !ok {
+		doError(t, name, args, "field %q not found", field)
+	}
+	return v, ok
+}
+
+// AssertNotField asserts that a field does not exist in a map.
+func AssertNotField(t core.T, m map[string]any, field, name string, args ...any) bool {
+	t.Helper()
+	if v, ok := m[field]; ok {
+		doError(t, name, args, "field %q should not exist, got %v", field, v)
+		return false
+	}
+	return true
+}
+
+// AssertFieldTypeIs asserts that a field in a map has the expected type.
+func AssertFieldTypeIs[T any](t core.T, m map[string]any, field, name string, args ...any) (T, bool) {
+	t.Helper()
+	var zero T
+
+	vi, ok := AssertField(t, m, field, name, args...)
+	if !ok {
+		return zero, false
+	}
+
+	v, ok := vi.(T)
+	if !ok {
+		doError(t, name, args, "field %q type %T, expected %T", field, vi, zero)
+	}
+
+	return v, ok
+}
+
+func doError(t core.T, prefixFormat string, prefixArgs []any, messageFormat string, messageArgs ...any) {
+	var prefix, msg string
+	if prefixFormat != "" {
+		prefix = fmt.Sprintf(prefixFormat, prefixArgs...)
+	}
+	msg = fmt.Sprintf(messageFormat, messageArgs...)
+	if prefix != "" {
+		msg = prefix + ": " + msg
+	}
+	t.Error(msg)
+}

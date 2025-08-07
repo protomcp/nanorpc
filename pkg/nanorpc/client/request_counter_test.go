@@ -10,7 +10,7 @@ import (
 func testBasicCounter(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	core.AssertNoError(t, err, "NewRequestCounter failed")
+	core.AssertNoError(t, err, "counter")
 
 	// Test first ID
 	id1 := counter.Next()
@@ -46,7 +46,7 @@ func TestRequestCounter_NilReceiver(t *testing.T) {
 func testSkipZero(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	core.AssertNoError(t, err, "NewRequestCounter failed")
+	core.AssertNoError(t, err, "counter")
 
 	// Generate many IDs to test that zero is never returned
 	for i := range 1000 {
@@ -64,7 +64,7 @@ func TestRequestCounter_SkipZero(t *testing.T) {
 func testConcurrency(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	core.AssertNoError(t, err, "NewRequestCounter failed")
+	core.AssertNoError(t, err, "counter")
 
 	numGoroutines := 100
 	numIDsPerGoroutine := 10
@@ -101,7 +101,7 @@ func TestRequestCounter_Concurrency(t *testing.T) {
 func testWraparound(t *testing.T) {
 	t.Helper()
 	counter, err := NewRequestCounter()
-	core.AssertNoError(t, err, "NewRequestCounter failed")
+	core.AssertNoError(t, err, "counter")
 
 	// Simulate wraparound by setting counter to near max
 	counter.counter.Store(2147483646) // Just below MaxInt32
@@ -126,7 +126,7 @@ func testRandomRequestID(t *testing.T) {
 	// Test that NewRandomRequestID generates valid IDs
 	for range 100 {
 		id, err := NewRandomRequestID()
-		core.AssertNoError(t, err, "NewRandomRequestID failed")
+		core.AssertNoError(t, err, "random_id")
 		core.AssertTrue(t, id > 0, "NewRandomRequestID should return positive ID")
 	}
 }
@@ -144,7 +144,7 @@ func testRandomRequestIDUniqueness(t *testing.T) {
 
 	for range numIDs {
 		id, err := NewRandomRequestID()
-		core.AssertNoError(t, err, "NewRandomRequestID failed")
+		core.AssertNoError(t, err, "random_id")
 		seen[id] = true
 	}
 
@@ -163,10 +163,10 @@ func testStartingPoint(t *testing.T) {
 	t.Helper()
 	// Test that different counters start at different points
 	counter1, err := NewRequestCounter()
-	core.AssertNoError(t, err, "NewRequestCounter failed")
+	core.AssertNoError(t, err, "counter")
 
 	counter2, err := NewRequestCounter()
-	core.AssertNoError(t, err, "NewRequestCounter failed")
+	core.AssertNoError(t, err, "counter")
 
 	id1 := counter1.Next()
 	id2 := counter2.Next()

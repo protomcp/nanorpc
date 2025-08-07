@@ -25,7 +25,7 @@ func (tc requestTypeTestCase) test(t *testing.T) {
 	}
 
 	// Verify the request type matches expectation
-	core.AssertEqual(t, tc.expectedType, req.RequestType, "RequestType mismatch")
+	core.AssertEqual(t, tc.expectedType, req.RequestType, "request_type")
 }
 
 func newRequestTypeTestCase(name string, requestType, expectedType nanorpc.NanoRPCRequest_Type) requestTypeTestCase {
@@ -120,7 +120,7 @@ func TestPathOneofTypes(t *testing.T) {
 	pathOneof, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_Path](t, pathReq.PathOneof,
 		"Expected *nanorpc.NanoRPCRequest_Path")
 	if ok {
-		core.AssertEqual(t, "/events", pathOneof.Path, "Path mismatch")
+		core.AssertEqual(t, "/events", pathOneof.Path, "path")
 	}
 
 	// Test hash path
@@ -134,7 +134,7 @@ func TestPathOneofTypes(t *testing.T) {
 	hashOneof, ok := core.AssertTypeIs[*nanorpc.NanoRPCRequest_PathHash](t, hashReq.PathOneof,
 		"Expected *nanorpc.NanoRPCRequest_PathHash")
 	if ok {
-		core.AssertEqual(t, uint32(0x12345678), hashOneof.PathHash, "Hash mismatch")
+		core.AssertEqual(t, uint32(0x12345678), hashOneof.PathHash, "path_hash")
 	}
 }
 

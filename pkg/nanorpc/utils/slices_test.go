@@ -32,18 +32,18 @@ func testClearSlicePrimitives(t *testing.T) {
 	result := ClearSlice(ints)
 
 	// Verify length is 0 but capacity unchanged
-	core.AssertEqual(t, 0, len(result), "length should be 0")
-	core.AssertEqual(t, originalCap, cap(result), "capacity should be unchanged")
+	core.AssertEqual(t, 0, len(result), "length")
+	core.AssertEqual(t, originalCap, cap(result), "capacity")
 
 	// Verify same underlying array
 	if len(result) > 0 {
 		resultArrayPtr := unsafe.Pointer(&result[0])
-		core.AssertEqual(t, originalArrayPtr, resultArrayPtr, "should reuse same array")
+		core.AssertEqual(t, originalArrayPtr, resultArrayPtr, "array pointer")
 	}
 
 	// Verify original slice elements are zeroed
 	for i := 0; i < len(ints); i++ {
-		core.AssertEqual(t, 0, ints[i], "element should be zeroed")
+		core.AssertEqual(t, 0, ints[i], "element %d", i)
 	}
 }
 
@@ -53,12 +53,12 @@ func testClearSliceStrings(t *testing.T) {
 
 	result := ClearSlice(strings)
 
-	core.AssertEqual(t, 0, len(result), "length should be 0")
-	core.AssertEqual(t, originalCap, cap(result), "capacity should be unchanged")
+	core.AssertEqual(t, 0, len(result), "length")
+	core.AssertEqual(t, originalCap, cap(result), "capacity")
 
 	// Verify original slice elements are zeroed
 	for i := 0; i < len(strings); i++ {
-		core.AssertEqual(t, "", strings[i], "string should be empty")
+		core.AssertEqual(t, "", strings[i], "string %d", i)
 	}
 }
 
@@ -72,15 +72,15 @@ func testClearSliceStructs(t *testing.T) {
 
 	result := ClearSlice(structs)
 
-	core.AssertEqual(t, 0, len(result), "length should be 0")
-	core.AssertEqual(t, originalCap, cap(result), "capacity should be unchanged")
+	core.AssertEqual(t, 0, len(result), "length")
+	core.AssertEqual(t, originalCap, cap(result), "capacity")
 
 	// Verify all fields are zeroed
 	for i := 0; i < len(structs); i++ {
-		core.AssertEqual(t, 0, structs[i].ID, "ID should be zero")
-		core.AssertEqual(t, "", structs[i].Name, "Name should be empty")
-		core.AssertNil(t, structs[i].Data, "Data should be nil")
-		core.AssertNil(t, structs[i].Ptr, "Ptr should be nil")
+		core.AssertEqual(t, 0, structs[i].ID, "ID %d", i)
+		core.AssertEqual(t, "", structs[i].Name, "Name %d", i)
+		core.AssertNil(t, structs[i].Data, "Data %d", i)
+		core.AssertNil(t, structs[i].Ptr, "Ptr %d", i)
 	}
 }
 
@@ -88,15 +88,15 @@ func testClearSliceEmpty(t *testing.T) {
 	empty := []int{}
 	result := ClearSlice(empty)
 
-	core.AssertEqual(t, 0, len(result), "length should be 0")
-	core.AssertEqual(t, 0, cap(result), "capacity should be 0")
+	core.AssertEqual(t, 0, len(result), "length")
+	core.AssertEqual(t, 0, cap(result), "capacity")
 }
 
 func testClearSliceNil(t *testing.T) {
 	var nilSlice []int
 	result := ClearSlice(nilSlice)
 
-	core.AssertNil(t, result, "result should be nil")
+	core.AssertNil(t, result, "result")
 }
 
 func testClearSliceCapacity(t *testing.T) {
@@ -106,13 +106,13 @@ func testClearSliceCapacity(t *testing.T) {
 
 	result := ClearSlice(slice)
 
-	core.AssertEqual(t, 0, len(result), "length should be 0")
-	core.AssertEqual(t, 10, cap(result), "capacity should be preserved")
+	core.AssertEqual(t, 0, len(result), "length")
+	core.AssertEqual(t, 10, cap(result), "capacity")
 
 	// Can reuse the slice
 	result = append(result, 10, 20, 30, 40, 50)
-	core.AssertEqual(t, 5, len(result), "should be able to append")
-	core.AssertEqual(t, 10, cap(result), "capacity still unchanged")
+	core.AssertEqual(t, 5, len(result), "length after append")
+	core.AssertEqual(t, 10, cap(result), "capacity after append")
 }
 
 func TestClearAndNilSlice(t *testing.T) {
@@ -129,11 +129,11 @@ func testClearAndNilPrimitives(t *testing.T) {
 	result := ClearAndNilSlice(ints)
 
 	// Result should be nil
-	core.AssertNil(t, result, "result should be nil")
+	core.AssertNil(t, result, "result")
 
 	// Original slice should have zeroed elements
 	for i := 0; i < len(ints); i++ {
-		core.AssertEqual(t, 0, ints[i], "element should be zeroed")
+		core.AssertEqual(t, 0, ints[i], "element %d", i)
 	}
 }
 
@@ -146,18 +146,18 @@ func testClearAndNilStructs(t *testing.T) {
 	result := ClearAndNilSlice(structs)
 
 	// Result should be nil
-	core.AssertNil(t, result, "result should be nil")
+	core.AssertNil(t, result, "result")
 
 	// Original struct should be zeroed
-	core.AssertEqual(t, 0, structs[0].ID, "ID should be zero")
-	core.AssertEqual(t, "", structs[0].Name, "Name should be empty")
-	core.AssertNil(t, structs[0].Data, "Data should be nil")
-	core.AssertNil(t, structs[0].Ptr, "Ptr should be nil")
+	core.AssertEqual(t, 0, structs[0].ID, "ID")
+	core.AssertEqual(t, "", structs[0].Name, "Name")
+	core.AssertNil(t, structs[0].Data, "Data")
+	core.AssertNil(t, structs[0].Ptr, "Ptr")
 }
 
 func testClearAndNilNil(t *testing.T) {
 	var nilSlice []int
 	result := ClearAndNilSlice(nilSlice)
 
-	core.AssertNil(t, result, "result should be nil")
+	core.AssertNil(t, result, "result")
 }
