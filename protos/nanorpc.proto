@@ -1,3 +1,93 @@
+// NanoRPC Protocol Definition - Lightweight RPC for Embedded Systems
+//
+// NanoRPC is designed for resource-constrained embedded systems operating in
+// trusted environments. It provides efficient RPC capabilities with minimal
+// overhead for serial communications and local network connections.
+//
+// Key features:
+// - Minimal memory footprint optimised for microcontrollers
+// - Efficient binary encoding using Protocol Buffers with nanopb
+// - Hash-based path routing using 32-bit FNV-1a hashes
+// - Support for request-response patterns and publish-subscribe messaging
+// - Automatic reconnection handling
+// - Gateway-friendly design for translation to gRPC/HTTP2
+//
+// Wire Format:
+// Each message uses length-delimited Protocol Buffer encoding compatible
+// with Google's protodelim package:
+// ┌─────────────────┬─────────────────────────┐
+// │ Length (varint) │ Protobuf Encoded Data   │
+// └─────────────────┴─────────────────────────┘
+//
+// Length Prefix (Protocol Buffer varint encoding):
+// - Values 0-127: 1 byte
+// - Values 128-16383: 2 bytes
+// - Larger values: 3+ bytes
+// - Protocol overhead: 2-6 bytes for length prefix per message
+//
+// Message Flow Patterns:
+//
+// 1. Ping/Pong (Health Check):
+//    Client: TYPE_PING (request_id=1)
+//    Server: TYPE_PONG (request_id=1, status=OK)
+//
+// 2. Request/Response (RPC Call):
+//    Client: TYPE_REQUEST (request_id=42, path="/api/get", data="query")
+//    Server: TYPE_RESPONSE (request_id=42, status=OK, data="result")
+//
+// 3. Subscribe/Update (Pub-Sub):
+//    Client: TYPE_SUBSCRIBE (request_id=100, path="/sensors/temp", data={min:25})
+//    Server: TYPE_RESPONSE (request_id=100, status=OK)  // Acknowledgement
+//    Server: TYPE_UPDATE (request_id=100, data={value:26.5})  // Updates...
+//
+// 4. Unsubscribe:
+//    Client: TYPE_REQUEST (request_id=100, path="/sensors/temp", data="")  // Same request_id as subscription!
+//    Server: TYPE_RESPONSE (request_id=100, status=OK)
+//
+// Subscription Semantics:
+// - Unsubscribe MUST use the same request_id as the original subscription
+// - Empty data in TYPE_SUBSCRIBE means receive all updates (unconditional)
+// - Non-empty data provides handler-specific filter criteria
+// - All subscriptions are automatically removed when session disconnects
+//
+// Path Resolution:
+// - String paths (e.g., "/api/temperature") for human readability
+// - Hash paths (FNV-1a 32-bit) for efficiency in resource-constrained environments
+// - Bidirectional hash cache maintained by both client and server
+//
+// FNV-1a Hash Algorithm (32-bit):
+//   hash = 2166136261 (0x811c9dc5)  // FNV-1a offset basis
+//   for each byte in path:
+//     hash = hash XOR byte
+//     hash = hash × 16777619 (0x01000193)  // FNV prime
+//   return hash
+//
+// IMPORTANT: This is FNV-1a (XOR then multiply), not FNV-1 (multiply then XOR).
+// Hash collisions are detected and reported as errors during handler registration.
+//
+// Deployment Context:
+// - Designed for trusted environments (serial, local networks)
+// - NOT intended for public internet exposure
+// - Use gateway pattern for internet connectivity: Device ↔ NanoRPC ↔ Gateway ↔ gRPC/HTTP2 ↔ Cloud
+//
+// Error Handling:
+// ┌─────────────────────────┬──────────────────────────┐
+// │ Condition               │ Response Status          │
+// ├─────────────────────────┼──────────────────────────┤
+// │ Unknown path            │ STATUS_NOT_FOUND         │
+// │ Hash collision          │ STATUS_INTERNAL_ERROR    │
+// │ Handler error           │ STATUS_INTERNAL_ERROR    │
+// │ Invalid message         │ Connection closed        │
+// └─────────────────────────┴──────────────────────────┘
+//
+// Delivery Guarantees:
+// - Requests: Guaranteed response (success or error)
+// - Updates: Best-effort delivery, no acknowledgement required
+// - Ordering: Updates maintain send order per subscription
+// - Concurrency: Thread-safe publishing allows concurrent updates
+//
+// See NANORPC_PROTOCOL.md for complete protocol specification.
+
 syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
@@ -6,52 +96,91 @@ import "nanopb.proto";
 option go_package = "protomcp.org/nanorpc/pkg/nanorpc";
 option (nanopb_fileopt).long_names = false;
 
+// NanoRPC request message supporting three primary patterns:
+// 1. Ping/Pong: Connection health checking
+// 2. Request/Response: RPC calls with guaranteed responses
+// 3. Subscribe/Update: Publish-subscribe for real-time data
 message NanoRPCRequest {
   enum Type {
-    TYPE_UNSPECIFIED = 0;
-    TYPE_PING = 1;
-    TYPE_REQUEST = 2;
-    TYPE_SUBSCRIBE = 3;
+    TYPE_UNSPECIFIED = 0; // Invalid/unset request type
+    TYPE_PING = 1; // Health check request
+    TYPE_REQUEST = 2; // RPC call or unsubscribe (empty data)
+    TYPE_SUBSCRIBE = 3; // Subscribe to updates with optional filter
   }
 
+  // Unique identifier for request/response correlation.
+  // Must be unique per session to match responses.
+  // For subscriptions, updates will use the same request_id.
   int32 request_id = 1;
+
+  // Type of request operation to perform.
   Type request_type = 2;
 
+  // Path identification using either string or hash for efficiency.
+  // Hash paths use 32-bit FNV-1a algorithm for minimal overhead.
+  // Both client and server maintain bidirectional hash caches.
   oneof path_oneof {
-    uint32 path_hash = 3; // FNV-1a of path
-    string path = 4 [(nanopb).max_size = 50];
+    uint32 path_hash = 3; // FNV-1a hash of path string
+    string path = 4 [(nanopb).max_size = 50]; // Human-readable path
   }
 
+  // Request payload data. Usage varies by request type:
+  // - TYPE_PING: unused (should be empty)
+  // - TYPE_REQUEST: RPC parameters or empty for unsubscribe
+  // - TYPE_SUBSCRIBE: filter criteria or empty for all updates
+  // Uses nanopb callback type for zero-copy handling on embedded systems.
   bytes data = 10 [(nanopb).type = FT_CALLBACK];
 }
 
+// NanoRPC response message for all server-to-client communication.
+// Supports ping responses, RPC results, and subscription updates.
 message NanoRPCResponse {
   enum Type {
-    TYPE_UNSPECIFIED = 0;
-    TYPE_PONG = 1;
-    TYPE_RESPONSE = 2;
-    TYPE_UPDATE = 3;
+    TYPE_UNSPECIFIED = 0; // Invalid/unset response type
+    TYPE_PONG = 1; // Ping response
+    TYPE_RESPONSE = 2; // RPC response or subscription acknowledgement
+    TYPE_UPDATE = 3; // Subscription update
   }
 
   enum Status {
-    STATUS_UNSPECIFIED = 0;
-    STATUS_OK = 1;
-    STATUS_NOT_FOUND = 2;
-    STATUS_NOT_AUTHORIZED = 3;
-    STATUS_INTERNAL_ERROR = 4;
+    STATUS_UNSPECIFIED = 0; // Invalid/unset status
+    STATUS_OK = 1; // Success
+    STATUS_NOT_FOUND = 2; // Path/handler not found
+    STATUS_NOT_AUTHORIZED = 3; // Authorisation failure
+    STATUS_INTERNAL_ERROR = 4; // Server error
   }
 
+  // Matches the request_id from the originating request.
+  // For subscription updates, uses the original subscribe request_id.
   int32 request_id = 1;
+
+  // Type of response being sent.
   Type response_type = 2;
+
+  // Status code indicating success or failure.
+  // Only meaningful for TYPE_PONG and TYPE_RESPONSE.
+  // TYPE_UPDATE messages typically use STATUS_OK.
   Status response_status = 3;
+
+  // Human-readable status message, typically used for errors.
+  // Optional field, may be empty for successful operations.
   string response_message = 4;
 
+  // Response payload data. Usage varies by response type:
+  // - TYPE_PONG: unused (should be empty)
+  // - TYPE_RESPONSE: RPC result data or subscription confirmation
+  // - TYPE_UPDATE: subscription update payload
+  // Uses nanopb callback type for zero-copy handling on embedded systems.
   bytes data = 10 [(nanopb).type = FT_CALLBACK];
 }
 
-// NanoRPC specific options for methods
+// NanoRPC-specific options for gRPC method definitions.
+// Enables declarative request path specification in protobuf service definitions.
+// This allows gateway services to translate between NanoRPC and gRPC seamlessly.
 message NanoRPCMethodOptions {
-  // Request path for RPC routing
+  // Request path for NanoRPC routing.
+  // Maps gRPC method calls to NanoRPC paths for gateway translation.
+  // Example: "/sensors/temperature" for a GetTemperature RPC method.
   optional string request_path = 1;
 }
 
@@ -61,6 +190,23 @@ message NanoRPCMethodOptions {
 // Contact:  protomcp.org
 // Extensions: 5020 (method options) - NOT YET REGISTERED
 // --------------------------------
+//
+// Usage in service definitions:
+//
+// service SensorService {
+//   rpc GetTemperature(GetTemperatureRequest) returns (GetTemperatureResponse) {
+//     option (nanorpc).request_path = "/sensors/temperature";
+//   }
+//   rpc SubscribeTemperature(SubscribeRequest) returns (stream UpdateResponse) {
+//     option (nanorpc).request_path = "/sensors/temperature/subscribe";
+//   }
+// }
+//
+// This enables:
+// 1. Gateway services to map gRPC calls to NanoRPC paths
+// 2. Code generation for NanoRPC clients from gRPC service definitions
+// 3. Documentation of the NanoRPC path structure within protobuf files
+// 4. Validation that gRPC methods correspond to available NanoRPC handlers
 
 extend google.protobuf.MethodOptions {
   NanoRPCMethodOptions nanorpc = 5020;
