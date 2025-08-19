@@ -1,5 +1,7 @@
 package nanorpc
 
+//go:generate ./nanorpc.sh
+
 import (
 	"bytes"
 	"io"

@@ -259,5 +259,5 @@ wg.Wait()
 [godoc-url]: https://pkg.go.dev/protomcp.org/nanorpc/pkg/nanorpc
 [goreportcard-badge]: https://goreportcard.com/badge/protomcp.org/nanorpc/pkg/nanorpc
 [goreportcard-url]: https://goreportcard.com/report/protomcp.org/nanorpc/pkg/nanorpc
-[codecov-badge]: https://codecov.io/gh/protomcp/nanorpc/branch/main/graph/badge.svg?flag=nanorpc
+[codecov-badge]: https://codecov.io/gh/protomcp/nanorpc/graph/badge.svg?flag=nanorpc
 [codecov-url]: https://codecov.io/gh/protomcp/nanorpc?flag=nanorpc

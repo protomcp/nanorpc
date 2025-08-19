@@ -9,6 +9,7 @@ syntax = "proto2";
 import "google/protobuf/descriptor.proto";
 
 option java_package = "fi.kapsi.koti.jpa.nanopb";
+option go_package = "protomcp.org/nanorpc/pkg/nanopb";
 
 enum FieldType {
   FT_DEFAULT = 0; // Automatically decide field type, generate static field if possible.
@@ -181,5 +182,3 @@ extend google.protobuf.EnumOptions {
 extend google.protobuf.FieldOptions {
   optional NanoPBOptions nanopb = 1010;
 }
-
-

@@ -4,6 +4,7 @@
   "language": "en-GB",
   "words": [
     "amery",
+    "Apptly",
     "Carryforward",
     "conn",
     "Conn",
@@ -54,6 +55,7 @@
     ".coverage",
     ".git",
     ".tmp",
+    "nanopb.pb.go",
     "go.sum",
     "node_modules",
     "vendor"
