@@ -12,12 +12,12 @@ require (
 	darvaza.org/x/net v0.6.0
 	darvaza.org/x/sync v0.3.0
 	github.com/amery/defaults v0.1.0 // indirect
-	protomcp.org/nanorpc/pkg/nanopb v0.2.0
+	protomcp.org/nanorpc/pkg/nanopb v0.2.1
 )
 
 require (
 	github.com/rs/xid v1.6.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.7
 )
 
 require (
