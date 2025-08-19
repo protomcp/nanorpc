@@ -1,7 +1,9 @@
 syntax = "proto3";
 
+import "google/protobuf/descriptor.proto";
 import "nanopb.proto";
 
+option go_package = "protomcp.org/nanorpc/pkg/nanorpc";
 option (nanopb_fileopt).long_names = false;
 
 message NanoRPCRequest {
@@ -45,4 +47,21 @@ message NanoRPCResponse {
   string response_message = 4;
 
   bytes data = 10 [(nanopb).type = FT_CALLBACK];
+}
+
+// NanoRPC specific options for methods
+message NanoRPCMethodOptions {
+  // Request path for RPC routing
+  optional string request_path = 1;
+}
+
+// Extension registry
+// --------------------------------
+// Project:  NanoRPC
+// Contact:  protomcp.org
+// Extensions: 5020 (method options) - NOT YET REGISTERED
+// --------------------------------
+
+extend google.protobuf.MethodOptions {
+  NanoRPCMethodOptions nanorpc = 5020;
 }
