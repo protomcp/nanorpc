@@ -159,7 +159,7 @@ generate: ; $(info $(M) running go:generate…)
 # Generate Codecov upload script
 # This target prepares codecov.sh script for uploading coverage
 # data to Codecov with proper module flags
-codecov: $(COVERAGE_DIR)/coverage.out ; $(info $(M) preparing codecov data)
+codecov: $(COVERAGE_DIR)/coverage.out $(TMPDIR)/index ; $(info $(M) preparing codecov data)
 	$Q $(TOOLSDIR)/make_codecov.sh $(TMPDIR)/index $(COVERAGE_DIR)
 
 check-jq: FORCE

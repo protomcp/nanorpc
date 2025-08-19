@@ -33,5 +33,3 @@ enableAllRules = true
   disabled = true
 [rule.banned-characters]
   disabled = true
-[rule.var-naming]
-  disabled = true
