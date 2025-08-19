@@ -30,6 +30,7 @@ REVIVE_URL ?= github.com/mgechev/revive@$(REVIVE_VERSION)
 REVIVE ?= $(GO) run $(REVIVE_URL)
 
 PNPX ?= pnpx
+PROTOC ?= $(shell which protoc || echo true)
 
 ifndef MARKDOWNLINT
 ifeq ($(shell $(PNPX) markdownlint-cli --version 2>&1 | grep -q '^[0-9]' && echo yes),yes)
@@ -154,12 +155,17 @@ tidy: fmt $(TIDY_SPELLING) $(TIDY_SHELL)
 
 generate: ; $(info $(M) running go:generate…)
 	$Q git grep -l '^//go:generate' | sort -uV | xargs -r -n1 $(GO) generate $(GOGENERATE_FLAGS)
-
+	$Q $(PROTOC) -Iprotos/ \
+		--go_out=pkg/nanorpc \
+		--go_opt=paths=source_relative \
+		--go_opt=Mnanopb.proto=protomcp.org/nanorpc/pkg/nanopb \
+		--go_opt=Mnanorpc.proto=protomcp.org/nanorpc/pkg/nanorpc \
+		protos/nanorpc.proto
 
 # Generate Codecov upload script
 # This target prepares codecov.sh script for uploading coverage
 # data to Codecov with proper module flags
-codecov: $(COVERAGE_DIR)/coverage.out ; $(info $(M) preparing codecov data)
+codecov: $(COVERAGE_DIR)/coverage.out $(TMPDIR)/index ; $(info $(M) preparing codecov data)
 	$Q $(TOOLSDIR)/make_codecov.sh $(TMPDIR)/index $(COVERAGE_DIR)
 
 check-jq: FORCE
