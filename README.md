@@ -1,11 +1,18 @@
 # NanoRPC
 
-[![codecov][codecov-badge]][codecov-url]
+[![Go Reference][godoc-badge]][godoc-link]
+[![Go Report Card][goreportcard-badge]][goreportcard-link]
+[![codecov][codecov-badge]][codecov-link]
 
 NanoRPC is a lightweight RPC framework designed for embedded systems and
-resource-constrained environments. It provides efficient binary protocol
-communication using Protocol Buffers with [nanopb][nanopb-url] for embedded
-C targets and Go for server/client applications.
+resource-constrained environments.
+
+## Overview
+
+The `nanorpc` package provides efficient binary protocol communication using
+Protocol Buffers with [nanopb][nanopb-url] for embedded C targets and Go for
+server/client applications. It is optimised for memory-constrained devices
+while maintaining flexibility for standard server environments.
 
 ## Features
 
@@ -50,8 +57,8 @@ client implementation with:
 
 ### Embedded C Support
 
-Integration with [nanopb][nanopb-url] for embedded C applications
-(implementation planned).
+Integration with [nanopb][nanopb-url] for embedded C applications with
+helpers for nanopb generation (C code) - implementation planned.
 
 ### Go Server Library
 
@@ -64,6 +71,11 @@ server implementation with decoupled architecture design:
 - Graceful shutdown and session management
 - Comprehensive test coverage
 
+### Protocol Buffer Generation
+
+The [`pkg/generator`](pkg/generator/) package provides utilities for
+generating Protocol Buffer code (implementation planned).
+
 ### Shared Types
 
 The [`pkg/nanorpc`](pkg/nanorpc/) package provides shared types and utilities:
@@ -73,42 +85,54 @@ The [`pkg/nanorpc`](pkg/nanorpc/) package provides shared types and utilities:
 - Request/response encoding and decoding utilities
 - Type aliases for protocol buffer internals
 
-## Development
-
-### Lint
-
-```sh
-go install github.com/golangci/golangci-lint/cmd/...@latest
-golangci-lint run
-```
-
-or
-
-```sh
-make get
-make lint
-```
-
 ## Build
 
-```sh
-go get -v ./...
-go generate -v ./...
-go build -v ./...
-```
+You need Go 1.23 or later. The project uses a comprehensive Makefile for all
+development tasks.
 
-or
+### Basic Build
 
 ```sh
-make get
-make build
+make         # Equivalent to 'make all'
+make all     # Full build cycle: get deps, generate, tidy, build
 ```
+
+### Testing and Coverage
+
+**IMPORTANT**: Always run `make all coverage` before committing changes.
+
+```sh
+make test              # Run tests
+make coverage          # Generate coverage reports
+make all coverage      # Full build with coverage (required before commits)
+```
+
+### Other Commands
+
+```sh
+make tidy              # Format code and fix issues
+make clean             # Remove build artifacts
+make up                # Update dependencies
+make lint              # Run linting (included in 'make tidy')
+```
+
+## Development
+
+For development guidelines, please refer to [AGENT.md](AGENT.md).
+
+## License
+
+See [LICENCE.txt](LICENCE.txt) for licensing information.
 
 ## See also
 
 - <https://github.com/nanopb/nanopb>
 - <https://github.com/amery/protogen>
 
-[codecov-badge]: https://codecov.io/gh/protomcp/nanorpc/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/protomcp/nanorpc
+[godoc-badge]: https://pkg.go.dev/badge/protomcp.org/nanorpc.svg
+[godoc-link]: https://pkg.go.dev/protomcp.org/nanorpc
+[goreportcard-badge]: https://goreportcard.com/badge/protomcp.org/nanorpc
+[goreportcard-link]: https://goreportcard.com/report/protomcp.org/nanorpc
+[codecov-badge]: https://codecov.io/gh/protomcp/nanorpc/graph/badge.svg
+[codecov-link]: https://codecov.io/gh/protomcp/nanorpc
 [nanopb-url]: https://github.com/nanopb/nanopb
