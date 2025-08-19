@@ -54,6 +54,7 @@
     ".coverage",
     ".git",
     ".tmp",
+    "nanopb.pb.go",
     "go.sum",
     "node_modules",
     "vendor"
