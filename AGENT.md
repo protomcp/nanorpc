@@ -246,7 +246,8 @@ make test-nanorpc
 ### Development Environment
 
 - Always use `pnpm` instead of `npm` for JavaScript/TypeScript tooling
-- Protocol buffer files are in `protos/` directory
+- Protocol buffer files are in `proto/` directory (not `protos/`)
+  - Subdirectories: `proto/nanopb/`, `proto/nanorpc/`, `proto/vendor/`
 - Generated code should not be manually edited
 - Use `make generate` after protocol changes
 
@@ -257,10 +258,12 @@ make test-nanorpc
    - Markdown files checked with markdownlint and cspell
    - Shell scripts checked with shellcheck
    - Protocol buffer files regenerated if needed
-2. **Verify all tests pass** with `make test`
-3. **Check coverage** with `make coverage` if adding new code
-4. **Update documentation** if changing public APIs
-5. **Run `make generate`** if protocol definitions changed
+2. **Run `make all coverage`** - This is MANDATORY before all commits
+3. **Review staged changes**: `git diff --cached` - Know exactly what you're
+   committing
+4. **Verify commit message** - Ensure it describes ONLY the actual changes
+5. **Check for sensitive data** - No secrets, keys, or credentials
+6. **Ensure atomic commits** - Each commit should be self-contained
 
 ## Git Usage Guidelines
 
@@ -292,6 +295,41 @@ make test-nanorpc
 
 4. **Atomic commits** - Each commit should contain only related changes for a
    single purpose
+
+## Commit Message Requirements
+
+**CRITICAL**: Always follow these requirements for commit messages:
+
+1. **READ THE ACTUAL DIFF**: Always use `git diff` or `git diff --cached` to
+   see exact changes before creating commit messages. Do not rely on memory or
+   assumptions.
+
+2. **FOCUS ON THE PATCH**: Describe what the code change actually does, not
+   what you think it should do or what tasks were discussed.
+
+3. **NO AI ATTRIBUTION**: Never include "Generated with Claude Code",
+   "Co-Authored-By: Claude", or similar attribution lines.
+
+4. **AVOID RECENCY BIAS**: Do not let recent conversation topics influence
+   commit message content. Focus solely on the actual code changes.
+
+5. **USE CONVENTIONAL COMMITS**: Follow the format: `type(scope): description`
+   - Types: feat, fix, docs, style, refactor, test, chore, build, ci
+   - Scope: Component or area affected
+   - Description: Present tense, lowercase, no period
+
+Example workflow:
+
+```bash
+# 1. Stage specific files
+git add file1.go file2.go
+
+# 2. ALWAYS review the diff
+git diff --cached
+
+# 3. Write commit message based ONLY on the diff
+git commit -s -m "fix(client): handle nil response in ping handler"
+```
 
 ## Development Patterns with darvaza.org
 
@@ -639,6 +677,70 @@ git commit -a -m "updates"
 ```
 
 Always sign commits with `-s` flag and be explicit about files.
+
+## Common Mistakes to Avoid
+
+### Commit Messages
+
+- **DON'T**: Write what you were asked to do
+- **DO**: Write what the code changes actually do
+- **DON'T**: Include conversation context or task descriptions
+- **DO**: Focus only on the diff content
+
+### File Operations
+
+- **DON'T**: Create files without explicit request
+- **DO**: Ask before creating new files
+- **DON'T**: Move or rename files without understanding impact
+- **DO**: Check dependencies before structural changes
+
+### Code Changes
+
+- **DON'T**: Make changes based on assumptions
+- **DO**: Verify with `go doc` or existing code first
+- **DON'T**: Ignore existing patterns
+- **DO**: Follow established conventions
+
+## Task Management with TodoWrite
+
+Use the TodoWrite tool for:
+
+- Tasks with 3+ steps
+- Complex implementations
+- When explicitly requested
+
+Do NOT use for:
+
+- Simple, single-step tasks
+- Information queries
+- Trivial operations
+
+## go:generate Scripts
+
+<!-- cspell:ignore GOFILE GOPACKAGE PKGDIR toplevel Iproto -->
+
+When creating shell scripts for go:generate:
+
+- Use `$GOFILE` - filename that triggered generate
+- Use `$GOPACKAGE` - package name of the file
+- Always use `git rev-parse --show-toplevel` to find repo root
+- Quote all variable expansions
+
+Example:
+
+```bash
+#!/bin/sh
+set -eu
+
+DIR="$PWD"
+cd "$(git rev-parse --show-toplevel)"
+PKGDIR="${DIR#"$PWD"/}"
+
+protoc -Iproto/nanopb -Iproto/nanorpc -Iproto/vendor \
+    "--go_out=$PKGDIR" \
+    --go_opt=paths=source_relative \
+    "proto/$GOPACKAGE/${GOFILE%.go}.proto"
+```
 
 ## Troubleshooting
 
