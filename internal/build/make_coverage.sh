@@ -103,6 +103,8 @@ set -- ${GOTEST_FLAGS:-} \
 # Run tests with coverage
 # Note: The makefile already cd's into the module directory before calling this script
 if ${GO:-go} test "$@" > "$COVERSTDOUT" 2>&1; then
+	sed -i '/\.pb\.go:/d;' "$COVERPROFILE"
+
 	# Generate function coverage report
 	${GO:-go} -C "$MODULE_DIR" tool cover -func="$COVERPROFILE" > "$COVERFUNC" 2>/dev/null || true
 
