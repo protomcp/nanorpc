@@ -3,7 +3,7 @@ module protomcp.org/nanorpc/pkg/nanorpc
 go 1.23.0
 
 require (
-	darvaza.org/core v0.18.0
+	darvaza.org/core v0.18.1
 	darvaza.org/slog v0.7.7
 	darvaza.org/slog/handlers/discard v0.6.1
 	darvaza.org/x/config v0.5.0
