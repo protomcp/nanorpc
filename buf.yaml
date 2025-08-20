@@ -1,10 +1,5 @@
 version: v2
 modules:
-  - name: buf.build/protomcp/nanorpc
-    path: proto/nanorpc
-    lint:
-      except:
-        - PACKAGE_DEFINED
   - name: buf.build/protomcp/nanopb
     path: proto/nanopb
     lint:
@@ -12,6 +7,11 @@ modules:
         - PACKAGE_DEFINED
         - ENUM_VALUE_PREFIX
         - ENUM_ZERO_VALUE_SUFFIX
+  - name: buf.build/protomcp/nanorpc
+    path: proto/nanorpc
+    lint:
+      except:
+        - PACKAGE_DEFINED
 lint:
   use:
     - STANDARD
