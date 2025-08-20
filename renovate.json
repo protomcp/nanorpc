@@ -2,5 +2,21 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": ["golang-version"],
+      "allowedVersions": "1.23"
+    },
+    {
+      "groupName": "Darvaza Projects",
+      "groupSlug": "darvaza",
+      "matchPackageNames": [
+        "darvaza.org/**"
+      ]
+    }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
   ]
 }
