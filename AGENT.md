@@ -17,7 +17,8 @@ Before starting development, ensure you have:
 
 - Go 1.23 or later installed (check with `go version`).
 - `make` command available (usually pre-installed on Unix systems).
-- Protocol Buffers compiler (`protoc`) installed.
+- Protocol Buffers compiler (`protoc`) installed for code generation.
+- **Buf CLI** (`buf`) for publishing to Buf Schema Registry (releases only).
 - `pnpm` for JavaScript/TypeScript tooling (preferred over npm).
 - Git configured for proper line endings.
 
@@ -248,8 +249,14 @@ make test-nanorpc
 - Always use `pnpm` instead of `npm` for JavaScript/TypeScript tooling
 - Protocol buffer files are in `proto/` directory (not `protos/`)
   - Subdirectories: `proto/nanopb/`, `proto/nanorpc/`, `proto/vendor/`
-- Generated code should not be manually edited
-- Use `make generate` after protocol changes
+
+### Protocol Buffer Code Generation
+
+- Protocol buffer files in `proto/` directory generate Go code via `go:generate`
+- Generated `.pb.go` files are committed and included in Go modules
+- Uses `protoc` via `internal/build/proto.sh` scripts
+- **Do not edit `.pb.go` files manually** - they are generated
+- Run `go generate ./...` or `make generate` after proto changes
 
 ## Pre-commit Checklist
 
@@ -677,6 +684,27 @@ git commit -a -m "updates"
 ```
 
 Always sign commits with `-s` flag and be explicit about files.
+
+## Publishing to Buf Schema Registry
+
+**Separate from development workflow**: We use buf only for publishing modules
+to buf.build.
+
+```bash
+# Before publishing - validate workspace
+buf build
+buf lint
+
+# Publish with version labels
+buf push --label main --label v0.1.2
+```
+
+**Module Structure**:
+
+- `buf.build/protomcp/nanorpc` - Core protocol with Go options
+- `buf.build/protomcp/nanopb` - nanopb extensions for embedded C
+
+Users consume these via buf dependencies, not our internal protoc workflow.
 
 ## Common Mistakes to Avoid
 

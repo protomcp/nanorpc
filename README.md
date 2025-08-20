@@ -41,6 +41,35 @@ The nanorpc protocol supports multiple communication patterns:
 See [NANORPC_PROTOCOL.md](NANORPC_PROTOCOL.md) for the
 complete protocol specification.
 
+## Using NanoRPC in Your Project
+
+### With Buf (Recommended)
+
+The nanorpc protocol definitions are available on the Buf Schema Registry:
+
+```yaml
+# buf.yaml
+version: v2
+deps:
+  - buf.build/protomcp/nanorpc  # Includes nanopb dependency
+```
+
+Then import in your proto files:
+
+```protobuf
+import "nanorpc.proto";
+
+service MyService {
+  rpc GetData(GetDataRequest) returns (GetDataResponse) {
+    option (nanorpc).request_path = "/api/data";
+  }
+}
+```
+
+### Manual Download
+
+Alternatively, download proto files from the repository for use with protoc.
+
 ## Components
 
 ### Go Client Library
@@ -85,10 +114,13 @@ The [`pkg/nanorpc`](pkg/nanorpc/) package provides shared types and utilities:
 - Request/response encoding and decoding utilities
 - Type aliases for protocol buffer internals
 
-## Build
+## Build (Development)
 
-You need Go 1.23 or later. The project uses a comprehensive Makefile for all
-development tasks.
+**Note**: This section is for nanorpc development. To *use* nanorpc in your
+project, see "Using NanoRPC in Your Project" above.
+
+You need Go 1.23 or later. The project uses protoc and a comprehensive
+Makefile for all development tasks.
 
 ### Basic Build
 
