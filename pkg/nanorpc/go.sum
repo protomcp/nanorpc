@@ -1,7 +1,7 @@
-darvaza.org/core v0.18.1 h1:d7yqVGRSj8ZNy1cLaY/7cSZQAZ9+yeTw8p+PI8iCmWA=
-darvaza.org/core v0.18.1/go.mod h1:kc6mS+nBKf4FMbGQ1OqOEkMt58gpX4qzs8eYiMH99ME=
-darvaza.org/slog v0.7.9 h1:9G+M/Fj4buHN0sPVNC1VhG9W7hvCq1fiELT1n7g1PpY=
-darvaza.org/slog v0.7.9/go.mod h1:AfXB6Tg7r1km0gp1SfirGw44eHP33TyTdjdR1VJVQtI=
+darvaza.org/core v0.18.2 h1:nLi3nm5EiReCbbJzqllP6DS/jHKZfWacsy/v+7DVapM=
+darvaza.org/core v0.18.2/go.mod h1:aorjyDTgc1Bnn7jAdQK1VhQyZEIfqvdLddL8lUGzy9I=
+darvaza.org/slog v0.7.10 h1:ipFBXRCaDF5/cPAHYNQsOZ1B+E2OkYzNr9eDs2CzrLU=
+darvaza.org/slog v0.7.10/go.mod h1:hSMqph96u03qsPxWF2HwTbtM8oQxeVkrRouuBh8UyxM=
 darvaza.org/slog/handlers/discard v0.6.1 h1:a7TkUXLW2Lhmpn8cClqY0wr7cl6nkT6LvmtaXRe/fe4=
 darvaza.org/slog/handlers/discard v0.6.1/go.mod h1:JS6tnHu5LldHsaE/jRTFFstjh6vraUC0ePolMEGA58M=
 darvaza.org/x/config v0.5.0 h1:heY9P3kwrI1WG9binIRR7LaKlzr078fLscDMoyyN+3M=
