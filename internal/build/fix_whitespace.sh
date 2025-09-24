@@ -5,19 +5,25 @@
 # Usage: fix_whitespace.sh [find arguments]
 #        fix_whitespace.sh -- file1 file2 ...
 #
-# Automatically prunes .git and node_modules directories
+# Automatically prunes .git, .tmp and node_modules directories
 #
 # Environment Variables:
 #   SED - sed command to use (default: sed)
 #         Set to "gsed" on macOS or "sed -i ''" for BSD compatibility
+#   JOBS - number of parallel jobs to run (default: 4)
+#   FILES_PER_JOB - number of files per job (default: 4)
 #
 # Examples:
 #   fix_whitespace.sh . -name '*.go' -o -name '*.md'
 #   fix_whitespace.sh src/ -name '*.js'
 #   fix_whitespace.sh -- README.md LICENCE.txt
 #   SED="gsed" fix_whitespace.sh . -name '*.md'
+#   JOBS=8 FILES_PER_JOB=2 fix_whitespace.sh .
 
 set -eu
+
+JOBS="${JOBS:-4}"
+FILES_PER_JOB="${FILES_PER_JOB:-4}"
 
 # Function to fix a single file
 fix_file() {
@@ -69,11 +75,11 @@ run_find() {
 	# Wrap user conditions in parentheses if they exist
 	[ $# -eq 0 ] || set -- \( "$@" \)
 	# combine auto-pruning and user conditions
-	set -- \( -name .git -o -name node_modules \) -prune -o "$@" -type f
+	set -- \( -type d \( -name .git -o -name .tmp -o -name node_modules \) \) -prune -o "$@" -type f
 	# combine escaped paths with find options
 	eval "set -- ${paths:-.} \"\$@\""
 
-	find "$@" -print0 | xargs -0 -r "$0" --
+	find "$@" -print0 | xargs -0 -r "-P${JOBS:-4}" "-n${FILES_PER_JOB:-4}" "$0" --
 }
 
 if [ "${1:-}" = "--" ]; then

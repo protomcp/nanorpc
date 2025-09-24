@@ -8,7 +8,7 @@ set -eu
 # list of directories with go.mod
 MODULES=$(find ./* -name go.mod | sed -e 's;^\./;;' | tr '\n' '\0' | xargs -n1 -0r dirname)
 # shellcheck disable=2178 # space delimited list of grouping prefixes
-GROUPS="handlers"
+GROUPS=pkg
 
 mod() {
 	local d="${1:-.}"
