@@ -21,6 +21,7 @@ while maintaining flexibility for standard server environments.
 - **Multi-language support**: C (via nanopb) and Go implementations
 - **Pub/sub messaging**: Subscription-based updates with filtering
 - **Hash-based paths**: Reduced memory usage for embedded targets
+- **Flexible connectivity**: TCP and UNIX socket support
 - **Reconnection handling**: Automatic client reconnection logic
 - **Zero-copy**: Efficient message handling where possible
 

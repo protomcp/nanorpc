@@ -49,6 +49,20 @@ err = c.Request("/api/status", nil, func(ctx context.Context, reqID int32,
 })
 ```
 
+## Connection Types
+
+The client automatically detects connection type from the remote address:
+
+```go
+// Network addresses
+client.NewClient(ctx, "localhost:8080")
+client.NewClient(ctx, "[::1]:9000")
+
+// File system paths
+client.NewClient(ctx, "/var/run/app.sock")
+client.NewClient(ctx, "@service-name")  // Abstract socket
+```
+
 ## Advanced Configuration
 
 ```go

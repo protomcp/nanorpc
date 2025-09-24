@@ -157,11 +157,29 @@ func newExportTestCase(name string, config *Config, expectError bool) ExportTest
 
 func exportTestCases() []ExportTestCase {
 	return []ExportTestCase{
+		// Invalid cases
 		newExportTestCase("missing_remote", &Config{}, true),
 		newExportTestCase("no_port", &Config{Remote: "localhost"}, true),
-		newExportTestCase("port_zero", &Config{Remote: "localhost:0"}, true),
+		newExportTestCase("port_zero", &Config{Remote: "localhost:0"}, true), // port 0 is invalid
+		newExportTestCase("tcp_empty_host", &Config{Remote: ":8080"}, true),
+		newExportTestCase("tcp_port_zero_ipv6", &Config{Remote: "[::1]:0"}, true),
+		newExportTestCase("abstract_empty_name", &Config{Remote: "@"}, true),
+		newExportTestCase("unix_empty_after_prefix", &Config{Remote: "unix:"}, true),
+
+		// Valid TCP cases
 		newExportTestCase("valid_config", &Config{Remote: "localhost:8080"}, false),
 		newExportTestCase("ipv6_config", &Config{Remote: "[::1]:8080"}, false),
+		newExportTestCase("tcp_hostname_with_sock", &Config{Remote: "service.sock:443"}, false),
+
+		// Valid UNIX socket cases
+		newExportTestCase("unix_socket", &Config{Remote: "/tmp/test.sock"}, false),
+		newExportTestCase("unix_absolute_path", &Config{Remote: "/var/run/app.sock"}, false),
+		newExportTestCase("unix_relative_path", &Config{Remote: "./run/app.sock"}, false),
+		newExportTestCase("unix_with_prefix", &Config{Remote: "unix:/tmp/socket"}, false),
+
+		// Valid abstract UNIX socket cases
+		newExportTestCase("unix_abstract", &Config{Remote: "@abstract-socket"}, false),
+		newExportTestCase("unix_abstract_with_dash", &Config{Remote: "@my-service"}, false),
 	}
 }
 
