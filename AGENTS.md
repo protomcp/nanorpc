@@ -1,4 +1,4 @@
-# AGENT.md
+# AGENTS.md
 
 This file provides guidance to AI agents when working with code in this
 repository. For developers and general project information, please refer to
@@ -37,11 +37,14 @@ make test GOTEST_FLAGS="-cover"
 # Run tests with verbose output and coverage
 make test GOTEST_FLAGS="-v -cover"
 
-# Generate coverage reports
+# Generate coverage reports (dual coverage system)
 make coverage
 
-# Generate Codecov configuration and upload scripts
+# Generate merged coverage and upload scripts
 make codecov
+
+# Create merged repository-wide profiles
+make merged-coverage
 
 # Format code and tidy dependencies (run before committing)
 make tidy
@@ -82,9 +85,11 @@ The build system includes comprehensive tooling:
 
 #### Coverage and Testing
 
-- **Coverage collection**: Automated across all modules
-- **Codecov integration**: Multi-module coverage reporting
+- **Dual coverage system**: Self-coverage and integration coverage perspectives
+- **Coverage collection**: Automated across modules with hierarchical profiles
+- **Codecov integration**: Intelligent upload with best coverage data
 - **Test execution**: Parallel testing with dependency management
+- **Merged profiles**: Repository-wide coverage aggregation
 
 #### Development Tools
 
@@ -221,11 +226,23 @@ make test GOTEST_FLAGS="-race"
 # Run specific tests
 make test GOTEST_FLAGS="-run TestSpecific"
 
-# Generate coverage
+# Generate coverage (dual coverage system)
 make coverage
+
+# Generate specific module coverage
+make coverage-nanorpc
+
+# View merged coverage profiles
+make merged-coverage
 
 # Test specific module
 make test-nanorpc
+
+# View individual module coverage reports
+cat .tmp/coverage/coverage_<module>.func             # Integration coverage
+cat .tmp/coverage/coverage_<module>_self.func        # Self-coverage
+grep -E 'class="(cov|miss)[0-9]*"' \
+    .tmp/coverage/coverage_<module>.html             # Line-level analysis
 ```
 
 ## Important Notes

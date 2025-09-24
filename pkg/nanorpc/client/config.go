@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"darvaza.org/core"
@@ -68,15 +67,9 @@ func (cfg *Config) SetDefaults() error {
 
 // Export generates a [reconnect.Config]
 func (cfg *Config) Export() (*reconnect.Config, error) {
-	_, port, err := core.SplitHostPort(cfg.Remote)
-	switch {
-	case err != nil:
+	// Validate remote address using reconnect package which supports both TCP and Unix sockets
+	if err := reconnect.ValidateRemote(cfg.Remote); err != nil {
 		return nil, core.Wrap(err, "Remote")
-	case port == "", port == "0":
-		return nil, &net.AddrError{
-			Addr: cfg.Remote,
-			Err:  "Remote: port not specified",
-		}
 	}
 
 	if err := cfg.SetDefaults(); err != nil {

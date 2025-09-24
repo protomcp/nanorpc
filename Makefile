@@ -22,50 +22,13 @@ GOLANGCI_LINT_VERSION ?= $(shell $(TOOLSDIR)/get_version.sh 1.23 v2.3.0)
 REVIVE_VERSION ?= $(shell $(TOOLSDIR)/get_version.sh 1.23 v1.7)
 
 GOLANGCI_LINT_URL ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+GOLANGCI_LINT_RUN_ARGS ?= --show-stats=false
 GOLANGCI_LINT ?= $(GO) run $(GOLANGCI_LINT_URL)
 
 REVIVE_CONF ?= $(TOOLSDIR)/revive.toml
 REVIVE_RUN_ARGS ?= -config $(REVIVE_CONF) -formatter friendly
 REVIVE_URL ?= github.com/mgechev/revive@$(REVIVE_VERSION)
 REVIVE ?= $(GO) run $(REVIVE_URL)
-
-PNPX ?= pnpx
-
-ifndef MARKDOWNLINT
-ifeq ($(shell $(PNPX) markdownlint-cli --version 2>&1 | grep -q '^[0-9]' && echo yes),yes)
-MARKDOWNLINT = $(PNPX) markdownlint-cli
-else
-MARKDOWNLINT = true
-endif
-endif
-MARKDOWNLINT_FLAGS ?= --fix --config $(TOOLSDIR)/markdownlint.json
-
-ifndef LANGUAGETOOL
-ifeq ($(shell $(PNPX) @twilio-labs/languagetool-cli --version 2>&1 | grep -qE '^(unknown|[0-9])' && echo yes),yes)
-LANGUAGETOOL = $(PNPX) @twilio-labs/languagetool-cli
-else
-LANGUAGETOOL = true
-endif
-endif
-LANGUAGETOOL_FLAGS ?= --config $(TOOLSDIR)/languagetool.cfg --custom-dict-file $(TMPDIR)/languagetool-dict.txt
-
-ifndef CSPELL
-ifeq ($(shell $(PNPX) cspell --version 2>&1 | grep -q '^[0-9]' && echo yes),yes)
-CSPELL = $(PNPX) cspell
-else
-CSPELL = true
-endif
-endif
-CSPELL_FLAGS ?= --no-progress --dot --config $(TOOLSDIR)/cspell.json
-
-ifndef SHELLCHECK
-ifeq ($(shell $(PNPX) shellcheck --version 2>&1 | grep -q '^ShellCheck' && echo yes),yes)
-SHELLCHECK = $(PNPX) shellcheck
-else
-SHELLCHECK = true
-endif
-endif
-SHELLCHECK_FLAGS ?=
 
 FIX_WHITESPACE ?= $(TOOLSDIR)/fix_whitespace.sh
 # Exclude Go files (handled separately by gofmt)
@@ -85,10 +48,48 @@ FIX_WHITESPACE_EXCLUDE_PATTERNS ?= $(patsubst %,-o -name '*.%',$(FIX_WHITESPACE_
 FIX_WHITESPACE_EXCLUDE ?= $(FIX_WHITESPACE_EXCLUDE_GO) $(FIX_WHITESPACE_EXCLUDE_PATTERNS)
 FIX_WHITESPACE_ARGS ?= . \! \( $(FIX_WHITESPACE_EXCLUDE) \)
 
+PNPX ?= pnpx
+
 FIND_FILES_PRUNE_RULES ?= -name vendor -o -name .git -o -name node_modules
 FIND_FILES_PRUNE_ARGS ?= \( $(FIND_FILES_PRUNE_RULES) \) -prune
 FIND_FILES_GO_ARGS ?= $(FIND_FILES_PRUNE_ARGS) -o -name '*.go'
 FIND_FILES_MARKDOWN_ARGS ?= $(FIND_FILES_PRUNE_ARGS) -o -name '*.md'
+
+ifndef MARKDOWNLINT
+ifeq ($(shell $(PNPX) -- markdownlint-cli --version 2>&1 | grep -q '^[0-9]' && echo yes),yes)
+MARKDOWNLINT = $(PNPX) -- markdownlint-cli
+else
+MARKDOWNLINT = true
+endif
+endif
+MARKDOWNLINT_FLAGS ?= --fix --config $(TOOLSDIR)/markdownlint.json
+
+ifndef LANGUAGETOOL
+ifeq ($(shell $(PNPX) -- @twilio-labs/languagetool-cli --version 2>&1 | grep -qE '^(unknown|[0-9])' && echo yes),yes)
+LANGUAGETOOL = $(PNPX) -- @twilio-labs/languagetool-cli
+else
+LANGUAGETOOL = true
+endif
+endif
+LANGUAGETOOL_FLAGS ?= --config $(TOOLSDIR)/languagetool.cfg --custom-dict-file $(TMPDIR)/languagetool-dict.txt
+
+ifndef CSPELL
+ifeq ($(shell $(PNPX) -- cspell --version 2>&1 | grep -q '^[0-9]' && echo yes),yes)
+CSPELL = $(PNPX) -- cspell
+else
+CSPELL = true
+endif
+endif
+CSPELL_FLAGS ?= --no-progress --dot --config $(TOOLSDIR)/cspell.json
+
+ifndef SHELLCHECK
+ifeq ($(shell $(PNPX) -- shellcheck --version 2>&1 | grep -q '^ShellCheck' && echo yes),yes)
+SHELLCHECK = $(PNPX) -- shellcheck
+else
+SHELLCHECK = true
+endif
+endif
+SHELLCHECK_FLAGS ?=
 
 V = 0
 Q = $(if $(filter 1,$V),,@)
@@ -155,10 +156,12 @@ tidy: fmt $(TIDY_SPELLING) $(TIDY_SHELL)
 generate: ; $(info $(M) running go:generate…)
 	$Q git grep -l '^//go:generate' | sort -uV | xargs -r -n1 $(GO) generate $(GOGENERATE_FLAGS)
 
+# Prepare for codecov uploading
+codecov: merged-coverage $(COVERAGE_DIR)/codecov.sh
+	$Q $(TOOLSDIR)/make_codecov.sh $(TMPDIR)/index $(COVERAGE_DIR)
+
 # Generate Codecov upload script
-# This target prepares codecov.sh script for uploading coverage
-# data to Codecov with proper module flags
-codecov: $(COVERAGE_DIR)/coverage.out $(TMPDIR)/index ; $(info $(M) preparing codecov data)
+$(COVERAGE_DIR)/codecov.sh: $(TOOLSDIR)/make_codecov.sh $(TMPDIR)/index ; $(info $(M) generating codecov.sh…)
 	$Q $(TOOLSDIR)/make_codecov.sh $(TMPDIR)/index $(COVERAGE_DIR)
 
 check-jq: FORCE
