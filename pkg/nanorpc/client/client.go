@@ -20,6 +20,7 @@ type Client struct {
 
 	rc           *reconnect.Client
 	cs           *Session
+	connected    chan struct{}
 	reqCounter   *RequestCounter
 	hc           *nanorpc.HashCache
 	getPathOneOf func(string) nanorpc.PathOneOf
@@ -85,6 +86,7 @@ func (c *Client) init(cfg *Config, rc *reconnect.Client) error {
 	c.WorkGroup = rc
 	c.rc = rc
 
+	c.connected = make(chan struct{})
 	c.queueSize = cfg.QueueSize
 	c.reqCounter = reqCounter
 	c.idleReadTimeout = cfg.IdleTimeout
