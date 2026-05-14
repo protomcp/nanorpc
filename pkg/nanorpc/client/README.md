@@ -155,6 +155,11 @@ The client automatically manages connections and reconnections:
 // Wait for connection
 <-c.Connected()
 
+// Or wait with a context — returns nil on connect, ctx.Err() on timeout
+if err := c.WaitConnected(ctx); err != nil {
+    return err
+}
+
 // Check connection status
 if c.IsConnected() {
     // Make requests

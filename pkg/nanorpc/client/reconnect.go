@@ -104,7 +104,14 @@ func (c *Client) endSession(*Session) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if c.cs == nil {
+		// Already disconnected: keep the live open channel so that
+		// waiters holding it are not orphaned by a spurious reset.
+		return
+	}
+
 	c.cs = nil
+	c.connected = make(chan struct{})
 }
 
 func (c *Client) setSession(cs *Session) error {
@@ -118,6 +125,7 @@ func (c *Client) setSession(cs *Session) error {
 		return core.QuietWrap(fs.ErrInvalid, "session already attached")
 	default:
 		c.cs = cs
+		close(c.connected)
 		return nil
 	}
 }
@@ -129,4 +137,38 @@ func (c *Client) setSession(cs *Session) error {
 // Connect initiates the nanorpc reconnecting connection.
 func (c *Client) Connect() error {
 	return c.rc.Connect()
+}
+
+// Connected returns a channel that is closed while the [Client] holds an
+// active session. The channel is replaced after each disconnect, so it
+// signals only the next readiness edge — callers waiting across a
+// reconnect cycle must fetch a fresh channel via Connected.
+func (c *Client) Connected() <-chan struct{} {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.connected
+}
+
+// IsConnected reports whether the [Client] currently holds an active
+// session. It is a point-in-time snapshot; the state can change between
+// the call returning and the next operation.
+func (c *Client) IsConnected() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.cs != nil
+}
+
+// WaitConnected blocks until the [Client] is connected or ctx is done.
+// It returns nil on connect, or ctx.Err() if ctx fires first. The wait
+// is bounded by the caller's ctx — pass a deadline if you want to limit
+// how long callers will tolerate reconnection.
+func (c *Client) WaitConnected(ctx context.Context) error {
+	select {
+	case <-c.Connected():
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
