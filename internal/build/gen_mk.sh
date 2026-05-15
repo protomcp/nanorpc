@@ -134,7 +134,7 @@ gen_make_targets() {
 \$(GO) mod tidy"
 		;;
 	test)
-		call="\$(GO) $cmd \$(GOTEST_FLAGS) ./..."
+		call="\$(GO) $cmd -count=1 \$(GOTEST_FLAGS) ./..."
 		;;
 	coverage)
 		call="\$(TOOLSDIR)/make_coverage.sh \"$name\" \".\" \"\$(COVERAGE_DIR)\""
