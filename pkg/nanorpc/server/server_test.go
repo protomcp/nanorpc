@@ -41,10 +41,20 @@ func setupTestServer(t *testing.T) (net.Listener, *Server, <-chan error) {
 		serverErr <- server.Serve(context.Background())
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
+	waitServerReady(t, server)
 
 	return listener, server, serverErr
+}
+
+// waitServerReady blocks until the server's accept loop is live, or fails
+// the test if it does not become ready within a generous timeout.
+func waitServerReady(t *testing.T, server *Server) {
+	t.Helper()
+	select {
+	case <-server.Ready():
+	case <-time.After(time.Second):
+		t.Fatal("server did not reach accept loop within 1s")
+	}
 }
 
 // connectToServer establishes a connection to the test server
@@ -149,7 +159,7 @@ func TestNewDefaultServer_UsesSuppliedHandler(t *testing.T) {
 	server := NewDefaultServer(listener, handler, nil)
 	serverErr := make(chan error, 1)
 	go func() { serverErr <- server.Serve(context.Background()) }()
-	time.Sleep(50 * time.Millisecond)
+	waitServerReady(t, server)
 	defer shutdownServer(t, server, serverErr)
 
 	conn := connectToServer(t, listener.Addr().String())
@@ -172,6 +182,39 @@ func TestNewDefaultServer_UsesSuppliedHandler(t *testing.T) {
 	core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, response.ResponseStatus,
 		"response status")
 	core.AssertEqual(t, string(payload), string(response.Data), "response data")
+}
+
+// TestServer_Ready exercises the readiness signal: it is open before Serve
+// runs, closes once the accept loop is reached, and remains closed across
+// shutdown so late callers do not block.
+func TestServer_Ready(t *testing.T) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	core.AssertMustNoError(t, err, "listen")
+
+	server := NewDefaultServer(listener, nil, nil)
+
+	select {
+	case <-server.Ready():
+		t.Fatal("Ready channel closed before Serve")
+	default:
+	}
+
+	serverErr := make(chan error, 1)
+	go func() { serverErr <- server.Serve(context.Background()) }()
+
+	select {
+	case <-server.Ready():
+	case <-time.After(time.Second):
+		t.Fatal("Ready channel did not close after Serve")
+	}
+
+	shutdownServer(t, server, serverErr)
+
+	select {
+	case <-server.Ready():
+	default:
+		t.Fatal("Ready channel reopened after shutdown")
+	}
 }
 
 func TestDecoupledServer_Shutdown(t *testing.T) {

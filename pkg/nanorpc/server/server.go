@@ -19,6 +19,7 @@ type Server struct {
 	sessionManager SessionManager
 	messageHandler MessageHandler
 	logger         slog.Logger
+	ready          chan struct{}
 	wg             workgroup.Group
 	mu             sync.RWMutex
 }
@@ -34,6 +35,28 @@ func NewServer(listener Listener, sessionManager SessionManager,
 		sessionManager: sessionManager,
 		messageHandler: messageHandler,
 		logger:         logger,
+		ready:          make(chan struct{}),
+	}
+}
+
+// Ready returns a channel that is closed once [Server.Serve] has reached the
+// accept loop and the listener is taking connections. Callers blocked on
+// readiness should select on this channel together with their own
+// cancellation signal, since the channel does not close if Serve never
+// progresses past start-up.
+func (s *Server) Ready() <-chan struct{} {
+	return s.ready
+}
+
+// signalReady closes the ready channel exactly once, guarded by mu so
+// repeated Serve calls cannot panic on a double close.
+func (s *Server) signalReady() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	select {
+	case <-s.ready:
+	default:
+		close(s.ready)
 	}
 }
 
@@ -93,6 +116,7 @@ func (s *Server) Serve(ctx context.Context) error {
 
 // acceptLoop runs the connection acceptance loop
 func (s *Server) acceptLoop(ctx context.Context) error {
+	s.signalReady()
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
