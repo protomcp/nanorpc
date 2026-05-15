@@ -37,10 +37,15 @@ func NewServer(listener Listener, sessionManager SessionManager,
 	}
 }
 
-// NewDefaultServer creates a server with default components
-func NewDefaultServer(netListener net.Listener, logger slog.Logger) *Server {
+// NewDefaultServer creates a server with default components. If handler is
+// nil a fresh [DefaultMessageHandler] is constructed; pass an existing one
+// to pre-register paths before [Server.Serve] starts.
+func NewDefaultServer(netListener net.Listener, handler *DefaultMessageHandler,
+	logger slog.Logger) *Server {
 	listener := NewListenerAdapter(netListener)
-	handler := NewDefaultMessageHandler(nil) // Creates new HashCache internally
+	if handler == nil {
+		handler = NewDefaultMessageHandler(nil) // Creates new HashCache internally
+	}
 	sessionManager := NewDefaultSessionManager(handler, logger)
 
 	return NewServer(listener, sessionManager, handler, logger)
