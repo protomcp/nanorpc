@@ -71,9 +71,9 @@ NanoRPC uses a simple request-response model with three primary message types:
 3. **Subscribe/Update**: Publish-subscribe pattern for real-time data.
 
 ```text
-┌────────┐                    ┌────────┐
-│ Client │                    │ Server │
-└───┬────┘                    └───┬────┘
+┌────────┐                     ┌────────┐
+│ Client │                     │ Server │
+└───┬────┘                     └───┬────┘
     │                              │
     │──── TYPE_PING ────────────>  │
     │ <─── TYPE_PONG ────────────  │
@@ -280,6 +280,14 @@ Server: TYPE_RESPONSE (request_id=100, status=OK)
 This ensures precise subscription management when multiple subscriptions exist
 for the same path.
 
+A subscription's `request_id` is reserved from the moment `TYPE_SUBSCRIBE` is
+sent until the unsubscribe `TYPE_RESPONSE` arrives or the session ends, and
+MUST NOT be reused for other purposes during that window. Within the
+`request_id`, the first `TYPE_RESPONSE` is the subscription acknowledgement and
+a later `TYPE_RESPONSE` (following the `TYPE_REQUEST` with empty data) is the
+unsubscribe acknowledgement; routing keyed only on `request_id` will misroute
+one of them.
+
 ## 6. Subscription Semantics
 
 ### 6.1 Subscription Lifecycle
@@ -288,8 +296,38 @@ for the same path.
 2. **Acknowledgement**: TYPE_RESPONSE confirms subscription.
 3. **Updates**: TYPE_UPDATE messages use original request_id.
 4. **Termination**:
-   - Explicit: TYPE_REQUEST with empty data.
-   - Implicit: Session disconnect.
+   - Explicit: TYPE_REQUEST with empty data and the subscription's original
+     request_id; the server confirms with a TYPE_RESPONSE bearing the same
+     request_id.
+   - Implicit: All subscriptions on a session terminate when the session ends.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: Subscribe()
+    Pending --> Active: subscribe ACK (STATUS_OK)
+    Pending --> Terminated: subscribe ACK (non-OK)
+    Active --> Unsubscribing: Unsubscribe() sent
+    Unsubscribing --> Terminated: unsubscribe ACK
+    Pending --> Terminated: session ends
+    Active --> Terminated: session ends
+    Unsubscribing --> Terminated: session ends
+    Terminated --> [*]
+```
+
+#### Phases
+
+A subscription progresses through four phases on the client side:
+
+1. **Pending**: TYPE_SUBSCRIBE sent; subscribe TYPE_RESPONSE not yet received.
+   No TYPE_UPDATE arrives in this phase.
+2. **Active**: subscribe TYPE_RESPONSE received with STATUS_OK; TYPE_UPDATE
+   messages may arrive at any time.
+3. **Unsubscribing**: unsubscribe TYPE_REQUEST sent; unsubscribe TYPE_RESPONSE
+   not yet received. TYPE_UPDATE messages already in flight server-side MAY
+   still arrive in this phase.
+4. **Terminated**: unsubscribe TYPE_RESPONSE received, or the session ended.
+   No further messages bearing this request_id will arrive; clients MAY
+   release routing state.
 
 ### 6.2 Filtering
 
@@ -304,6 +342,8 @@ The `data` field in TYPE_SUBSCRIBE acts as a filter specification:
 - **Updates**: Best-effort delivery, no acknowledgement.
 - **Ordering**: Updates maintain send order per subscription.
 - **Concurrency**: Thread-safe publishing allows concurrent updates.
+- **Termination**: Updates may arrive between the unsubscribe request and its
+  acknowledgement; none arrive after the acknowledgement.
 - **Coalescing**: Rapid updates may be coalesced (planned feature).
 
 ## 7. Error Handling
@@ -417,6 +457,11 @@ S->C: TYPE_UPDATE (id=1, data={sensor:"room2", temp:30.2})
 
 # Client unsubscribes (same request_id as subscription)
 C->S: TYPE_REQUEST (id=1, path_hash=0xABCD1234, data="")
+
+# In-flight update may still arrive before the unsubscribe ACK
+S->C: TYPE_UPDATE (id=1, data={sensor:"room3", temp:27.1})
+
+# Unsubscribe acknowledgement; no further messages with id=1
 S->C: TYPE_RESPONSE (id=1, status=OK)
 ```
 
