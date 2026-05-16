@@ -259,7 +259,7 @@ cat <<'EOT'
 $(COVERAGE_DIR):
 	$Q mkdir -p $@
 
-.PHONY: clean-coverage merge-coverage
+.PHONY: clean-coverage merged-coverage
 clean-coverage: ; $(info $(M) cleaning coverage data…)
 	$Q rm -rf $(COVERAGE_DIR)
 

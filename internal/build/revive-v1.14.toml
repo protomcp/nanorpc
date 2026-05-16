@@ -33,10 +33,11 @@ enableAllRules = true
   disabled = true
 [rule.banned-characters]
   disabled = true
-# pkg/nanorpc/utils is part of the established import surface;
-# `utils` is in revive's default bad-name list, but a rename would
-# break consumers and is out of scope for the build system. Silence
-# only the default-bad-name check; convention, top-level, and
-# stdlib-collision checks stay active.
-[rule.package-naming]
-  arguments = [{skipDefaultBadNameCheck = true}]
+# Config variant for revive v1.14.0 (Go 1.24 tier). The `package-naming`
+# rule (introduced in v1.15.0) is configured in revive.toml with
+# `skipDefaultBadNameCheck = true` to allow `pkg/nanorpc/utils`. In
+# v1.14.0 the equivalent check lives inside `var-naming`; silence it
+# via the third argument's `skipPackageNameChecks` flag. Stdlib-clash
+# checks stay active in both tiers.
+[rule.var-naming]
+  arguments = [[], [], [{skipPackageNameChecks = true}]]
