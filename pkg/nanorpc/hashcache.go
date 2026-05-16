@@ -71,6 +71,8 @@ func (hc *HashCache) computeHash(path string) (uint32, error) {
 		return value, nil
 	case err == nil:
 		err = errors.New("failed to write to fnv-1a hasher")
+	default:
+		// let h.Write's err propagate via the trailing return
 	}
 
 	return 0, err
