@@ -21,6 +21,12 @@ var (
 
 	// ErrHashCollision indicates two different paths hash to the same value
 	ErrHashCollision = errors.New("hash collision detected")
+
+	// ErrSubscriptionEstablished is a sentinel surfaced through a subscription
+	// callback when the server acknowledges TYPE_SUBSCRIBE with STATUS_OK. It
+	// is not a failure: callers can ignore it or use it to mark the
+	// subscription as live before the first TYPE_UPDATE arrives.
+	ErrSubscriptionEstablished = errors.New("subscription established")
 )
 
 var (
@@ -110,4 +116,11 @@ func IsNotAuthorized(err error) bool {
 // This error is also used to notify the connection was closed.
 func IsNoResponse(err error) bool {
 	return core.IsError(err, ErrNoResponse)
+}
+
+// IsSubscriptionEstablished reports whether err is the sentinel delivered
+// through a subscription callback when the server acknowledges
+// TYPE_SUBSCRIBE.
+func IsSubscriptionEstablished(err error) bool {
+	return core.IsError(err, ErrSubscriptionEstablished)
 }
