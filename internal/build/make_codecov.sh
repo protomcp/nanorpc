@@ -119,6 +119,7 @@ EOF
 	cat <<EOF
 
 # Upload each coverage file with its flag
+# shellcheck disable=SC2043 # loop body intentional for single-module repos
 for name in $(cut -d: -f1 "$index" | tr '\n' ' '); do
 	upload_best_coverage "\$name"
 done
@@ -134,5 +135,11 @@ fi
 # Create coverage directory
 mkdir -p "$COVERAGE_DIR"
 
-generate_upload_script "$INDEX" > "$COVERAGE_DIR/codecov.sh"
-chmod +x "$COVERAGE_DIR/codecov.sh"
+OUT="$COVERAGE_DIR/codecov.sh"
+generate_upload_script "$INDEX" > "$OUT~"
+chmod +x "$OUT~"
+if cmp "$OUT" "$OUT~" 2> /dev/null >&2; then
+	rm "$OUT~"
+else
+	mv "$OUT~" "$OUT"
+fi

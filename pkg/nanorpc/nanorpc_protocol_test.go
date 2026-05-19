@@ -124,7 +124,7 @@ func (tc extendedRequestTestCase) test(t *testing.T) {
 	testPayload := []byte("test payload")
 	reqWithPayload, ok := proto.Clone(tc.request).(*NanoRPCRequest)
 	if !ok {
-		t.Fatalf("Failed to clone request")
+		t.Fatal("Failed to clone request")
 	}
 	reqWithPayload.Data = testPayload
 
@@ -208,7 +208,7 @@ func (tc responseTestCase) test(t *testing.T) {
 	testPayload := []byte("response payload")
 	resWithPayload, ok := proto.Clone(tc.response).(*NanoRPCResponse)
 	if !ok {
-		t.Fatalf("Failed to clone response")
+		t.Fatal("Failed to clone response")
 	}
 	resWithPayload.Data = testPayload
 

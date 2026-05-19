@@ -164,6 +164,8 @@ func (cs *Session) Send(req *nanorpc.NanoRPCRequest, payload proto.Message, cb R
 		req.RequestId = 0
 	case req.RequestId == 0:
 		req.RequestId = cs.nextRequestID()
+	default:
+		// keep caller-supplied positive RequestId
 	}
 
 	if cb != nil {

@@ -52,6 +52,8 @@ func (e ResponseError) String() string {
 		status = fmt.Sprintf("unknown status %d", e.Status)
 	case e.Status == NanoRPCResponse_STATUS_UNSPECIFIED:
 		status = fmt.Sprintf("%s: invalid status", status)
+	default:
+		// keep status as the prefix-stripped enum name
 	}
 
 	writeString(&buf, "nanorpc: ", status)

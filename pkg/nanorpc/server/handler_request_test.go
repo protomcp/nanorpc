@@ -57,7 +57,7 @@ func (tc *handleRequestTestCase) test(t *testing.T) {
 
 	// Check error expectation
 	if tc.expectError && err == nil {
-		t.Fatalf("expected error but got none")
+		t.Fatal("expected error but got none")
 	}
 	if !tc.expectError && err != nil {
 		t.Fatalf("unexpected error: %v", err)

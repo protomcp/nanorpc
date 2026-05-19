@@ -134,7 +134,7 @@ gen_make_targets() {
 \$(GO) mod tidy"
 		;;
 	test)
-		call="\$(GO) $cmd \$(GOTEST_FLAGS) ./..."
+		call="\$(GO) $cmd -count=1 \$(GOTEST_FLAGS) ./..."
 		;;
 	coverage)
 		call="\$(TOOLSDIR)/make_coverage.sh \"$name\" \".\" \"\$(COVERAGE_DIR)\""
@@ -259,7 +259,7 @@ cat <<'EOT'
 $(COVERAGE_DIR):
 	$Q mkdir -p $@
 
-.PHONY: clean-coverage merge-coverage
+.PHONY: clean-coverage merged-coverage
 clean-coverage: ; $(info $(M) cleaning coverage data…)
 	$Q rm -rf $(COVERAGE_DIR)
 
