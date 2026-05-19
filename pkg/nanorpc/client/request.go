@@ -164,6 +164,12 @@ func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCal
 // According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
 // with empty data to the same path using the original subscription request ID.
 // The path will be converted to path_hash if [ClientOptions].AlwaysHashPaths was set.
+//
+// requestID must be the value returned by a prior [Client.Subscribe] call.
+// The call fails with [os.ErrInvalid] when no subscription is registered
+// for requestID or when the subscription is still pending its
+// acknowledgement. cb fires once when the server acknowledges the
+// unsubscribe.
 func (c *Client) Unsubscribe(path string, requestID int32, cb RequestCallback) error {
 	// assemble header
 	m := &nanorpc.NanoRPCRequest{
@@ -179,6 +185,12 @@ func (c *Client) Unsubscribe(path string, requestID int32, cb RequestCallback) e
 // UnsubscribeByHash sends an unsubscribe request using a given path_hash and request ID.
 // According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
 // with empty data to the path using the original subscription request ID.
+//
+// requestID must be the value returned by a prior [Client.SubscribeByHash]
+// call. The call fails with [os.ErrInvalid] when no subscription is
+// registered for requestID or when the subscription is still pending its
+// acknowledgement. cb fires once when the server acknowledges the
+// unsubscribe.
 func (c *Client) UnsubscribeByHash(pathHash uint32, requestID int32, cb RequestCallback) error {
 	// assemble header
 	m := &nanorpc.NanoRPCRequest{
@@ -196,6 +208,12 @@ func (c *Client) UnsubscribeByHash(pathHash uint32, requestID int32, cb RequestC
 // UnsubscribeWithHash sends an unsubscribe request using the hash of the given path and request ID.
 // According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
 // with empty data to the path using the original subscription request ID.
+//
+// requestID must be the value returned by a prior [Client.SubscribeWithHash]
+// call. The call fails with [os.ErrInvalid] when no subscription is
+// registered for requestID or when the subscription is still pending its
+// acknowledgement. cb fires once when the server acknowledges the
+// unsubscribe.
 func (c *Client) UnsubscribeWithHash(path string, requestID int32, cb RequestCallback) error {
 	hash, err := c.hc.Hash(path)
 	if err != nil {
