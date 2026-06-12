@@ -10,7 +10,7 @@ require (
 	darvaza.org/x/container v0.4.0
 	darvaza.org/x/fs v0.6.0 // indirect
 	darvaza.org/x/net v0.7.0
-	darvaza.org/x/sync v0.4.0
+	darvaza.org/x/sync v0.4.1
 	github.com/amery/defaults v0.1.0 // indirect
 	protomcp.org/nanorpc/pkg/nanopb v0.2.1
 )
