@@ -194,7 +194,7 @@ func (h *EncodeDecodeTestHelper) assertBytesEqual(expected, actual []byte, msg s
 	if !core.AssertEqual(h.t, len(expected), len(actual), msg) {
 		h.t.FailNow()
 	}
-	for i := 0; i < len(expected); i++ {
+	for i := range expected {
 		if expected[i] != actual[i] {
 			h.t.Errorf("%s: byte mismatch at index %d: expected %02x, got %02x", msg, i, expected[i], actual[i])
 			return
@@ -256,7 +256,7 @@ func (h *ConcurrentTestHelper) Run(testFunc func(int) (any, error)) {
 	h.t.Helper()
 	h.wg.Add(h.numRoutines)
 
-	for i := 0; i < h.numRoutines; i++ {
+	for i := range h.numRoutines {
 		go func(idx int) {
 			defer h.wg.Done()
 			result, err := testFunc(idx)
