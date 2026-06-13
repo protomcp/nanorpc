@@ -120,7 +120,7 @@ The [`pkg/nanorpc`](pkg/nanorpc/) package provides shared types and utilities:
 **Note**: This section is for nanorpc development. To *use* nanorpc in your
 project, see "Using NanoRPC in Your Project" above.
 
-You need Go 1.23 or later. The project uses protoc and a comprehensive
+You need Go 1.24 or later. The project uses protoc and a comprehensive
 Makefile for all development tasks.
 
 ### Basic Build

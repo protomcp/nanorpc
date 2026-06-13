@@ -1,4 +1,4 @@
-version: 2
+version: "2"
 run:
   allow-parallel-runners: true
   timeout: 5m
@@ -15,6 +15,7 @@ linters:
     - ineffassign
     - lll
     - misspell
+    - modernize
     - nakedret
     - prealloc
     - revive
