@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"maps"
 	"testing"
 
 	"darvaza.org/core"
@@ -15,9 +16,7 @@ const (
 // Helper factory functions
 func newMockFieldLoggerWithFields(fields map[string]any) *MockFieldLogger {
 	logger := NewMockFieldLogger()
-	for k, v := range fields {
-		logger.Fields[k] = v
-	}
+	maps.Copy(logger.Fields, fields)
 	return logger
 }
 

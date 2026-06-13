@@ -1,6 +1,8 @@
 package testutils
 
 import (
+	"maps"
+
 	"darvaza.org/slog"
 )
 
@@ -27,9 +29,7 @@ func NewMockFieldLogger() *MockFieldLogger {
 func (m *MockFieldLogger) WithField(key string, value any) slog.Logger {
 	newLogger := *m
 	newLogger.Fields = make(map[string]any)
-	for k, v := range m.Fields {
-		newLogger.Fields[k] = v
-	}
+	maps.Copy(newLogger.Fields, m.Fields)
 	newLogger.Fields[key] = value
 	return &newLogger
 }
@@ -38,12 +38,8 @@ func (m *MockFieldLogger) WithField(key string, value any) slog.Logger {
 func (m *MockFieldLogger) WithFields(fields map[string]any) slog.Logger {
 	newLogger := *m
 	newLogger.Fields = make(map[string]any)
-	for k, v := range m.Fields {
-		newLogger.Fields[k] = v
-	}
-	for k, v := range fields {
-		newLogger.Fields[k] = v
-	}
+	maps.Copy(newLogger.Fields, m.Fields)
+	maps.Copy(newLogger.Fields, fields)
 	return &newLogger
 }
 

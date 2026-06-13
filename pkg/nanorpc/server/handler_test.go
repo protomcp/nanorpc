@@ -641,9 +641,9 @@ func performSubscriptions(handler *DefaultMessageHandler, id, numSubscriptionsPe
 	session := newTestSession(fmt.Sprintf("concurrent-session-%d", id), 0)
 	testPath := testSubscriptionPath
 
-	for i := 0; i < numSubscriptionsPerGoroutine; i++ {
+	for i := range numSubscriptionsPerGoroutine {
 		requestID := int32(id*1000 + i)
-		subReq := newTestSubscribeRequest(requestID, testPath, []byte(fmt.Sprintf("filter-%d-%d", id, i)))
+		subReq := newTestSubscribeRequest(requestID, testPath, fmt.Appendf(nil, "filter-%d-%d", id, i))
 		if err := handler.HandleMessage(context.Background(), session, subReq); err != nil {
 			return fmt.Errorf("subscribe failed for session %d, req %d: %w", id, i, err)
 		}
@@ -655,7 +655,7 @@ func performSubscriptions(handler *DefaultMessageHandler, id, numSubscriptionsPe
 func performUnsubscribeOperations(handler *DefaultMessageHandler, id, numSubscriptionsPerGoroutine int) error {
 	session := newTestSession(fmt.Sprintf("concurrent-session-%d", id), 0)
 
-	for i := 0; i < numSubscriptionsPerGoroutine; i++ {
+	for i := range numSubscriptionsPerGoroutine {
 		requestID := int32(id*1000 + i)
 		unsubscribeReq := newUnsubscribeRequest(requestID)
 		if err := handler.HandleMessage(context.Background(), session, unsubscribeReq); err != nil {
