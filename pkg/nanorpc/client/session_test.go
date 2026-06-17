@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"darvaza.org/core"
@@ -170,10 +169,10 @@ func TestSession_popRequestCallback(t *testing.T) {
 // guard that rejects unsubscribe-shape TYPE_REQUEST entries whose
 // target subscription is missing or still pending.
 type sendGuardTestCase struct {
-	name   string
-	errMsg string
-	seed   []routingSeed
-	reqID  int32
+	name    string
+	wantErr error
+	seed    []routingSeed
+	reqID   int32
 }
 
 func (tc sendGuardTestCase) Name() string { return tc.name }
@@ -186,38 +185,36 @@ func (tc sendGuardTestCase) Test(t *testing.T) {
 
 	err := cs.checkUnsubscribeTarget(tc.reqID)
 
-	if tc.errMsg == "" {
+	if tc.wantErr == nil {
 		core.AssertNoError(t, err, "err")
 	} else {
-		core.AssertErrorIs(t, err, os.ErrInvalid, "err_kind")
-		if err != nil {
-			core.AssertContains(t, err.Error(), tc.errMsg, "err_msg")
-		}
+		core.AssertErrorIs(t, err, tc.wantErr, "err")
+		core.AssertErrorIs(t, err, core.ErrInvalid, "err_family")
 	}
 
 	core.AssertEqual(t, initialLen, len(cs.cb), "queue_unchanged")
 }
 
 // newSendGuardTestCase narrates a row: name, seed queue, dispatched
-// reqID, expected errMsg ("" means the guard accepts).
+// reqID, expected sentinel (nil means the guard accepts).
 func newSendGuardTestCase(name string, seed []routingSeed,
-	reqID int32, errMsg string) sendGuardTestCase {
+	reqID int32, wantErr error) sendGuardTestCase {
 	return sendGuardTestCase{
-		name:   name,
-		errMsg: errMsg,
-		seed:   seed,
-		reqID:  reqID,
+		name:    name,
+		wantErr: wantErr,
+		seed:    seed,
+		reqID:   reqID,
 	}
 }
 
 func sendGuardTestCases() []sendGuardTestCase {
 	return []sendGuardTestCase{
 		newSendGuardTestCase("no_matching_subscription",
-			nil, 5, "no subscription with request_id 5"),
+			nil, 5, ErrNoSubscription),
 		newSendGuardTestCase("subscription_pending",
-			core.S(sub(5)), 5, "subscription 5 not yet active"),
+			core.S(sub(5)), 5, ErrSubscriptionPending),
 		newSendGuardTestCase("subscription_acknowledged",
-			core.S(subAcknowledged(5)), 5, ""),
+			core.S(subAcknowledged(5)), 5, nil),
 	}
 }
 
@@ -234,7 +231,7 @@ func TestSession_checkUnsubscribeTarget(t *testing.T) {
 type sendRejectTestCase struct {
 	cb      RequestCallback
 	name    string
-	errMsg  string
+	wantErr error
 	seed    []routingSeed
 	reqType nanorpc.NanoRPCRequest_Type
 	reqID   int32
@@ -251,24 +248,21 @@ func (tc sendRejectTestCase) Test(t *testing.T) {
 	req := &nanorpc.NanoRPCRequest{RequestType: tc.reqType, RequestId: tc.reqID}
 	err := cs.Send(req, nil, tc.cb)
 
-	core.AssertErrorIs(t, err, os.ErrInvalid, "err_kind")
-	if err != nil {
-		core.AssertContains(t, err.Error(), tc.errMsg, "err_msg")
-	}
+	core.AssertErrorIs(t, err, tc.wantErr, "err")
+	core.AssertErrorIs(t, err, core.ErrInvalid, "err_family")
 	core.AssertEqual(t, initialLen, len(cs.cb), "queue_unchanged")
 }
 
 // newSendRejectTestCase narrates a row: name, seed queue, request type and
-// id, the callback to offer, and the expected os.ErrInvalid message
-// fragment.
+// id, the callback to offer, and the expected sentinel.
 //
 //revive:disable-next-line:argument-limit
 func newSendRejectTestCase(name string, seed []routingSeed,
 	reqType nanorpc.NanoRPCRequest_Type, reqID int32,
-	cb RequestCallback, errMsg string) sendRejectTestCase {
+	cb RequestCallback, wantErr error) sendRejectTestCase {
 	return sendRejectTestCase{
 		name:    name,
-		errMsg:  errMsg,
+		wantErr: wantErr,
 		seed:    seed,
 		cb:      cb,
 		reqType: reqType,
@@ -279,23 +273,36 @@ func newSendRejectTestCase(name string, seed []routingSeed,
 func sendRejectTestCases() []sendRejectTestCase {
 	return []sendRejectTestCase{
 		newSendRejectTestCase("invalid_request_type",
-			nil, reqUnspecified, 0, nil, "invalid request type"),
+			nil, reqUnspecified, 0, nil, ErrInvalidRequestType),
 		newSendRejectTestCase("request_missing_callback",
-			nil, reqRequest, 0, nil, "missing callback"),
+			nil, reqRequest, 0, nil, ErrMissingCallback),
 		newSendRejectTestCase("subscribe_missing_callback",
-			nil, reqSubscribe, 0, nil, "missing callback"),
+			nil, reqSubscribe, 0, nil, ErrMissingCallback),
 		newSendRejectTestCase("unsubscribe_no_subscription",
-			nil, reqRequest, 5, discardCallback(),
-			"no subscription with request_id 5"),
+			nil, reqRequest, 5, discardCallback(), ErrNoSubscription),
 		newSendRejectTestCase("unsubscribe_pending",
 			core.S(sub(5)), reqRequest, 5, discardCallback(),
-			"subscription 5 not yet active"),
+			ErrSubscriptionPending),
 	}
 }
 
 // TestSession_Send_rejections exercises Send's pre-wire rejection paths.
 func TestSession_Send_rejections(t *testing.T) {
 	core.RunTestCases(t, sendRejectTestCases())
+}
+
+// TestSession_Send_nilRequest covers the exported guard against a nil
+// request, which the table cases cannot express since they always build a
+// concrete request. Without the guard Send would panic dereferencing
+// req.RequestType.
+func TestSession_Send_nilRequest(t *testing.T) {
+	cs := newRoutingSession(nil, new(int))
+
+	err := cs.Send(nil, nil, discardCallback())
+
+	core.AssertErrorIs(t, err, ErrNilRequest, "err")
+	core.AssertErrorIs(t, err, core.ErrInvalid, "err_family")
+	core.AssertEqual(t, 0, len(cs.cb), "queue_unchanged")
 }
 
 // discardCallback is a no-op RequestCallback for rows that must offer a

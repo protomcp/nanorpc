@@ -166,10 +166,9 @@ func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCal
 // The path will be converted to path_hash if [ClientOptions].AlwaysHashPaths was set.
 //
 // requestID must be the value returned by a prior [Client.Subscribe] call.
-// The call fails with [os.ErrInvalid] when no subscription is registered
-// for requestID or when the subscription is still pending its
-// acknowledgement. cb fires once when the server acknowledges the
-// unsubscribe.
+// The call fails with [ErrNoSubscription] when none is registered for
+// requestID, or [ErrSubscriptionPending] when it is not yet acknowledged.
+// cb fires once when the server acknowledges the unsubscribe.
 func (c *Client) Unsubscribe(path string, requestID int32, cb RequestCallback) error {
 	// assemble header
 	m := &nanorpc.NanoRPCRequest{
@@ -187,10 +186,9 @@ func (c *Client) Unsubscribe(path string, requestID int32, cb RequestCallback) e
 // with empty data to the path using the original subscription request ID.
 //
 // requestID must be the value returned by a prior [Client.SubscribeByHash]
-// call. The call fails with [os.ErrInvalid] when no subscription is
-// registered for requestID or when the subscription is still pending its
-// acknowledgement. cb fires once when the server acknowledges the
-// unsubscribe.
+// call. The call fails with [ErrNoSubscription] when none is registered for
+// requestID, or [ErrSubscriptionPending] when it is not yet acknowledged.
+// cb fires once when the server acknowledges the unsubscribe.
 func (c *Client) UnsubscribeByHash(pathHash uint32, requestID int32, cb RequestCallback) error {
 	// assemble header
 	m := &nanorpc.NanoRPCRequest{
@@ -210,10 +208,9 @@ func (c *Client) UnsubscribeByHash(pathHash uint32, requestID int32, cb RequestC
 // with empty data to the path using the original subscription request ID.
 //
 // requestID must be the value returned by a prior [Client.SubscribeWithHash]
-// call. The call fails with [os.ErrInvalid] when no subscription is
-// registered for requestID or when the subscription is still pending its
-// acknowledgement. cb fires once when the server acknowledges the
-// unsubscribe.
+// call. The call fails with [ErrNoSubscription] when none is registered for
+// requestID, or [ErrSubscriptionPending] when it is not yet acknowledged.
+// cb fires once when the server acknowledges the unsubscribe.
 func (c *Client) UnsubscribeWithHash(path string, requestID int32, cb RequestCallback) error {
 	hash, err := c.hc.Hash(path)
 	if err != nil {
@@ -240,10 +237,10 @@ func (c *Client) enqueue(m *nanorpc.NanoRPCRequest, msg proto.Message, cb Reques
 // GetResponse makes a [Client.Request] and waits for the response.
 func GetResponse[Q, A proto.Message](ctx context.Context, c Requester, path string, req Q, out A) error {
 	if core.IsNil(c) {
-		return core.Wrap(core.ErrInvalid, "client missing")
+		return ErrMissingClient
 	}
 	if core.IsNil(out) {
-		return core.Wrap(core.ErrInvalid, "out missing")
+		return ErrMissingOut
 	}
 
 	ch, cb := newGetResponseCallback(out)
@@ -291,10 +288,10 @@ func Subscribe[Q, A proto.Message](c Subscriber, path string,
 	req Q, cb SubscribeCallback[A], newOut func() (A, error)) (int32, error) {
 	//
 	if cb == nil {
-		return 0, core.Wrap(core.ErrInvalid, "callback missing")
+		return 0, ErrMissingCallback
 	}
 	if newOut == nil {
-		return 0, core.Wrap(core.ErrInvalid, "newOut missing")
+		return 0, ErrMissingNewOut
 	}
 
 	return c.Subscribe(path, req, newSubscribeCallback(cb, newOut))
@@ -329,14 +326,14 @@ func dispatchSubscribeResponse[A proto.Message](ctx context.Context, id int32,
 // check of their own: when it returns a nil error, out is guaranteed to be a
 // usable, non-nil message; on any error out must be ignored. A factory error
 // passes through unchanged, while a typed-nil result with no error is promoted
-// to core.ErrInvalid so it cannot masquerade as a valid message.
+// to [ErrNilOut] so it cannot masquerade as a valid message.
 func callNewOut[A proto.Message](newOut func() (A, error)) (A, error) {
 	out, err := newOut()
 	switch {
 	case err != nil:
 		return out, err
 	case core.IsNil(out):
-		return out, core.Wrap(core.ErrInvalid, "newOut returned nil")
+		return out, ErrNilOut
 	default:
 		return out, nil
 	}
