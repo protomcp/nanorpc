@@ -2,10 +2,8 @@ package client
 
 import (
 	"context"
-	"io/fs"
 	"net"
 
-	"darvaza.org/core"
 	"darvaza.org/x/net/reconnect"
 )
 
@@ -128,9 +126,9 @@ func (c *Client) setSession(cs *Session) error {
 
 	switch {
 	case cs == nil:
-		return core.QuietWrap(fs.ErrInvalid, "missing session")
+		return ErrNoSession
 	case c.cs != nil:
-		return core.QuietWrap(fs.ErrInvalid, "session already attached")
+		return ErrSessionAttached
 	default:
 		c.cs = cs
 		close(c.connected)

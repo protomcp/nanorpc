@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"os"
 	"sync"
 
 	"darvaza.org/core"
@@ -192,14 +191,15 @@ func (cs *Session) unsafePopOne(x clientRequestQueue) {
 // negative RequestID becomes zero; a positive RequestID is
 // preserved.
 //
-// TYPE_REQUEST and TYPE_SUBSCRIBE require a non-nil cb; TYPE_PING
-// does not; other request types are rejected with [os.ErrInvalid].
+// A nil req is rejected with [ErrNilRequest]. TYPE_REQUEST and
+// TYPE_SUBSCRIBE require a non-nil cb, else [ErrMissingCallback];
+// TYPE_PING does not; other request types yield [ErrInvalidRequestType].
 //
 // A TYPE_REQUEST carrying a positive RequestID is the unsubscribe
 // form (see [Client.Unsubscribe]); Send rejects it with
-// [os.ErrInvalid] when no acknowledged subscription matches the
-// RequestID or when the subscription is still pending its
-// acknowledgement.
+// [ErrNoSubscription] when no subscription matches the RequestID, or
+// [ErrSubscriptionPending] when the subscription is not yet
+// acknowledged.
 func (cs *Session) Send(req *nanorpc.NanoRPCRequest, payload proto.Message, cb RequestCallback) error {
 	if err := validateSendArgs(req, cb); err != nil {
 		return err
@@ -225,9 +225,15 @@ func (cs *Session) Send(req *nanorpc.NanoRPCRequest, payload proto.Message, cb R
 	return cs.ss.Send(clientRequest{req, payload})
 }
 
-// validateSendArgs rejects a Send call whose request type is unknown or
-// whose callback is missing on the types that need one.
+// validateSendArgs rejects a Send call whose request is nil, whose type
+// is unknown, or whose callback is missing on the types that need one. It
+// runs first in Send so every later step (isUnsubscribeShape,
+// normaliseRequestID, registerCallback) can dereference req unguarded.
 func validateSendArgs(req *nanorpc.NanoRPCRequest, cb RequestCallback) error {
+	if req == nil {
+		return ErrNilRequest
+	}
+
 	switch req.RequestType {
 	case nanorpc.NanoRPCRequest_TYPE_PING:
 		// no further checks
@@ -235,12 +241,12 @@ func validateSendArgs(req *nanorpc.NanoRPCRequest, cb RequestCallback) error {
 	case nanorpc.NanoRPCRequest_TYPE_REQUEST, nanorpc.NanoRPCRequest_TYPE_SUBSCRIBE:
 		// callback required
 		if cb == nil {
-			return core.QuietWrap(os.ErrInvalid, "missing callback")
+			return ErrMissingCallback
 		}
 		return nil
 	default:
 		// invalid type
-		return core.QuietWrap(os.ErrInvalid, "%v: invalid request type", int(req.RequestType))
+		return core.QuietWrap(ErrInvalidRequestType, "%v", int(req.RequestType))
 	}
 }
 
@@ -278,12 +284,10 @@ func (cs *Session) checkUnsubscribeTarget(reqID int32) error {
 
 	subIdx, _ := cs.unsafeIndexCallbacks(reqID)
 	if subIdx < 0 {
-		return core.QuietWrap(os.ErrInvalid,
-			"no subscription with request_id %d", reqID)
+		return core.QuietWrap(ErrNoSubscription, "request_id %d", reqID)
 	}
 	if !cs.cb[subIdx].Acknowledged {
-		return core.QuietWrap(os.ErrInvalid,
-			"subscription %d not yet active", reqID)
+		return core.QuietWrap(ErrSubscriptionPending, "request_id %d", reqID)
 	}
 	return nil
 }
