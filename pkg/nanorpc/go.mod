@@ -4,13 +4,13 @@ go 1.24.0
 
 require (
 	darvaza.org/core v0.19.1
-	darvaza.org/slog v0.9.0
-	darvaza.org/slog/handlers/discard v0.7.0
+	darvaza.org/slog v0.9.1
+	darvaza.org/slog/handlers/discard v0.7.1
 	darvaza.org/x/config v0.6.0
 	darvaza.org/x/container v0.4.0
 	darvaza.org/x/fs v0.6.0 // indirect
 	darvaza.org/x/net v0.7.0
-	darvaza.org/x/sync v0.4.1
+	darvaza.org/x/sync v0.4.2
 	github.com/amery/defaults v0.1.0 // indirect
 	protomcp.org/nanorpc/pkg/nanopb v0.2.1
 )
