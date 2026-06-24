@@ -22,10 +22,7 @@ func (c *RequestCounter) Next() int32 {
 
 	for {
 		prev := c.counter.Load()
-		next := prev + 1
-		if next < 1 {
-			next = 1
-		}
+		next := max(prev+1, 1)
 
 		if c.counter.CompareAndSwap(prev, next) {
 			// success

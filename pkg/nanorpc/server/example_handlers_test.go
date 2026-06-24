@@ -33,7 +33,7 @@ func Example_jsonEchoHandler() {
 		return req.SendJSON(responseData)
 	})
 
-	fmt.Println("JSON echo handler registered at /api/json/echo")
+	printLn("JSON echo handler registered at /api/json/echo")
 	// Output: JSON echo handler registered at /api/json/echo
 }
 
@@ -60,7 +60,7 @@ func Example_protobufHandler() {
 		return req.SendProtobuf(pongResp)
 	})
 
-	fmt.Println("Protobuf handler registered at /api/proto/ping")
+	printLn("Protobuf handler registered at /api/proto/ping")
 	// Output: Protobuf handler registered at /api/proto/ping
 }
 
@@ -94,7 +94,7 @@ func Example_errorHandlers() {
 		return req.SendInternalError("database connection failed")
 	})
 
-	fmt.Println("Error handlers registered")
+	printLn("Error handlers registered")
 	// Output: Error handlers registered
 }
 
@@ -115,6 +115,13 @@ func Example_dataAccessHelpers() {
 		return req.SendOK([]byte(info))
 	})
 
-	fmt.Println("Info handler registered at /api/info")
+	printLn("Info handler registered at /api/info")
 	// Output: Info handler registered at /api/info
+}
+
+// printLn writes a line to stdout for an example's // Output: block,
+// discarding the write error that revive's unhandled-error rule would
+// otherwise flag on a bare fmt.Println.
+func printLn(a ...any) {
+	_, _ = fmt.Println(a...)
 }

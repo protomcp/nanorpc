@@ -42,7 +42,7 @@ func testClearSlicePrimitives(t *testing.T) {
 	}
 
 	// Verify original slice elements are zeroed
-	for i := 0; i < len(ints); i++ {
+	for i := range ints {
 		core.AssertEqual(t, 0, ints[i], "element %d", i)
 	}
 }
@@ -57,7 +57,7 @@ func testClearSliceStrings(t *testing.T) {
 	core.AssertEqual(t, originalCap, cap(result), "capacity")
 
 	// Verify original slice elements are zeroed
-	for i := 0; i < len(strings); i++ {
+	for i := range strings {
 		core.AssertEqual(t, "", strings[i], "string %d", i)
 	}
 }
@@ -76,7 +76,7 @@ func testClearSliceStructs(t *testing.T) {
 	core.AssertEqual(t, originalCap, cap(result), "capacity")
 
 	// Verify all fields are zeroed
-	for i := 0; i < len(structs); i++ {
+	for i := range structs {
 		core.AssertEqual(t, 0, structs[i].ID, "ID %d", i)
 		core.AssertEqual(t, "", structs[i].Name, "Name %d", i)
 		core.AssertNil(t, structs[i].Data, "Data %d", i)
@@ -132,7 +132,7 @@ func testClearAndNilPrimitives(t *testing.T) {
 	core.AssertNil(t, result, "result")
 
 	// Original slice should have zeroed elements
-	for i := 0; i < len(ints); i++ {
+	for i := range ints {
 		core.AssertEqual(t, 0, ints[i], "element %d", i)
 	}
 }
