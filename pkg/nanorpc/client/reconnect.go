@@ -29,6 +29,10 @@ func (c *Client) onReconnectConnect(ctx context.Context, conn net.Conn) error {
 }
 
 func (c *Client) onReconnectSession(ctx context.Context) error {
+	// getSession and Spawn cannot fail here: reconnect serialises a single
+	// Client's connection lifecycle, so the preceding onReconnectConnect
+	// has just attached a freshly built, not-yet-spawned session. Both
+	// error arms are defensive.
 	cs, err := c.getSession()
 	if err != nil {
 		return err
