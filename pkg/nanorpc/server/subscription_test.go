@@ -426,16 +426,14 @@ func startPublishWorkers(t *testing.T, wg *sync.WaitGroup, handler *DefaultMessa
 	pathHash uint32, numWorkers, numOps int) {
 	t.Helper()
 	for range numWorkers {
-		wg.Add(1)
-		go func() {
+		wg.Go(func() {
 			t.Helper()
-			defer wg.Done()
 			for range numOps {
 				data := []byte("test-data")
 				err := handler.PublishByHash(pathHash, data)
 				core.AssertNoError(t, err, "publish error")
 			}
-		}()
+		})
 	}
 }
 
@@ -445,18 +443,16 @@ func startSubscribeWorkers(t *testing.T, wg *sync.WaitGroup, handler *DefaultMes
 	testPath string, numWorkers, numOps int) {
 	t.Helper()
 	for i := range numWorkers {
-		wg.Add(1)
-		go func(workerID int) {
+		wg.Go(func() {
 			t.Helper()
-			defer wg.Done()
 			for j := range numOps {
 				// Use Subscribe method with string path for thread safety
-				session := newTestSession(concurrentSessionID, uint16(workerID))
-				req := newTestSubscribeRequest(int32(workerID*1000+j), testPath, nil)
+				session := newTestSession(concurrentSessionID, uint16(i))
+				req := newTestSubscribeRequest(int32(i*1000+j), testPath, nil)
 				err := handler.Subscribe(context.Background(), session, req)
 				core.AssertNoError(t, err, "subscribe error")
 			}
-		}(i)
+		})
 	}
 }
 

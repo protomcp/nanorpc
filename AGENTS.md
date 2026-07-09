@@ -15,7 +15,7 @@ targets and Go for server/client applications.
 
 Before starting development, ensure you have:
 
-- Go 1.24 or later installed (check with `go version`).
+- Go 1.25 or later installed (check with `go version`).
 - `make` command available (usually pre-installed on Unix systems).
 - Protocol Buffers compiler (`protoc`) installed for code generation.
 - **Buf CLI** (`buf`) for publishing to Buf Schema Registry (releases only).
@@ -249,7 +249,7 @@ grep -E 'class="(cov|miss)[0-9]*"' \
 
 ### Build System
 
-- Go 1.24 is the minimum required version
+- Go 1.25 is the minimum required version
 - The Makefile dynamically generates rules for submodules
 - Tool versions are selected based on Go version
 - All tools are auto-detected with fallback to no-op
