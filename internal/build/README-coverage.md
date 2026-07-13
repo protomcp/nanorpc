@@ -13,7 +13,7 @@ The coverage system generates two types of coverage data:
 
 ## Prerequisites
 
-- Go 1.24 or later.
+- Go 1.25 or later.
 - A monorepo with modules defined in an index file (`.tmp/index`).
 - Make build system with generated rules.
 - Standard directory structure with modules as subdirectories.

@@ -3,6 +3,7 @@ package nanorpc
 import (
 	"bytes"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -40,7 +41,7 @@ func (tc basicRequestTestCase) Test(t *testing.T) {
 		t.FailNow()
 	}
 
-	b2 := core.SliceCopy(b1)
+	b2 := slices.Clone(b1)
 	req2, n, err := DecodeRequest(b2)
 	if !core.AssertNoError(t, err, "DecodeRequest") {
 		t.FailNow()

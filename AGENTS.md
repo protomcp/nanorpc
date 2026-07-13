@@ -15,7 +15,7 @@ targets and Go for server/client applications.
 
 Before starting development, ensure you have:
 
-- Go 1.24 or later installed (check with `go version`).
+- Go 1.25 or later installed (check with `go version`).
 - `make` command available (usually pre-installed on Unix systems).
 - Protocol Buffers compiler (`protoc`) installed for code generation.
 - **Buf CLI** (`buf`) for publishing to Buf Schema Registry (releases only).
@@ -37,7 +37,7 @@ make test GOTEST_FLAGS="-cover"
 # Run tests with verbose output and coverage
 make test GOTEST_FLAGS="-v -cover"
 
-# Generate coverage reports (dual coverage system)
+# Generate coverage reports (self and integration coverage)
 make coverage
 
 # Generate merged coverage and upload scripts
@@ -49,7 +49,7 @@ make merged-coverage
 # Format code and tidy dependencies (run before committing)
 make tidy
 
-# Clean build artifacts
+# Clean build artefacts
 make clean
 
 # Update dependencies
@@ -95,7 +95,7 @@ The build system includes comprehensive tooling:
 
 - **Whitespace fixing**: Automated trailing whitespace removal
 - **EOF handling**: Ensures files end with newlines
-- **Dynamic tool detection**: Tools auto-detected via pnpx
+- **Dynamic tool detection**: Tools auto-detected via `pnpm dlx`
 
 ### Configuration Files
 
@@ -110,9 +110,10 @@ Tool configurations are stored in `internal/build/`:
 
 ### Core Components
 
-- **nanorpc protocol**: Binary RPC protocol with protobuf serialization
+- **nanorpc protocol**: Binary RPC protocol with protobuf serialisation
 - **Client implementation**: Complete client with reconnection and subscriptions
-- **Server implementation**: (Planned) Server to complement client
+- **Server implementation**: Listener, session management, and
+  subscription dispatch complementing the client
 - **Generator**: Protobuf code generation utilities
 - **nanopb integration**: Protocol Buffers for embedded C
 
@@ -122,7 +123,7 @@ The nanorpc protocol supports:
 
 - **Request types**: `TYPE_PING`, `TYPE_REQUEST`, `TYPE_SUBSCRIBE`
 - **Response types**: `TYPE_PONG`, `TYPE_RESPONSE`, `TYPE_UPDATE`
-- **Path optimization**: Both string paths and FNV-1a hashes
+- **Path optimisation**: Both string paths and FNV-1a hashes
 - **Pub/sub messaging**: Subscription-based updates
 - **Error handling**: Structured error responses
 
@@ -132,16 +133,16 @@ protocol specification.
 ### Key Features
 
 - **Embedded-friendly**: Designed for resource-constrained environments
-- **Binary protocol**: Efficient serialization using protobuf
+- **Binary protocol**: Efficient serialisation using protobuf
 - **Reconnection**: Automatic client reconnection handling
 - **Hash-based paths**: Reduced memory usage for embedded targets
 - **Zero-copy**: Efficient message handling where possible
 
 ## Development Workflow
 
-### MANDATORY: Test-Driven Development (TDD)
+### Test-Driven Development (TDD)
 
-**ALL DEVELOPMENT MUST FOLLOW TDD**:
+The project follows a test-first workflow:
 
 1. **Write failing tests first** - Define expected behaviour in tests
 2. **Implement minimal code** - Write just enough to pass tests
@@ -151,6 +152,8 @@ protocol specification.
 **Test Infrastructure**:
 
 - Common test utilities in `pkg/nanorpc/utils/testutils/`
+- Reusable mock test doubles in `pkg/nanorpc/mock/` (`client`,
+  `server`, `wire`)
 - Server-specific mocks in `pkg/nanorpc/server/testutils_test.go`
 - Client-specific mocks in `pkg/nanorpc/client/testutils_test.go`
 
@@ -167,31 +170,8 @@ protocol specification.
 The project enforces quality through:
 
 - **Go standards**: Standard Go conventions and formatting
-- **Field alignment**: Structs optimized for memory efficiency
-
-  ```bash
-  # Fix field alignment issues (exclude generated files like *.pb.go)
-  GOXTOOLS="golang.org/x/tools/go/analysis/passes"
-  FA="$GOXTOOLS/fieldalignment/cmd/fieldalignment"
-  # Only run on hand-written files, not generated ones
-  go -C pkg/nanorpc run "$FA@latest" -fix \
-    errors.go hashcache.go path.go utils.go request_counter.go
-
-  # For client files (in separate package)
-  go -C pkg/nanorpc/client run "$FA@latest" -fix \
-    client.go client_*.go
-
-  # For server files (in separate package)
-  go -C pkg/nanorpc/server run "$FA@latest" -fix \
-    handler.go subscription.go interfaces.go
-
-  # For test files with complex types, create a temporary file:
-  # 1. Copy struct definitions to a temp.go file with simplified types
-  # 2. Run fieldalignment on the temp file
-  # 3. Apply the suggested field ordering to the test files
-  # 4. Remove the temp file
-  ```
-
+- **Field alignment**: Structs optimised for memory efficiency — see the
+  [Field Alignment](#field-alignment) section for the probe-file workflow.
 - **Linting rules**: Comprehensive linting via golangci-lint and revive
 - **Test coverage**: Aim for high test coverage across modules
 - **Documentation**: All public APIs must be documented
@@ -220,13 +200,13 @@ When working with the nanorpc protocol:
 # Run all tests
 make test
 
-# Run tests with race detection
-make test GOTEST_FLAGS="-race"
+# Run tests with race detection (dedicated target, CGO_ENABLED=1)
+make race
 
 # Run specific tests
 make test GOTEST_FLAGS="-run TestSpecific"
 
-# Generate coverage (dual coverage system)
+# Generate coverage (self and integration coverage)
 make coverage
 
 # Generate specific module coverage
@@ -249,14 +229,14 @@ grep -E 'class="(cov|miss)[0-9]*"' \
 
 ### Build System
 
-- Go 1.24 is the minimum required version
+- Go 1.25 is the minimum required version
 - The Makefile dynamically generates rules for submodules
 - Tool versions are selected based on Go version
 - All tools are auto-detected with fallback to no-op
 
 ### Protocol Considerations
 
-- This is a binary protocol optimized for embedded systems
+- This is a binary protocol optimised for embedded systems
 - Hash-based paths reduce memory usage on embedded targets
 - Subscription handling must be efficient for resource constraints
 - Error responses should be structured and informative
@@ -277,12 +257,12 @@ grep -E 'class="(cov|miss)[0-9]*"' \
 
 ## Pre-commit Checklist
 
-1. **ALWAYS run `make tidy` first** - Fix ALL issues before committing:
+1. **Run `make tidy` first** - fix all issues before committing:
    - Go code formatting and whitespace clean-up
    - Markdown files checked with markdownlint and cspell
    - Shell scripts checked with shellcheck
    - Protocol buffer files regenerated if needed
-2. **Run `make all coverage`** - This is MANDATORY before all commits
+2. **Run `make all coverage`** - required before every commit
 3. **Review staged changes**: `git diff --cached` - Know exactly what you're
    committing
 4. **Verify commit message** - Ensure it describes ONLY the actual changes
@@ -291,7 +271,7 @@ grep -E 'class="(cov|miss)[0-9]*"' \
 
 ## Git Usage Guidelines
 
-**CRITICAL**: Always follow these git practices to avoid accidental commits:
+Follow these git practices to avoid accidental commits:
 
 1. **NEVER use bulk operations** - Always explicitly specify files:
 
@@ -322,7 +302,7 @@ grep -E 'class="(cov|miss)[0-9]*"' \
 
 ## Commit Message Requirements
 
-**CRITICAL**: Always follow these requirements for commit messages:
+Follow these requirements for commit messages:
 
 1. **READ THE ACTUAL DIFF**: Always use `git diff` or `git diff --cached` to
    see exact changes before creating commit messages. Do not rely on memory or
@@ -359,31 +339,40 @@ git commit -s -m "fix(client): handle nil response in ping handler"
 
 ### API Verification First
 
-Always verify API usage with `go doc` before implementing:
+Always verify API usage with `go doc` before implementing. Prefer
+fully-qualified import paths — they resolve unambiguously from any
+directory:
 
 ```bash
-# Check package documentation
-go -C pkg/nanorpc doc server
-
-# Check specific types and methods
-go -C pkg/nanorpc doc server.RequestContext
-go -C pkg/nanorpc doc -src HashCache.Hash
-
-# Check darvaza.org dependencies (accessible from nanorpc directory)
-go -C pkg/nanorpc doc darvaza.org/core.Catch
-go -C pkg/nanorpc doc darvaza.org/slog.Logger
-go -C pkg/nanorpc doc darvaza.org/x/sync/workgroup.Group
-```
-
-The `-C` flag allows checking documentation from the correct module context:
-
-```bash
-# ✅ CORRECT - Check from module directory
-go -C pkg/nanorpc doc HashCache
-
-# ❌ WRONG - May give incorrect results
+# Types and symbols, by full import path
 go doc protomcp.org/nanorpc/pkg/nanorpc.HashCache
+go doc protomcp.org/nanorpc/pkg/nanorpc/server.RequestContext
+go doc -src protomcp.org/nanorpc/pkg/nanorpc.HashCache.Hash
+
+# darvaza.org dependencies, likewise by full path
+go doc darvaza.org/core.Catch
+go doc darvaza.org/slog.Logger
+go doc darvaza.org/x/sync/workgroup.Group
 ```
+
+The `-C dir` flag does not scope `go doc`: for a package or symbol
+argument it resolves the same as without `-C` (a workspace-wide
+search), so `-C` cannot pin the lookup to one module. To use short
+names, change into the module directory instead — a subshell keeps
+your shell put:
+
+```bash
+(cd pkg/nanorpc && go doc HashCache)   # symbol in that package
+(cd pkg/nanorpc && go doc ./server)    # relative subpackage path
+```
+
+Avoid a bare, unqualified package name: in the `go.work` workspace it
+is resolved by a workspace-wide search that can land on a different
+module's package of the same name — a bare `utils` may match another
+module's `utils` instead of
+`protomcp.org/nanorpc/pkg/nanorpc/utils`, regardless of the current
+directory. Qualify with the full import path, or use a relative
+`./utils` path from inside the module directory.
 
 ### Error Handling
 
@@ -400,8 +389,9 @@ if err != nil {
     return core.Wrapf(err, "failed to process %s", path)
 }
 
-// Create formatted errors
-return core.Errorf("invalid path hash: 0x%08x", hash)
+// QuietWrap matches a sentinel for errors.Is without prefixing its
+// text ("invalid argument") onto the message.
+return core.QuietWrap(core.ErrInvalid, "invalid path hash: 0x%08x", hash)
 
 // Panic recovery in critical sections
 err := core.Catch(func() error {
@@ -412,7 +402,7 @@ err := core.Catch(func() error {
 
 ### Structured Logging
 
-Use darvaza.org/slog with proper patterns. For standardized field names,
+Use darvaza.org/slog with proper patterns. For standardised field names,
 refer to `pkg/nanorpc/utils/fields.go` which defines constants for field
 names and helper functions for safe field addition:
 
@@ -443,8 +433,9 @@ session.LogDebug(slog.Fields{utils.FieldRequestID: reqID},
 
 #### Logger Helper Methods
 
-Client, Server, Session, and SessionManager types provide enhanced logging
-helper methods:
+Client, Server, `DefaultSession`, and `DefaultSessionManager` types provide
+enhanced logging helper methods (the `Session` and `SessionManager` interfaces
+do not expose them — call these on the concrete implementations):
 
 ```go
 // Client methods
@@ -453,17 +444,11 @@ LogInfo(addr net.Addr, fields slog.Fields, msg string, args ...any)
 LogWarn(addr net.Addr, err error, fields slog.Fields, msg string, args ...any)
 LogError(addr net.Addr, err error, fields slog.Fields, msg string, args ...any)
 
-// Server/Session methods
+// Server, DefaultSession, and DefaultSessionManager methods
 LogDebug(fields slog.Fields, msg string, args ...any)
 LogInfo(fields slog.Fields, msg string, args ...any)
 LogWarn(err error, fields slog.Fields, msg string, args ...any)
 LogError(err error, fields slog.Fields, msg string, args ...any)
-
-// Usage examples
-server.LogInfo(slog.Fields{"port": 8080}, "server started on port %d", 8080)
-client.LogError(addr, err, nil, "failed to connect")
-session.LogDebug(slog.Fields{"path": req.Path}, "processing request for %s",
-    req.Path)
 ```
 
 ### Concurrent Operations
@@ -476,12 +461,12 @@ wg := workgroup.New(ctx)
 defer wg.Close()
 
 // Launch basic goroutine
-err := wg.Go(func(ctx context.Context) {
+wg.Go(func(ctx context.Context) {
     // Task implementation
 })
 
 // Launch with error handling
-err := wg.GoCatch(
+wg.GoCatch(
     func(ctx context.Context) error {
         return doWork(ctx)
     },
@@ -505,14 +490,16 @@ if err := wg.Wait(); err != nil {
 Always pass context through the call stack:
 
 ```go
-// Always pass context through the call stack
-func (s *Server) Handle(ctx context.Context, req Request) error {
+// Always pass context through the call stack. A RequestHandlerFunc
+// receives the caller's context; derive child contexts from it
+// rather than reaching for context.Background().
+func handleRequest(ctx context.Context, rc *RequestContext) error {
     // Create child context with timeout
     ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
     defer cancel()
 
     // Pass to next layer
-    return s.processRequest(ctx, req)
+    return processRequest(ctx, rc)
 }
 ```
 
@@ -521,66 +508,80 @@ func (s *Server) Handle(ctx context.Context, req Request) error {
 #### Table-Driven Tests
 
 ```go
-type testCase struct {
+// Compile-time check that the type implements core.TestCase.
+var _ core.TestCase = processTestCase{}
+
+type processTestCase struct {
     name     string
     input    string
     expected string
     wantErr  bool
 }
 
-func (tc testCase) test(t *testing.T) {
+func (tc processTestCase) Name() string {
+    return tc.name
+}
+
+func (tc processTestCase) Test(t *testing.T) {
     t.Helper()
 
     result, err := processInput(tc.input)
     if tc.wantErr {
-        require.Error(t, err)
+        core.AssertError(t, err, "error")
         return
     }
 
-    require.NoError(t, err)
-    assert.Equal(t, tc.expected, result)
+    core.AssertNoError(t, err, "process")
+    core.AssertEqual(t, tc.expected, result, "result")
+}
+
+// newProcessTestCase keeps a logical parameter order, decoupled
+// from the struct's field alignment.
+func newProcessTestCase(name, input, expected string,
+    wantErr bool) processTestCase {
+    return processTestCase{
+        name:     name,
+        input:    input,
+        expected: expected,
+        wantErr:  wantErr,
+    }
 }
 
 func TestProcess(t *testing.T) {
-    tests := []testCase{
-        {
-            name:     "valid input",
-            input:    "test",
-            expected: "TEST",
-        },
-        {
-            name:    "empty input",
-            input:   "",
-            wantErr: true,
-        },
+    cases := []processTestCase{
+        newProcessTestCase("valid input", "test", "TEST", false),
+        newProcessTestCase("empty input", "", "", true),
     }
-
-    for _, tc := range tests {
-        t.Run(tc.name, tc.test)
-    }
+    core.RunTestCases(t, cases)
 }
 ```
 
 #### Concurrent Testing
 
 ```go
-// Use existing test utilities
-helper := &ConcurrentTestHelper{
+// Use the shared testutils.ConcurrentTestHelper.
+// Ping reports connectivity as a bool; the TestFunc contract wants an
+// error, so surface the client's own not-connected sentinel
+// (darvaza.org/x/net/reconnect.ErrNotConnected).
+helper := &testutils.ConcurrentTestHelper{
     TestFunc: func(id int) error {
-        return client.Ping()
+        if !client.Ping() {
+            return reconnect.ErrNotConnected
+        }
+        return nil
     },
     NumGoroutines: 50,
 }
 
-results := helper.Run()
-for i, err := range results {
-    assert.NoError(t, err, "goroutine %d failed", i)
+errs := helper.Run()
+for i, err := range errs {
+    core.AssertNoError(t, err, "goroutine %d", i)
 }
 ```
 
 ### Field Alignment
 
-Always optimize struct field alignment:
+Always optimise struct field alignment:
 
 ```go
 // ✅ GOOD - Aligned by size
@@ -611,11 +612,21 @@ type Session struct {
 }
 ```
 
-Use fieldalignment tool to check:
+`fieldalignment -fix` rewrites files in place and strips ALL comments from
+every file it touches — never run it against the source tree or `./...`.
+Use an isolated probe file instead:
 
 ```bash
-FA="golang.org/x/tools/go/analysis/passes/fieldalignment"
-go run "$FA/cmd/fieldalignment@latest" -fix ./...
+# 1. Copy the structs to optimise into .tmp/probe.go as
+#    `package probe` (comments are expendable in the probe).
+# 2. Run the tool against just that file:
+GOXTOOLS="golang.org/x/tools/go/analysis/passes"
+FA="$GOXTOOLS/fieldalignment/cmd/fieldalignment"
+go run "$FA@latest" -fix .tmp/probe.go
+# 3. Diff the rewritten probe to read off the suggested order.
+# 4. Apply that order to the real source by hand, preserving
+#    all comments and doc strings.
+# 5. Delete the probe, then run `make tidy`.
 ```
 
 ### Common Pitfalls to Avoid
@@ -669,39 +680,6 @@ func process(ctx context.Context) error {
 }
 ```
 
-### Build and Quality Commands
-
-```bash
-# Full build cycle
-make all
-
-# Run tests with coverage
-make test GOTEST_FLAGS="-cover"
-
-# Fix code issues
-make tidy
-
-# Generate coverage reports
-make coverage
-
-# Update dependencies
-make up
-```
-
-### Git Workflow Best Practices
-
-```bash
-# ✅ CORRECT - Explicit file specification
-git add handler.go handler_test.go
-git commit -s handler.go handler_test.go -m "feat: add response helpers"
-
-# ❌ WRONG - Bulk operations
-git add .
-git commit -a -m "updates"
-```
-
-Always sign commits with `-s` flag and be explicit about files.
-
 ## Publishing to Buf Schema Registry
 
 **Separate from development workflow**: We use buf only for publishing modules
@@ -725,12 +703,7 @@ Users consume these via buf dependencies, not our internal protoc workflow.
 
 ## Common Mistakes to Avoid
 
-### Commit Messages
-
-- **DON'T**: Write what you were asked to do
-- **DO**: Write what the code changes actually do
-- **DON'T**: Include conversation context or task descriptions
-- **DO**: Focus only on the diff content
+See [Commit Message Requirements](#commit-message-requirements) above.
 
 ### File Operations
 
@@ -798,12 +771,13 @@ protoc -Iproto/nanopb -Iproto/nanorpc -Iproto/vendor \
 
 2. **Module dependencies**:
    - Run `make tidy` to fix go.mod issues
-   - Check that replace directives are correct
+   - Check the `go.work` workspace is active for cross-module dev
+     (resolution is via the workspace; no `replace` directives)
    - Verify inter-module dependencies
 
 3. **Tool detection failures**:
    - Install tools globally with `pnpm install -g <tool>`
-   - Check that pnpx is available and functional
+   - Check that `pnpm dlx` is available and functional
    - Tools fall back to no-op if not found
 
 4. **Coverage issues**:
