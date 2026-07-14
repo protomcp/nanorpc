@@ -211,6 +211,29 @@ func TestLiveClient_Subscribe_receivesUpdate(t *testing.T) {
 		"update_type")
 }
 
+// TestLiveClient_Disconnect_terminatesPendingCallbacks verifies the session
+// reports termination to an outstanding callback when the link drops: a
+// request is registered and taken on the wire but never answered, then the
+// server closes. Close runs after the session workgroup has stopped, so the
+// termination must be delivered synchronously — scheduling on the dead
+// workgroup would be a silent no-op and the caller would hang. The callback
+// fires exactly once with a nil response.
+func TestLiveClient_Disconnect_terminatesPendingCallbacks(t *testing.T) {
+	f := newLiveFixture(t)
+
+	events := make(chan cbEvent, 1)
+	_, err := f.c.Request("/echo", nil, liveRecordingCallback(events))
+	core.AssertMustNoError(t, err, "Request")
+
+	// Take the request on the wire so it is genuinely in flight, then drop
+	// the connection without answering it.
+	_ = f.conn.Recv()
+	core.AssertMustNoError(t, f.srv.Close(), "server close")
+
+	ev := mustRecvLiveEvent(t, events, "termination")
+	core.AssertNil(t, ev.resp, "termination response is nil")
+}
+
 // TestLiveClient_OnDisconnect_firesOnServerClose closes the server while the
 // session is live, driving onReconnectDisconnect and the user OnDisconnect
 // callback. Closing the whole server also drops the listener, so the client

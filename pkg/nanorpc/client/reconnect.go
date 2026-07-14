@@ -40,6 +40,12 @@ func (c *Client) onReconnectSession(ctx context.Context) error {
 
 	defer c.endSession(cs)
 
+	// Report termination to any callback still queued when the session ends,
+	// so waiters unblock instead of lingering. This defer runs before
+	// endSession (LIFO) while cs is still in hand — once endSession detaches
+	// it, onReconnectDisconnect could no longer reach it.
+	defer func() { _ = cs.Close(ctx) }()
+
 	if err := cs.Spawn(); err != nil {
 		return err
 	}
@@ -58,10 +64,6 @@ func (c *Client) onReconnectDisconnect(ctx context.Context, conn net.Conn) error
 
 	if fn == nil {
 		c.LogDebug(conn.RemoteAddr(), nil, "disconnected")
-	}
-
-	if cs, _ := c.getSession(); cs != nil {
-		_ = cs.Close()
 	}
 
 	if fn != nil {

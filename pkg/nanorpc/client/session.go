@@ -162,28 +162,27 @@ func (cs *Session) unsafeResolveSubscribeResponse(subIdx int,
 	return cb
 }
 
-// Close clears out any outstanding request callback
-func (cs *Session) Close() error {
+// Close reports session termination to every outstanding callback and
+// clears the queue. Each callback fires once with a nil response, which
+// surfaces as [nanorpc.ErrNoResponse], so waiters in [GetResponse] and
+// [Client.Pong] unblock at disconnect instead of lingering — Pong has no
+// context of its own to fall back on.
+//
+// Terminations are delivered synchronously with ctx. Close runs as
+// onReconnectSession unwinds, once the session workgroup has already
+// stopped, where scheduling through cs.ss.Go would be a silent no-op.
+// Callbacks fire without cs.mu held, so a callback may re-enter the session
+// safely.
+func (cs *Session) Close(ctx context.Context) error {
 	cs.mu.Lock()
-	defer cs.mu.Unlock()
+	pending := cs.cb
+	cs.cb = nil
+	cs.mu.Unlock()
 
-	for _, x := range cs.cb {
-		cs.unsafePopOne(x)
+	for _, x := range pending {
+		_ = x.Callback(ctx, x.RequestID, nil)
 	}
-
-	cs.cb = cs.cb[:0]
 	return nil
-}
-
-func (cs *Session) unsafePopOne(x clientRequestQueue) {
-	cb := x.Callback
-	reqID := x.RequestID
-
-	// report termination
-	cs.ss.Go(func(ctx context.Context) error {
-		_ = cb(ctx, reqID, nil)
-		return nil
-	})
 }
 
 // Send enqueues the request and registers cb when non-nil.
