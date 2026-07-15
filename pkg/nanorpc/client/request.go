@@ -10,7 +10,18 @@ import (
 	"protomcp.org/nanorpc/pkg/nanorpc/utils"
 )
 
-// SubscribeCallback is a function given to [Subscribe] to be called on every update
+// SubscribeCallback is a function given to [Subscribe] to be called on every
+// subscription event. The server's TYPE_RESPONSE acknowledgement surfaces
+// with err == [nanorpc.ErrSubscriptionEstablished] on STATUS_OK or a
+// [nanorpc.ResponseError] for any other status; TYPE_UPDATE deliveries pass
+// the decoded payload with err == nil, or [nanorpc.ErrNoResponse] when the
+// update carried no data. Decode and factory errors surface through err.
+//
+// When err is nil, res is a freshly allocated value from the newOut
+// factory passed to [Subscribe] — never a typed nil — with no fields
+// populated on the acknowledgement. When err is non-nil, res must be
+// ignored: a factory error passes its raw result through, which may
+// itself be a typed nil.
 type SubscribeCallback[A proto.Message] func(ctx context.Context, id int32, res A, err error) error
 
 // Requester is a view of the [Client] that only allows [Client.Request] calls
@@ -155,6 +166,11 @@ func (c *Client) SubscribeWithHash(path string, msg proto.Message, cb RequestCal
 // According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
 // with empty data to the same path using the original subscription request ID.
 // The path will be converted to path_hash if [ClientOptions].AlwaysHashPaths was set.
+//
+// requestID must be the value returned by a prior [Client.Subscribe] call.
+// The call fails with [ErrNoSubscription] when none is registered for
+// requestID, or [ErrSubscriptionPending] when it is not yet acknowledged.
+// cb fires once when the server acknowledges the unsubscribe.
 func (c *Client) Unsubscribe(path string, requestID int32, cb RequestCallback) error {
 	// assemble header
 	m := &nanorpc.NanoRPCRequest{
@@ -170,6 +186,11 @@ func (c *Client) Unsubscribe(path string, requestID int32, cb RequestCallback) e
 // UnsubscribeByHash sends an unsubscribe request using a given path_hash and request ID.
 // According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
 // with empty data to the path using the original subscription request ID.
+//
+// requestID must be the value returned by a prior [Client.SubscribeByHash]
+// call. The call fails with [ErrNoSubscription] when none is registered for
+// requestID, or [ErrSubscriptionPending] when it is not yet acknowledged.
+// cb fires once when the server acknowledges the unsubscribe.
 func (c *Client) UnsubscribeByHash(pathHash uint32, requestID int32, cb RequestCallback) error {
 	// assemble header
 	m := &nanorpc.NanoRPCRequest{
@@ -187,6 +208,11 @@ func (c *Client) UnsubscribeByHash(pathHash uint32, requestID int32, cb RequestC
 // UnsubscribeWithHash sends an unsubscribe request using the hash of the given path and request ID.
 // According to the NanoRPC protocol, unsubscribing is done by sending a TYPE_REQUEST
 // with empty data to the path using the original subscription request ID.
+//
+// requestID must be the value returned by a prior [Client.SubscribeWithHash]
+// call. The call fails with [ErrNoSubscription] when none is registered for
+// requestID, or [ErrSubscriptionPending] when it is not yet acknowledged.
+// cb fires once when the server acknowledges the unsubscribe.
 func (c *Client) UnsubscribeWithHash(path string, requestID int32, cb RequestCallback) error {
 	hash, err := c.hc.Hash(path)
 	if err != nil {
@@ -212,20 +238,32 @@ func (c *Client) enqueue(m *nanorpc.NanoRPCRequest, msg proto.Message, cb Reques
 
 // GetResponse makes a [Client.Request] and waits for the response.
 func GetResponse[Q, A proto.Message](ctx context.Context, c Requester, path string, req Q, out A) error {
-	ch, cb := newGetResponseCallback(out)
-	_, err := c.Request(path, req, cb)
-	if err == nil {
-		select {
-		case e, ok := <-ch:
-			if ok {
-				err = e
-			}
-		case <-ctx.Done():
-			err = ctx.Err()
-		}
+	if core.IsNil(c) {
+		return ErrMissingClient
+	}
+	if core.IsNil(out) {
+		return ErrMissingOut
 	}
 
-	return err
+	ch, cb := newGetResponseCallback(out)
+	if _, err := c.Request(path, req, cb); err != nil {
+		return err
+	}
+	return waitGetResponse(ctx, ch)
+}
+
+// waitGetResponse blocks until the response arrives on ch or ctx cancels,
+// returning whichever error landed first.
+func waitGetResponse(ctx context.Context, ch <-chan error) error {
+	select {
+	case e, ok := <-ch:
+		if !ok {
+			return nil
+		}
+		return e
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func newGetResponseCallback(out proto.Message) (<-chan error, RequestCallback) {
@@ -245,39 +283,97 @@ func newGetResponseCallback(out proto.Message) (<-chan error, RequestCallback) {
 	return ch, cb
 }
 
-// Subscribe makes a subscription request and registers the given callback
-// to be invoked on every update.
+// Subscribe makes a subscription request and registers cb to be invoked on
+// every subscription event. The newOut factory allocates a fresh message
+// container for each callback invocation; both cb and newOut are required.
 func Subscribe[Q, A proto.Message](c Subscriber, path string,
 	req Q, cb SubscribeCallback[A], newOut func() (A, error)) (int32, error) {
 	//
+	if core.IsNil(c) {
+		return 0, ErrMissingClient
+	}
 	if cb == nil {
-		return 0, core.Wrap(core.ErrInvalid, "callback missing")
+		return 0, ErrMissingCallback
+	}
+	if newOut == nil {
+		return 0, ErrMissingNewOut
 	}
 
 	return c.Subscribe(path, req, newSubscribeCallback(cb, newOut))
 }
 
 func newSubscribeCallback[A proto.Message](cb SubscribeCallback[A], newOut func() (A, error)) RequestCallback {
-	if newOut == nil {
-		newOut = func() (A, error) {
-			var zero A
-			return zero, nil
-		}
+	return func(ctx context.Context, id int32, res *nanorpc.NanoRPCResponse) error {
+		return dispatchSubscribeResponse(ctx, id, res, cb, newOut)
 	}
+}
 
-	fn := func(ctx context.Context, id int32, res *nanorpc.NanoRPCResponse) error {
-		out, err := newOut()
+// dispatchSubscribeResponse routes a single response to the typed callback:
+// the TYPE_RESPONSE acknowledgement surfaces as a fresh out plus either the
+// status's [nanorpc.ResponseError] or [nanorpc.ErrSubscriptionEstablished];
+// TYPE_UPDATE payloads are decoded into a fresh out.
+func dispatchSubscribeResponse[A proto.Message](ctx context.Context, id int32,
+	res *nanorpc.NanoRPCResponse, cb SubscribeCallback[A],
+	newOut func() (A, error)) error {
+	if isSubscribeACK(res) {
+		out, err := callNewOut(newOut)
 		if err != nil {
-			return err
+			return cb(ctx, id, out, err)
 		}
-
-		_, present, err := nanorpc.DecodeResponseData(res, out)
-		if err == nil && !present {
-			err = nanorpc.ErrNoResponse
-		}
-
-		return cb(ctx, id, out, err)
+		return cb(ctx, id, out, subscribeACKErr(res))
 	}
+	out, err := decodeSubscribePayload(res, newOut)
+	return cb(ctx, id, out, err)
+}
 
-	return fn
+// callNewOut allocates a fresh out message via the caller-supplied factory,
+// normalising a misbehaving factory into an error so callers need no nil
+// check of their own: when it returns a nil error, out is guaranteed to be a
+// usable, non-nil message; on any error out must be ignored. A factory error
+// passes through unchanged, while a typed-nil result with no error is promoted
+// to [ErrNilOut] so it cannot masquerade as a valid message.
+func callNewOut[A proto.Message](newOut func() (A, error)) (A, error) {
+	out, err := newOut()
+	switch {
+	case err != nil:
+		return out, err
+	case core.IsNil(out):
+		return out, ErrNilOut
+	default:
+		return out, nil
+	}
+}
+
+// isSubscribeACK reports whether res is the TYPE_RESPONSE acknowledgement
+// that follows a TYPE_SUBSCRIBE — as opposed to a TYPE_UPDATE delivery.
+func isSubscribeACK(res *nanorpc.NanoRPCResponse) bool {
+	return res != nil &&
+		res.ResponseType == nanorpc.NanoRPCResponse_TYPE_RESPONSE
+}
+
+// subscribeACKErr maps the acknowledgement status to the error surfaced
+// through the subscription callback: a [nanorpc.ResponseError] for any
+// non-OK status, or the [nanorpc.ErrSubscriptionEstablished] sentinel on
+// success.
+func subscribeACKErr(res *nanorpc.NanoRPCResponse) error {
+	if err := nanorpc.ResponseAsError(res); err != nil {
+		return err
+	}
+	return nanorpc.ErrSubscriptionEstablished
+}
+
+// decodeSubscribePayload allocates a fresh out via [callNewOut] and decodes
+// res into it, returning [nanorpc.ErrNoResponse] when the message carried
+// no data.
+func decodeSubscribePayload[A proto.Message](res *nanorpc.NanoRPCResponse,
+	newOut func() (A, error)) (A, error) {
+	out, err := callNewOut(newOut)
+	if err != nil {
+		return out, err
+	}
+	_, present, err := nanorpc.DecodeResponseData(res, out)
+	if err == nil && !present {
+		err = nanorpc.ErrNoResponse
+	}
+	return out, err
 }

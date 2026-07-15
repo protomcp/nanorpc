@@ -155,6 +155,11 @@ The client automatically manages connections and reconnections:
 // Wait for connection
 <-c.Connected()
 
+// Or wait with a context — returns nil on connect, ctx.Err() on timeout
+if err := c.WaitConnected(ctx); err != nil {
+    return err
+}
+
 // Check connection status
 if c.IsConnected() {
     // Make requests
@@ -193,6 +198,39 @@ func TestMyClient(t *testing.T) {
 }
 ```
 
+## Error Handling
+
+Invalid-argument failures are reported through exported sentinels, each
+wrapping `darvaza.org/core.ErrInvalid`. Match a specific cause directly, or
+the whole family with `IsInvalid`:
+
+```go
+_, err := client.Subscribe(c, "/events", nil, cb, newOut)
+switch {
+case errors.Is(err, client.ErrMissingCallback):
+    // a callback-bearing request type was sent without one
+case client.IsInvalid(err):
+    // any invalid-argument failure (also matches os.ErrInvalid)
+}
+```
+
+The sentinels are:
+
+- `ErrNilRequest` - `Send` was called with a nil request.
+- `ErrMissingCallback` - a request type that requires a callback got none.
+- `ErrInvalidRequestType` - an unsupported request type.
+- `ErrNoSubscription` - an unsubscribe targeted an unregistered request ID.
+- `ErrSubscriptionPending` - an unsubscribe targeted a subscription not yet
+  acknowledged.
+- `ErrNoSession` / `ErrSessionAttached` - session attach guards.
+- `ErrMissingClient` / `ErrMissingOut` - nil arguments to `GetResponse`.
+- `ErrMissingNewOut` / `ErrNilOut` - missing or nil-returning `newOut`
+  factory.
+
+Call sites add dynamic context by wrapping a sentinel, e.g.
+`core.QuietWrap(client.ErrNoSubscription, "request_id %d", id)`; both the
+sentinel and `core.ErrInvalid` still match through the wrap.
+
 ## Architecture
 
 The client package is organized as follows:
@@ -202,6 +240,7 @@ The client package is organized as follows:
 - `config.go` - Configuration structure and defaults
 - `reconnect.go` - Reconnection logic and connection lifecycle
 - `request.go` - Request handling methods
+- `errors.go` - Invalid-argument sentinels and the `IsInvalid` predicate
 - `logger.go` - Structured logging support
 - `request_counter.go` - Thread-safe request ID generation
 

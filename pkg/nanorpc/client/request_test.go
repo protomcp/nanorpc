@@ -1,9 +1,11 @@
 package client
 
 import (
+	"context"
 	"testing"
 
 	"darvaza.org/core"
+	"google.golang.org/protobuf/proto"
 
 	"protomcp.org/nanorpc/pkg/nanorpc"
 )
@@ -180,4 +182,65 @@ func TestProtocolDefinitions(t *testing.T) {
 	for _, tc := range responseTypeStringTestCases() {
 		t.Run("Response_"+tc.name, tc.test)
 	}
+}
+
+// stubClient is a no-op [Requester]/[Subscriber] used to exercise the
+// boundary guards without a live connection.
+type stubClient struct{}
+
+func (*stubClient) Request(string, proto.Message, RequestCallback) (int32, error) {
+	return 0, nil
+}
+
+func (*stubClient) Subscribe(string, proto.Message, RequestCallback) (int32, error) {
+	return 0, nil
+}
+
+// TestGetResponse_NilClientRejected confirms a typed-nil Requester is rejected
+// with core.ErrInvalid before any request is attempted.
+func TestGetResponse_NilClientRejected(t *testing.T) {
+	var c *stubClient // typed nil
+
+	err := GetResponse[*nanorpc.NanoRPCRequest, *nanorpc.NanoRPCResponse](
+		context.Background(), c, "/path", &nanorpc.NanoRPCRequest{},
+		&nanorpc.NanoRPCResponse{})
+	core.AssertErrorIs(t, err, core.ErrInvalid, "typed-nil client rejected")
+}
+
+// TestGetResponse_NilOutRejected confirms a typed-nil out container is
+// rejected with core.ErrInvalid.
+func TestGetResponse_NilOutRejected(t *testing.T) {
+	err := GetResponse[*nanorpc.NanoRPCRequest, *nanorpc.NanoRPCResponse](
+		context.Background(), &stubClient{}, "/path",
+		&nanorpc.NanoRPCRequest{}, (*nanorpc.NanoRPCResponse)(nil))
+	core.AssertErrorIs(t, err, core.ErrInvalid, "typed-nil out rejected")
+}
+
+// TestSubscribe_NilNewOutRejected confirms the public Subscribe boundary
+// rejects a missing newOut factory with core.ErrInvalid.
+func TestSubscribe_NilNewOutRejected(t *testing.T) {
+	cb := func(context.Context, int32, *nanorpc.NanoRPCResponse, error) error {
+		return nil
+	}
+
+	_, err := Subscribe[*nanorpc.NanoRPCRequest, *nanorpc.NanoRPCResponse](
+		&stubClient{}, "/path", &nanorpc.NanoRPCRequest{}, cb, nil)
+	core.AssertErrorIs(t, err, core.ErrInvalid, "missing newOut rejected")
+}
+
+// TestSubscribe_NilClientRejected confirms a typed-nil Subscriber is
+// rejected with core.ErrInvalid before dispatch, mirroring GetResponse:
+// (*Client).Subscribe would otherwise panic dereferencing the receiver.
+func TestSubscribe_NilClientRejected(t *testing.T) {
+	var c *stubClient // typed nil
+	cb := func(context.Context, int32, *nanorpc.NanoRPCResponse, error) error {
+		return nil
+	}
+	newOut := func() (*nanorpc.NanoRPCResponse, error) {
+		return &nanorpc.NanoRPCResponse{}, nil
+	}
+
+	_, err := Subscribe[*nanorpc.NanoRPCRequest, *nanorpc.NanoRPCResponse](
+		c, "/path", &nanorpc.NanoRPCRequest{}, cb, newOut)
+	core.AssertErrorIs(t, err, core.ErrInvalid, "typed-nil client rejected")
 }

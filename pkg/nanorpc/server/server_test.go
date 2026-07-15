@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"darvaza.org/core"
+
 	"protomcp.org/nanorpc/pkg/nanorpc"
 )
 
@@ -30,21 +32,29 @@ func setupTestServer(t *testing.T) (net.Listener, *Server, <-chan error) {
 	t.Helper()
 
 	listener, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Failed to create listener: %v", err)
-	}
+	core.AssertMustNoError(t, err, "listen")
 
-	server := NewDefaultServer(listener, nil)
+	server := NewDefaultServer(listener, nil, nil)
 	serverErr := make(chan error, 1)
 
 	go func() {
 		serverErr <- server.Serve(context.Background())
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
+	waitServerReady(t, server)
 
 	return listener, server, serverErr
+}
+
+// waitServerReady blocks until the server's accept loop is live, or fails
+// the test if it does not become ready within a generous timeout.
+func waitServerReady(t *testing.T, server *Server) {
+	t.Helper()
+	select {
+	case <-server.Ready():
+	case <-time.After(time.Second):
+		t.Fatal("server did not reach accept loop within 1s")
+	}
 }
 
 // connectToServer establishes a connection to the test server
@@ -52,9 +62,7 @@ func connectToServer(t *testing.T, addr string) net.Conn {
 	t.Helper()
 
 	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		t.Fatalf("Failed to connect to server: %v", err)
-	}
+	core.AssertMustNoError(t, err, "dial")
 
 	return conn
 }
@@ -70,13 +78,10 @@ func sendPingReceivePong(t *testing.T, conn net.Conn) {
 	}
 
 	pingData, err := nanorpc.EncodeRequest(pingReq, nil)
-	if err != nil {
-		t.Fatalf("Failed to encode ping: %v", err)
-	}
+	core.AssertMustNoError(t, err, "encode ping")
 
-	if _, err := conn.Write(pingData); err != nil {
-		t.Fatalf("Failed to send ping: %v", err)
-	}
+	_, err = conn.Write(pingData)
+	core.AssertMustNoError(t, err, "send ping")
 
 	// Read response
 	response := readResponse(t, conn)
@@ -95,14 +100,10 @@ func readResponse(t *testing.T, conn net.Conn) *nanorpc.NanoRPCResponse {
 
 	buffer := make([]byte, 1024)
 	n, err := conn.Read(buffer)
-	if err != nil {
-		t.Fatalf("Failed to read response: %v", err)
-	}
+	core.AssertMustNoError(t, err, "read response")
 
 	response, _, err := nanorpc.DecodeResponse(buffer[:n])
-	if err != nil {
-		t.Fatalf("Failed to decode response: %v", err)
-	}
+	core.AssertMustNoError(t, err, "decode response")
 
 	return response
 }
@@ -111,17 +112,11 @@ func readResponse(t *testing.T, conn net.Conn) *nanorpc.NanoRPCResponse {
 func verifyPongResponse(t *testing.T, response *nanorpc.NanoRPCResponse, expectedID int32) {
 	t.Helper()
 
-	if response.ResponseType != nanorpc.NanoRPCResponse_TYPE_PONG {
-		t.Fatalf("Expected PONG, got %v", response.ResponseType)
-	}
-
-	if response.RequestId != expectedID {
-		t.Fatalf("Expected RequestId=%d, got %d", expectedID, response.RequestId)
-	}
-
-	if response.ResponseStatus != nanorpc.NanoRPCResponse_STATUS_OK {
-		t.Fatalf("Expected STATUS_OK, got %v", response.ResponseStatus)
-	}
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_TYPE_PONG, response.ResponseType,
+		"response type")
+	core.AssertEqual(t, expectedID, response.RequestId, "request id")
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, response.ResponseStatus,
+		"response status")
 }
 
 // shutdownServer cancels the context and waits for server to stop
@@ -137,27 +132,100 @@ func shutdownServer(t *testing.T, server *Server, serverErr <-chan error) {
 
 	select {
 	case err := <-serverErr:
-		if err != nil && err != context.Canceled {
-			t.Fatalf("Server stopped with unexpected error: %v", err)
+		if err != nil {
+			core.AssertErrorIs(t, err, context.Canceled, "server stop error")
 		}
 	case <-ctx.Done():
 		t.Fatal("Server shutdown timeout")
 	}
 }
 
-func TestDecoupledServer_Shutdown(t *testing.T) {
+// TestNewDefaultServer_UsesSuppliedHandler verifies that handlers registered
+// on a [*DefaultMessageHandler] passed to [NewDefaultServer] are reachable
+// from a live connection.
+func TestNewDefaultServer_UsesSuppliedHandler(t *testing.T) {
+	const path = "/api/echo"
+
+	handler := NewDefaultMessageHandler(nil)
+	err := handler.RegisterHandlerFunc(path,
+		func(_ context.Context, req *RequestContext) error {
+			return req.SendOK(req.GetData())
+		})
+	core.AssertMustNoError(t, err, "register handler")
+
 	listener, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		t.Fatalf("Failed to create listener: %v", err)
+	core.AssertMustNoError(t, err, "listen")
+
+	server := NewDefaultServer(listener, handler, nil)
+	serverErr := make(chan error, 1)
+	go func() { serverErr <- server.Serve(context.Background()) }()
+	waitServerReady(t, server)
+	defer shutdownServer(t, server, serverErr)
+
+	conn := connectToServer(t, listener.Addr().String())
+	defer conn.Close()
+
+	payload := []byte("hello")
+	req := &nanorpc.NanoRPCRequest{
+		RequestId:   42,
+		RequestType: nanorpc.NanoRPCRequest_TYPE_REQUEST,
+		PathOneof:   nanorpc.GetPathOneOfString(path),
+		Data:        payload,
+	}
+	reqData, err := nanorpc.EncodeRequest(req, nil)
+	core.AssertMustNoError(t, err, "encode request")
+
+	_, err = conn.Write(reqData)
+	core.AssertMustNoError(t, err, "write request")
+
+	response := readResponse(t, conn)
+	core.AssertEqual(t, nanorpc.NanoRPCResponse_STATUS_OK, response.ResponseStatus,
+		"response status")
+	core.AssertEqual(t, string(payload), string(response.Data), "response data")
+}
+
+// TestServer_Ready exercises the readiness signal: it is open before Serve
+// runs, closes once the accept loop is reached, and remains closed across
+// shutdown so late callers do not block.
+func TestServer_Ready(t *testing.T) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	core.AssertMustNoError(t, err, "listen")
+
+	server := NewDefaultServer(listener, nil, nil)
+
+	select {
+	case <-server.Ready():
+		t.Fatal("Ready channel closed before Serve")
+	default:
 	}
 
-	server := NewDefaultServer(listener, nil)
+	serverErr := make(chan error, 1)
+	go func() { serverErr <- server.Serve(context.Background()) }()
+
+	select {
+	case <-server.Ready():
+	case <-time.After(time.Second):
+		t.Fatal("Ready channel did not close after Serve")
+	}
+
+	shutdownServer(t, server, serverErr)
+
+	select {
+	case <-server.Ready():
+	default:
+		t.Fatal("Ready channel reopened after shutdown")
+	}
+}
+
+func TestDecoupledServer_Shutdown(t *testing.T) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	core.AssertMustNoError(t, err, "listen")
+
+	server := NewDefaultServer(listener, nil, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	err = server.Shutdown(ctx)
-	if err != nil {
-		t.Fatalf("Failed to shutdown server: %v", err)
-	}
+	core.AssertMustNoError(t, err, "shutdown server")
 }

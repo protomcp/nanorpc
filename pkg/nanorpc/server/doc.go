@@ -21,7 +21,7 @@
 // safe operation.
 //
 //	logger := myLogger.WithField("service", "nanorpc")
-//	server := NewDefaultServer(listener, logger)
+//	server := NewDefaultServer(listener, nil, logger)
 //
 // The server uses consistent field names exported as constants to allow
 // callers to filter or transform logs. See the Field* constants for
@@ -34,7 +34,7 @@
 //	    log.Fatal(err)
 //	}
 //
-//	server := NewDefaultServer(listener, nil)
+//	server := NewDefaultServer(listener, nil, nil)
 //	if err := server.Serve(context.Background()); err != nil {
 //	    log.Fatal(err)
 //	}

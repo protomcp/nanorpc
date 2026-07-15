@@ -71,7 +71,7 @@ func main() {
     defer listener.Close()
 
     // Create server with default components
-    srv := server.NewDefaultServer(listener)
+    srv := server.NewDefaultServer(listener, nil, nil)
 
     // Start serving
     ctx := context.Background()
@@ -138,7 +138,7 @@ func main() {
         log.Fatal(err)
     }
 
-    srv := server.NewDefaultServer(listener)
+    srv := server.NewDefaultServer(listener, nil, nil)
 
     // Start server in background
     ctx, cancel := context.WithCancel(context.Background())
