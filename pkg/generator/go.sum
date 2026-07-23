@@ -1,5 +1,5 @@
-darvaza.org/core v0.20.0 h1:VDPAWvQTLKWRxh337oM4Oti73gGjI30bcywYV+wD2GA=
-darvaza.org/core v0.20.0/go.mod h1:GJN97FU/397WUTtm+BLeSkieAhtDevVm/lsGyHmkp0Y=
+darvaza.org/core v0.21.2 h1:SrRMePdfDwvfV/fm3+3LUsVk6w54sRiHJH5pPN/TzBY=
+darvaza.org/core v0.21.2/go.mod h1:ZwV0U4PZ2zkS/B1SDfsJFKqS7KN+XhppTfa80hm38k4=
 github.com/amery/protogen v0.3.11 h1:guV6dwhCCDvRWOGD/Uptuy5zUrXQSb5QL8GH71Z0qBY=
 github.com/amery/protogen v0.3.11/go.mod h1:PJNBRLYoKd157/c1yokxkF5JJ6x2ZjmmEHvL258vKm4=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
