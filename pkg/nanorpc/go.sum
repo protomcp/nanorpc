@@ -6,8 +6,8 @@ darvaza.org/slog/handlers/discard v0.8.0 h1:H3O0IWdsddPBYbk4r7KQFlEpeZWFh44+r4uW
 darvaza.org/slog/handlers/discard v0.8.0/go.mod h1:8iBKzh6I3/hzDEbBQtMl15onsU7TwV/SvuXk0BLT7Bw=
 darvaza.org/x/config v0.7.2 h1:MCMGPbufgjHGXJiBZ7mywdPFaTzv2qTiplH2gPZqtbw=
 darvaza.org/x/config v0.7.2/go.mod h1:U9xIlfpfKqYBPfF4BW29ox68i0g5Zxt0RgN2hogmsUY=
-darvaza.org/x/container v0.5.0 h1:7A41arBWS2pogRRGJx7+l5UedTqsMT+0ccJ5PUdTyr4=
-darvaza.org/x/container v0.5.0/go.mod h1:9YFMrLMVCZC6NO/RUBWscPNpCRSY/ImyhO8PFphco1w=
+darvaza.org/x/container v0.5.1 h1:7HXaAaXpPuVPfmyTQ97FzTREmoH6ScgboKDQIDLCuMA=
+darvaza.org/x/container v0.5.1/go.mod h1:MordVakp0jj5lKlaoy8jPNCysCVKIkmb1QoTvRv9Pfg=
 darvaza.org/x/fs v0.7.0 h1:IaStDLYl1TLVurl7EXNH7oELGBQQhmS5wzz3nLJlbAE=
 darvaza.org/x/fs v0.7.0/go.mod h1:L7xxI9RE2YlOhLd8/LwYWXX9Slbhk83MIsECRqNPIJU=
 darvaza.org/x/net v0.8.2 h1:zF4Joys/sCLfZcBfcKq/JjLW8aT+Gd0Pm92sdUkFRM8=
