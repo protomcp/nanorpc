@@ -17,7 +17,7 @@ require (
 
 require (
 	github.com/rs/xid v1.6.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
