@@ -3,14 +3,14 @@ module protomcp.org/nanorpc/pkg/nanorpc
 go 1.25.0
 
 require (
-	darvaza.org/core v0.21.2
+	darvaza.org/core v0.23.1
 	darvaza.org/slog v0.10.0
 	darvaza.org/slog/handlers/discard v0.8.0
 	darvaza.org/x/config v0.7.2
-	darvaza.org/x/container v0.5.0
-	darvaza.org/x/fs v0.7.0 // indirect
-	darvaza.org/x/net v0.8.2
-	darvaza.org/x/sync v0.5.1
+	darvaza.org/x/container v0.5.1
+	darvaza.org/x/fs v0.8.0 // indirect
+	darvaza.org/x/net v0.8.3
+	darvaza.org/x/sync v0.6.1
 	github.com/amery/defaults v0.1.0 // indirect
 	protomcp.org/nanorpc/pkg/nanopb v0.2.1
 )
@@ -27,8 +27,8 @@ require (
 	github.com/go-playground/validator/v10 v10.30.3 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
