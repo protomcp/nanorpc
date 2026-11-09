@@ -3,7 +3,7 @@ module protomcp.org/nanorpc/pkg/generator
 go 1.25.0
 
 require (
-	darvaza.org/core v0.23.1
+	darvaza.org/core v0.23.3
 	github.com/amery/protogen v0.3.11
 )
 
